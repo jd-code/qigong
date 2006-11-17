@@ -53,10 +53,10 @@ namespace qiconn {
 	return new MPdiskstats (param);
     }
 
-    void RecordSet::add_channel  (CollectingConn * pcc) {
+    void RecordSet::add_channel  (CollectedConn * pcc) {
 	channels[pcc]=1;
     }
-    void RecordSet::remove_channel (CollectingConn * pcc) {
+    void RecordSet::remove_channel (CollectedConn * pcc) {
 	channels.erase(channels.find(pcc));
     }
     
@@ -74,7 +74,7 @@ namespace qiconn {
 	}
 	buf << endl;
 
-	map <CollectingConn *, int>::iterator mi;
+	map <CollectedConn *, int>::iterator mi;
 	for (mi=channels.begin() ; mi!=channels.end() ; mi++) {
 	    *(mi->first->out) << endl << buf.str();
 	    mi->first->flush();
@@ -201,7 +201,7 @@ namespace qiconn {
 	mrecordsets.erase(mi);
 
 	{   cerr << "unsubscribing channels" << endl;
-	    map <CollectingConn *, int>::iterator mi;
+	    map <CollectedConn *, int>::iterator mi;
 	    for (mi=prs->channels.begin() ; mi!=prs->channels.end() ; mi++)
 		mi->first->remove_subs (prs);
 	}
@@ -236,7 +236,7 @@ namespace qiconn {
  */
 
 
-    CollectingConn::CollectingConn (int fd, struct sockaddr_in const &client_addr) : DummyConnection(fd, client_addr) {
+    CollectedConn::CollectedConn (int fd, struct sockaddr_in const &client_addr) : DummyConnection(fd, client_addr) {
 	char buf[256];
 	if (gethostname (buf, 256) != 0)
 	    cerr << "could not get hostname : " << strerror (errno) << endl;
@@ -247,23 +247,23 @@ namespace qiconn {
 	(*out) << prompt ;
 	flush();
     }
-    CollectingConn::~CollectingConn (void) {
+    CollectedConn::~CollectedConn (void) {
 	map <RecordSet *, int>::iterator mi;
 	for (mi=subs.begin() ; mi!=subs.end() ; mi++)
 	    mi->first->remove_channel (this);
     }
 
-    void CollectingConn::add_subs  (RecordSet * prs, bool completereg /* = true */) {
+    void CollectedConn::add_subs  (RecordSet * prs, bool completereg /* = true */) {
 	subs[prs]=1;
 	if (completereg) prs->add_channel (this);
     }
     
-    void CollectingConn::remove_subs  (RecordSet * prs, bool completereg /* = true */) {
+    void CollectedConn::remove_subs  (RecordSet * prs, bool completereg /* = true */) {
 	subs.erase(subs.find(prs));
 	if (completereg) prs->remove_channel (this);
     }
     
-    void CollectingConn::lineread (void) {
+    void CollectedConn::lineread (void) {
 	string command;
 	size_t p;
 	//(*out) << "{" << bufin << "}" << endl;
@@ -278,7 +278,8 @@ namespace qiconn {
 		    << "  list" << endl
 		    << "  delete RecordSetIdent" << endl
 		    << "  activate RecordSetIdent" << endl
-		    << "  subscribe RecordSetIdent" << endl
+		    << "  subscribe|sub RecordSetIdent" << endl
+		    << "  unsubscribe|unsub RecordSetIdent" << endl
 		    << "  shutdown" << endl
 		    << "  quit" << endl
 		    << endl;
@@ -346,7 +347,7 @@ namespace qiconn {
 	    }
 	    (*out) << "activate: " << n << " activation" << ((n!=1) ? "s" : "") << " performed." << endl;
 
-	} else if (command=="subscribe") {  // ---------------------------------------------------------------------------------------------
+	} else if ((command=="subscribe") || (command=="sub")) {  // -----------------------------------------------------------------------
 
 	    string ident;
 	    int n=0;

@@ -18,7 +18,7 @@ namespace qiconn {
     using namespace std;
 
 #ifdef QIGONG_H_GLOBINST
-    char * version = "Qigong v0.5 - $Id:$";
+    char * version = "Qigong v0.5 - $Id$";
 #else
     external char * version;
 #endif
@@ -63,7 +63,7 @@ namespace qiconn {
     MeasurePoint* MPdiskstats_creator (const string & param);
 
     class RecordSet;
-    class CollectingConn;
+    class CollectedConn;
 
     SCOPE map<string, RecordSet*> mrecordsets;
     SCOPE multimap<time_t, RecordSet*> schedule;
@@ -75,12 +75,12 @@ namespace qiconn {
 	    list <MeasurePoint *> lmp;
 	    time_t interval;
 	    string name;
-	    map <CollectingConn *, int> channels;
+	    map <CollectedConn *, int> channels;
 	    RecordSet () {}
 	    ~RecordSet () {}
 	public:
-	    void add_channel  (CollectingConn * pcc);
-	    void remove_channel (CollectingConn * pcc);
+	    void add_channel  (CollectedConn * pcc);
+	    void remove_channel (CollectedConn * pcc);
 	    void measure (time_t t);
 	    void dump (ostream& cout) const;
     };
@@ -103,7 +103,7 @@ namespace qiconn {
 
 
     /*
-     *  ------------------- the collecting connections -------------------------------------------------------
+     *  ------------------- the collected connections --------------------------------------------------------
      */
 
 #ifdef QIGONG_H_GLOBINST
@@ -114,13 +114,13 @@ namespace qiconn {
     external string prompt;
 #endif
 
-    class CollectingConn : public DummyConnection
+    class CollectedConn : public DummyConnection
     {
 	public:
 	    void add_subs (RecordSet * prs, bool completereg = true);
 	    void remove_subs (RecordSet * prs, bool completereg = true);
-	    virtual ~CollectingConn (void);
-	    CollectingConn (int fd, struct sockaddr_in const &client_addr);
+	    virtual ~CollectedConn (void);
+	    CollectedConn (int fd, struct sockaddr_in const &client_addr);
 	    virtual void lineread (void);
 	    map <RecordSet *, int> subs;
     };
@@ -131,7 +131,7 @@ namespace qiconn {
 	    virtual ~SocketBinder (void) {}
 	    SocketBinder (int fd) : ListeningSocket (fd, "socketbinder") {}
 	    virtual DummyConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
-		return new CollectingConn (fd, client_addr);
+		return new CollectedConn (fd, client_addr);
 	    }
     };
 
