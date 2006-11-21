@@ -2,8 +2,8 @@
 all: qigong
 
 vimtest: qigong qicollect
-	# ./qicollect
-	./qigong && telnet localhost 3307
+	./qicollect
+	# ./qigong && telnet localhost 3307
 
 qicollect: qicollect.o qiconn.o
 	g++ -Wall -o qicollect qicollect.o qiconn.o
