@@ -149,7 +149,7 @@ namespace qiconn {
 				cerr << "line: " << line << " : trying to push some TaggedMeasuredPoint when no CollectionSet is defined !" << endl;
 				return -1;
 			    }
-			    state = seektagname;
+			    state = seektagorend;
 			}
 			break;
 
@@ -188,9 +188,19 @@ namespace qiconn {
 			    cerr << "line: " << line << " : seeking for tagname could not find any suitable ident" << endl;
 			    return -1;
 			}
-			tagmp_tagname = ident;
-			// cout << "-----------> tagname: " << ident << endl;
-			state = seekequal;
+			if (ident=="collect") {
+			    if (pcurcs == NULL) {
+				cerr << "line: " << line << " : trying to end the definition of CollectionSet whith NULL allocated ?" << endl;
+				return -1;
+			    }
+			    lpcs.push_back(pcurcs);
+			    pcurcs = NULL;
+			    state = seekcollectname;
+			} else {
+			    tagmp_tagname = ident;
+			    // cout << "-----------> tagname: " << ident << endl;
+			    state = seekequal;
+			}
 			break;
 
 
@@ -438,7 +448,7 @@ namespace qiconn {
 	    for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++)
 		cout << "         " << **li << endl;
 	}
-	return cout << endl;
+	return cout;
     }
 
     ostream& operator<< (ostream& cout, CollectionSet const& cs) {
@@ -448,7 +458,7 @@ namespace qiconn {
     ostream& operator<< (ostream& cout, list<CollectionSet *> const& l) {
 	list<CollectionSet *>::const_iterator li;
 	for (li=l.begin() ; li!=l.end() ; li++)
-	    cout << **li << endl;
+	    cout << **li ;
 	return cout;
     }
 } // namespace qiconn
@@ -470,7 +480,7 @@ int main (int nb, char ** cmde) {
 	cerr << "there were errors reading fonf file \"" << confname << "\"" << endl;
 	return -1;
     }
-    cout << runconfig << endl;
+    cout << runconfig;
     return 0;
 
     
