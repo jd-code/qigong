@@ -17,7 +17,7 @@ namespace qiconn {
     using namespace std;
 
 #ifdef QICOLLECT_H_GLOBINST
-    char * version = "Qicollect v0.5 - $Id:$";
+    char * version = "Qicollect v0.5 - $Id$";
 #else
     external char * version;
 #endif
@@ -26,6 +26,71 @@ namespace qiconn {
 
 
 
+    /*
+     *  ------------------- Configuration : TaggedMeasuredPoint ----------------------------------------------
+     */
+
+    class TaggedMeasuredPoint
+    {
+	private:
+	    string tagname, fn, params;
+	public:
+	    TaggedMeasuredPoint (string tagname, string fn, string params) {
+		TaggedMeasuredPoint::tagname = tagname,
+		TaggedMeasuredPoint::fn = fn,
+		TaggedMeasuredPoint::params = params;
+		// cerr << "new TaggedMeasuredPoint(" <<  tagname << ", " << fn << ", " << params << ")" << endl;
+	    }
+	    ostream& dump (ostream& cout) const;
+    };
+    
+    /*
+     *  ------------------- Configuration : CollectFreqDuration ----------------------------------------------
+     */
+
+    class CollectFreqDuration
+    {
+	public: 
+	    long interval, duration;
+	    inline CollectFreqDuration (long interval, long duration) {
+		CollectFreqDuration::interval = interval;
+		CollectFreqDuration::duration = duration;
+		// cerr << "new CollectFreqDuration (" << interval << ", " << duration << ")" << endl;
+	    }
+    };
+    
+    /*
+     *  ------------------- Configuration : CollectionSet ----------------------------------------------------
+     */
+
+    class CollectionSet
+    {
+	private:
+	    string name, fqdn;
+	    int port;
+	    list<TaggedMeasuredPoint*> lptagmp;
+	    list<CollectFreqDuration> lfreq;
+	public:
+	    inline CollectionSet (string name, string fqdn, int port=1264) {
+		CollectionSet::name = name;
+		CollectionSet::fqdn = fqdn;
+		CollectionSet::port = port;
+		// cerr << "new CollectionSet(" << name << ", " << fqdn << ":" << port << ")" << endl;
+	    }
+	    inline ~CollectionSet (void) {
+		list <TaggedMeasuredPoint*>::iterator li;
+		for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++)
+		    delete (*li);
+	    }
+	    inline void push_back (TaggedMeasuredPoint* ptagmp) {
+		lptagmp.push_back (ptagmp);
+	    }
+	    inline void push_back (CollectFreqDuration & freq) {
+		lfreq.push_back (freq);
+	    }
+	    ostream& dump (ostream& cout) const;
+    };
+    
     /*
      *  ------------------- the measuring polling system -----------------------------------------------------
      */

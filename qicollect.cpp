@@ -45,7 +45,7 @@ namespace qiconn {
  *  ------------------- readconf -------------------------------------------------------------------------
  */
 
-    int readconf (istream& cin) {
+    int readconf (istream& cin, list<CollectionSet *>& lpcs) {
 	char c;
 	size_t line=0;
 	enum {			// we're waiting for :
@@ -66,6 +66,19 @@ namespace qiconn {
 		seekcollectfn,	// collecting function
 		seekendparam,	// end of collecting function's parameters
 	     } state = seekdeclare;
+
+	// the currently in-creation-process TaggedMeasuredPoint
+	string tagmp_tagname,
+	       tagmp_fn,
+	       tagmp_params;
+	// the currently in-creation CollectionSet
+	string curcs_name,
+	       curcs_fqdn;
+	int	   curcs_port;
+	CollectionSet* pcurcs = NULL;
+	// the currently built CollectFreqDuration
+	CollectFreqDuration freq(-1, -1);
+	    
 	while (cin) {
 	    string s;
 	    long v;
@@ -92,7 +105,20 @@ namespace qiconn {
 			    return -1;
 			}
 			ident = s.substr(p,s.find(')',p)-p);
-			cout << "-----------> param: " << ident << endl;
+			tagmp_params = ident;
+			if (pcurcs != NULL) {
+			    TaggedMeasuredPoint* p = new TaggedMeasuredPoint (tagmp_tagname, tagmp_fn, tagmp_params);
+			    if (p == NULL) {
+				cerr << "line: " << line << " : could allocate TaggedMeasuredPoint(" << tagmp_tagname << ") : "
+				     << strerror(errno) << endl;
+				return -1;
+			    }
+			    pcurcs->push_back (p);
+			} else {
+			    cerr << "line: " << line << " : trying to push some TaggedMeasuredPoint when no CollectionSet is defined !" << endl;
+			    return -1;
+			}
+			// cout << "-----------> param: " << ident << endl;
 			p = s.find(')') + 1;
 			state = seektagorend;
 			break;
@@ -104,12 +130,27 @@ namespace qiconn {
 			    cerr << "line: " << line << " : seeking for collecting function could not find any suitable ident" << endl;
 			    return -1;
 			}
-			cout << "-----------> function: " << ident << endl;
+			tagmp_fn = ident;
+			// cout << "-----------> function: " << ident << endl;
 			if (p!=string::npos && (s[p]=='(')) {
 			    p++;
 			    state = seekendparam;
-			} else
+			} else {
+			    tagmp_params = "";
+			    if (pcurcs != NULL) {
+				TaggedMeasuredPoint* p = new TaggedMeasuredPoint (tagmp_tagname, tagmp_fn, tagmp_params);
+				if (p == NULL) {
+				    cerr << "line: " << line << " : could allocate TaggedMeasuredPoint(" << tagmp_tagname << ") : "
+					 << strerror(errno) << endl;
+				    return -1;
+				}
+				pcurcs->push_back (p);
+			    } else {
+				cerr << "line: " << line << " : trying to push some TaggedMeasuredPoint when no CollectionSet is defined !" << endl;
+				return -1;
+			    }
 			    state = seektagname;
+			}
 			break;
 
 		    case seekequal:
@@ -128,6 +169,12 @@ namespace qiconn {
 			if (p==string::npos) continue;
 			if (s[p] == '}') {
 			    p++;
+			    if (pcurcs == NULL) {
+				cerr << "line: " << line << " : trying to end the definition of CollectionSet whith NULL allocated ?" << endl;
+				return -1;
+			    }
+			    lpcs.push_back(pcurcs);
+			    pcurcs = NULL;
 			    state = seekdeclare;
 			} else {
 			    state = seektagname;
@@ -141,7 +188,8 @@ namespace qiconn {
 			    cerr << "line: " << line << " : seeking for tagname could not find any suitable ident" << endl;
 			    return -1;
 			}
-			cout << "-----------> tagname: " << ident << endl;
+			tagmp_tagname = ident;
+			// cout << "-----------> tagname: " << ident << endl;
 			state = seekequal;
 			break;
 
@@ -154,6 +202,12 @@ namespace qiconn {
 			    return -1;
 			}
 			p++;
+			if (pcurcs != NULL) {
+			    pcurcs->push_back (freq);
+			} else {
+			    cerr << "line: " << line << " : trying to push some CollectFreqDuration when no CollectionSet is defined !" << endl;
+			    return -1;
+			}
 			state = seekcolentry;
 			break;
 
@@ -185,7 +239,8 @@ namespace qiconn {
 			    return -1;
 			}
 			p++;
-			cout << "-----------> interval: " << v << endl; 
+			freq.duration = v;
+			// cout << "-----------> duration: " << v << endl; 
 			state = seekrddenpar;
 			break;
 		    
@@ -228,7 +283,8 @@ namespace qiconn {
 			    return -1;
 			}
 			p++;
-			cout << "-----------> interval: " << v << endl; 
+			freq.interval = v;
+			// cout << "-----------> interval: " << v << endl; 
 			state = seekmultiplier;
 			break;
 		    
@@ -250,12 +306,32 @@ namespace qiconn {
 			    cerr << "line: " << line << " : seeking for identifiername could not find any suitable ident" << endl;
 			    return -1;
 			}
-			cout << "-----------> connection: " << ident << endl;
+			curcs_fqdn = ident;
+			// cout << "-----------> connection: " << ident << endl;
 			if ((p!=string::npos) && (s[p]==':')) { // there's a port attached
-			    p = getidentifier (s, ident, p);
-			    cout << "-----------> port: " << ident << endl;
-			} else
-			    cout << "-----------> port: default" << endl; 
+			    v = 0;
+			    p = getinteger (s, v, p);
+			    if (v == 0) {
+				cerr << "line: " << line << " : seeking for connection port could not find suitable value" << endl;
+				return -1;
+			    }
+			    curcs_port = v;
+			    pcurcs = new CollectionSet (curcs_name, curcs_fqdn, curcs_port);
+			    if (pcurcs == NULL) {
+				cerr << "line: " << line << " : could not allocate CollectionSet(" << curcs_name << ") : "
+				     << strerror(errno) << endl;
+				return -1;
+			    }
+			    // cout << "-----------> port: " << v << endl;
+			} else {
+			    // cout << "-----------> port: default" << endl; 
+			    pcurcs = new CollectionSet (curcs_name, curcs_fqdn);
+			    if (pcurcs == NULL) {
+				cerr << "line: " << line << " : could not allocate CollectionSet(" << curcs_name << ") : "
+				     << strerror(errno) << endl;
+				return -1;
+			    }
+			}
 			state = seekcolentry;
 			break;
 
@@ -280,7 +356,8 @@ namespace qiconn {
 			    cerr << "line: " << line << " : seeking for collect-name could not find any suitable ident" << endl;
 			    return -1;
 			}
-			cout << "-----------> collectname: " << ident << endl;
+			curcs_name = ident;
+			// cout << "-----------> collectname: " << ident << endl;
 			state = seekconnection;
 			break;
 
@@ -306,7 +383,7 @@ namespace qiconn {
 			    cerr << "line: " << line << " : seeking for identifiername could not find any suitable ident" << endl;
 			    return -1;
 			}
-			cout << "-----------> hostname: " << ident << endl;
+			// cout << "-----------> hostname: " << ident << endl;
 			state = seekhostbegin;
 			break;
 
@@ -322,13 +399,58 @@ namespace qiconn {
 			break;
 		}
 	    }
-
-	    cout << s << endl;
 	}
-	cerr << line << " lines read." << endl;
+	if (state != seekdeclare) {
+	    cerr << "line : " << line << " premature end of file !" << endl;
+	    return -1;
+	}
 	return 0;
     }
 
+    // the current running config
+    list<CollectionSet *> runconfig;
+    
+    ostream& TaggedMeasuredPoint::dump (ostream& cout) const {
+	cout << tagname << " = " << fn;
+	if (!params.empty())
+	    cout << "(" << params << ")";
+	return cout;
+    }
+
+    ostream& operator<< (ostream& cout, TaggedMeasuredPoint const & tagmp) {
+	return tagmp.dump (cout);
+    }
+    
+    ostream& operator<< (ostream& cout, CollectFreqDuration const & cfd) {
+	return cout << "(" << cfd.interval << " x " << cfd.duration << ")";
+    }
+    
+    ostream& CollectionSet::dump (ostream& cout) const {
+	cout << "    collect " << name << " " << fqdn ;
+	if (port != 1264)
+	    cout << ":" << port;
+	{   list<CollectFreqDuration>::const_iterator li;
+	    for (li=lfreq.begin() ; li!=lfreq.end() ; li++)
+		cout << " " << *li;
+	    cout << endl;
+	}
+	{   list<TaggedMeasuredPoint*>::const_iterator li;
+	    for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++)
+		cout << "         " << **li << endl;
+	}
+	return cout << endl;
+    }
+
+    ostream& operator<< (ostream& cout, CollectionSet const& cs) {
+	return cs.dump(cout);
+    }
+    
+    ostream& operator<< (ostream& cout, list<CollectionSet *> const& l) {
+	list<CollectionSet *>::const_iterator li;
+	for (li=l.begin() ; li!=l.end() ; li++)
+	    cout << **li << endl;
+	return cout;
+    }
 } // namespace qiconn
 
 using namespace std;
@@ -344,10 +466,11 @@ int main (int nb, char ** cmde) {
 	return -1;
     }
     int nberr;
-    if ((nberr = readconf (fconf)) != 0) {
+    if ((nberr = readconf (fconf, runconfig)) != 0) {
 	cerr << "there were errors reading fonf file \"" << confname << "\"" << endl;
 	return -1;
     }
+    cout << runconfig << endl;
     return 0;
 
     
