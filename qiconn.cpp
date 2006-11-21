@@ -595,6 +595,35 @@ namespace qiconn
 	return p;
     }
 
+    size_t getfqdn (const string &s, string &ident, size_t p /* = 0 */ ) {
+	size_t l = s.size();
+	ident = "";
+
+	p = seekspace(s, p);
+	
+	if (p == string::npos)
+	    return string::npos;
+	
+	if (p >= l)
+	    return string::npos;
+
+	if (! isalnum(s[p]))
+	    return p;
+
+	while (p < l) {
+	    if (isalnum (s[p]) || (s[p]=='.') || (s[p]=='-')) {
+		ident += s[p];
+		p++;
+	    } else
+		break;
+	}
+
+	if (p >= l)
+	    return string::npos;
+
+	return p;
+    }
+
     size_t getinteger (const string &s, long &n, size_t p /* = 0 */ ) {
 	size_t l = s.size();
 	string buf;

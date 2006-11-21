@@ -218,6 +218,7 @@ namespace qiconn
     bool getstring (istream & cin, string &s, size_t maxsize = 2048);
     size_t seekspace (const string &s, size_t p = 0);
     size_t getidentifier (const string &s, string &ident, size_t p = 0);
+    size_t getfqdn (const string &s, string &ident, size_t p = 0 );
     size_t getinteger (const string &s, long &n, size_t p = 0);
 
 }   // namespace qiconn
