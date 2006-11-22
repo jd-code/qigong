@@ -42,43 +42,102 @@ namespace qiconn {
     }
     
 /*
+ *  ------------------- CollectionsConf ------------------------------------------------------------------
+ */
+
+    CollectionsConf::~CollectionsConf (void) {
+	map<string, CollectionSet *>::iterator mi;
+	for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++)
+	    delete (mi->second);
+    }
+    bool CollectionsConf::push_back (CollectionSet * pcs) {
+	if (pcs==NULL)
+	    return false;
+	map<string, CollectionSet *>::iterator mi = mpcs.find(pcs->getkey());
+	if (mi != mpcs.end())
+	    return false;
+	mpcs[pcs->getkey()] = pcs;
+	return true;
+    }
+    bool CollectionsConf::add_host (string name) {
+	map<string, int>::iterator mi = hosts_names.find (name);
+	if (mi != hosts_names.end())
+	    return false;
+	hosts_names[name] = 0;
+	return true;
+    }
+    bool CollectionsConf::add_service (string name) {
+	map<string, int>::iterator mi = services_names.find (name);
+	if (mi != services_names.end())
+	    return false;
+	services_names[name] = 0;
+	return true;
+    }
+    ostream & CollectionsConf::dump (ostream &cout) const {
+	return cout << mpcs;
+    }
+    
+/*
  *  ------------------- readconf -------------------------------------------------------------------------
  */
 
-    int readconf (istream& cin, list<CollectionSet *>& lpcs) {
-	char c;
-	size_t line=0;
-	enum {			// we're waiting for :
-		seekdeclare,	// 'host' or 'service'
-		seekhostname,	// hostname
-		seekhostbegin,	// '{'
-		seekcollect,	// 'collect'
-		seekcollectname,// collect-name
-		seekconnection,	// fqdn(:port)
-		seekcolentry,	// next collect entry : () or tagname
-		seekrddtabledef,// first entry of rddtabledef
-		seekmultiplier,	// the multiplier between the two rddtabledef's elements
-		seekrddtable2nd,// second entry of rddtabledef
-		seekrddenpar,	// end of rddtabledef
-		seektagorend,	// tagname or ending brace
-		seektagname,	// tagname
-		seekequal,	// equal for tagname affectation
-		seekcollectfn,	// collecting function
-		seekendparam,	// end of collecting function's parameters
-	     } state = seekdeclare;
-
-	// the currently in-creation-process TaggedMeasuredPoint
-	string tagmp_tagname,
-	       tagmp_fn,
-	       tagmp_params;
-	// the currently in-creation CollectionSet
-	string curcs_name,
-	       curcs_fqdn;
-	int	   curcs_port;
-	CollectionSet* pcurcs = NULL;
-	// the currently built CollectFreqDuration
-	CollectFreqDuration freq(-1, -1);
+    class ReadConf {
+	private:
+	    typedef enum {			// we're waiting for :
+				seekdeclare,	// 'host' or 'service'
+				seekhostname,	// hostname
+				seekhostbegin,	// '{'
+				seekcollect,	// 'collect'
+				seekcollectname,// collect-name
+				seekconnection,	// fqdn(:port)
+				seekcolentry,	// next collect entry : () or tagname
+				seekrddtabledef,// first entry of rddtabledef
+				seekmultiplier,	// the multiplier between the two rddtabledef's elements
+				seekrddtable2nd,// second entry of rddtabledef
+				seekrddenpar,	// end of rddtabledef
+				seektagorend,	// tagname or ending brace
+				seektagname,	// tagname
+				seekequal,	// equal for tagname affectation
+				seekcollectfn,	// collecting function
+				seekendparam,	// end of collecting function's parameters
+			     } RCState;
 	    
+	    size_t line;
+	    RCState state;
+
+	    // the current metaname
+	    string metaname;
+	    
+	    // the currently in-creation-process TaggedMeasuredPoint
+	    string tagmp_tagname,
+		   tagmp_fn,
+		   tagmp_params;
+	    // the currently in-creation CollectionSet
+	    string curcs_name,
+		   curcs_fqdn;
+	    int	   curcs_port;
+	    CollectionSet* pcurcs;
+	    // the currently built CollectFreqDuration
+	    CollectFreqDuration freq;
+	    
+	    void safeclose (void);
+	public:
+	    ReadConf (void) {}
+	    int readconf (istream& cin, CollectionsConf &conf);
+    };
+    
+    void ReadConf::safeclose (void) {
+	if (pcurcs != NULL) {
+	    cerr << "(deleting one temporary CollectionSet)" << endl;
+	    delete (pcurcs);
+	}
+    }
+    
+    int ReadConf::readconf (istream& cin, CollectionsConf &conf) {
+	line = 0;
+	state = seekdeclare;
+	pcurcs = NULL;
+	char c;
 	while (cin) {
 	    string s;
 	    long v;
@@ -102,7 +161,7 @@ namespace qiconn {
 		    case seekendparam:
 			if (s.find(')') == string::npos) {
 			    cerr << "line: " << line << " : could no find matching ending parenthesis on the same line" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			ident = s.substr(p,s.find(')',p)-p);
 			tagmp_params = ident;
@@ -111,12 +170,12 @@ namespace qiconn {
 			    if (p == NULL) {
 				cerr << "line: " << line << " : could allocate TaggedMeasuredPoint(" << tagmp_tagname << ") : "
 				     << strerror(errno) << endl;
-				return -1;
+				safeclose() ; return -1;
 			    }
 			    pcurcs->push_back (p);
 			} else {
 			    cerr << "line: " << line << " : trying to push some TaggedMeasuredPoint when no CollectionSet is defined !" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			// cout << "-----------> param: " << ident << endl;
 			p = s.find(')') + 1;
@@ -128,7 +187,7 @@ namespace qiconn {
 			if (ident.size() == 0) {
 			    if (p==string::npos) continue;
 			    cerr << "line: " << line << " : seeking for collecting function could not find any suitable ident" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			tagmp_fn = ident;
 			// cout << "-----------> function: " << ident << endl;
@@ -142,12 +201,12 @@ namespace qiconn {
 				if (p == NULL) {
 				    cerr << "line: " << line << " : could allocate TaggedMeasuredPoint(" << tagmp_tagname << ") : "
 					 << strerror(errno) << endl;
-				    return -1;
+				    safeclose() ; return -1;
 				}
 				pcurcs->push_back (p);
 			    } else {
 				cerr << "line: " << line << " : trying to push some TaggedMeasuredPoint when no CollectionSet is defined !" << endl;
-				return -1;
+				safeclose() ; return -1;
 			    }
 			    state = seektagorend;
 			}
@@ -158,7 +217,7 @@ namespace qiconn {
 			if (p==string::npos) continue;
 			if (s[p] != '=') {
 			    cerr << "line: " << line << " : could not find '=' " << s[p] << "' instead" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			p++;
 			state = seekcollectfn;
@@ -171,10 +230,11 @@ namespace qiconn {
 			    p++;
 			    if (pcurcs == NULL) {
 				cerr << "line: " << line << " : trying to end the definition of CollectionSet whith NULL allocated ?" << endl;
-				return -1;
+				safeclose() ; return -1;
 			    }
-			    lpcs.push_back(pcurcs);
+			    conf.push_back(pcurcs);
 			    pcurcs = NULL;
+			    metaname = "";
 			    state = seekdeclare;
 			} else {
 			    state = seektagname;
@@ -186,14 +246,14 @@ namespace qiconn {
 			if (ident.size() == 0) {
 			    if (p==string::npos) continue;
 			    cerr << "line: " << line << " : seeking for tagname could not find any suitable ident" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			if (ident=="collect") {
 			    if (pcurcs == NULL) {
 				cerr << "line: " << line << " : trying to end the definition of CollectionSet whith NULL allocated ?" << endl;
-				return -1;
+				safeclose() ; return -1;
 			    }
-			    lpcs.push_back(pcurcs);
+			    conf.push_back(pcurcs);
 			    pcurcs = NULL;
 			    state = seekcollectname;
 			} else {
@@ -209,14 +269,14 @@ namespace qiconn {
 			if (p==string::npos) continue;
 			if (s[p] != ')') {
 			    cerr << "line: " << line << " : could not find ')' " << s[p] << "' instead" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			p++;
 			if (pcurcs != NULL) {
 			    pcurcs->push_back (freq);
 			} else {
 			    cerr << "line: " << line << " : trying to push some CollectFreqDuration when no CollectionSet is defined !" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			state = seekcolentry;
 			break;
@@ -228,11 +288,11 @@ namespace qiconn {
 			    if (p==string::npos) continue;
 			    cerr << "line: " << line << " : seeking for rddtabledef could not find any suitable value" << endl;
 			    cerr << "   arround:" << s.substr(p) << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			if (p==string::npos) {
 			    cerr << "line: " << line << " : seeking for rddtabledef missing time definition (s,m,h D,W,Y)" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			switch (s[p]) {
 			    case 's':			break;
@@ -246,7 +306,7 @@ namespace qiconn {
 			    case 'y': v*=60*60*24*366;	break;
 			    default:
 			    cerr << "line: " << line << " : seeking for rddtabledef missing time definition (s,m,h D,W,Y)" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			p++;
 			freq.duration = v;
@@ -259,7 +319,7 @@ namespace qiconn {
 			if (p==string::npos) continue;
 			if (s[p] != 'x') {
 			    cerr << "line: " << line << " : could not find 'x' " << s[p] << "' instead" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			p++;
 			state = seekrddtable2nd;
@@ -272,11 +332,11 @@ namespace qiconn {
 			    if (p==string::npos) continue;
 			    cerr << "line: " << line << " : seeking for rddtabledef could not find any suitable value" << endl;
 			    cerr << "   arround:" << s.substr(p) << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			if (p==string::npos) {
 			    cerr << "line: " << line << " : seeking for rddtabledef missing time definition (s,m,h D,W,Y)" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			switch (s[p]) {
 			    case 's':			break;
@@ -290,7 +350,7 @@ namespace qiconn {
 			    case 'y': v*=60*60*24*366;	break;
 			    default:
 			    cerr << "line: " << line << " : seeking for rddtabledef missing time definition (s,m,h D,W,Y)" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			p++;
 			freq.interval = v;
@@ -314,7 +374,7 @@ namespace qiconn {
 			if (ident.size() == 0) {
 			    if (p==string::npos) continue;
 			    cerr << "line: " << line << " : seeking for identifiername could not find any suitable ident" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			curcs_fqdn = ident;
 			// cout << "-----------> connection: " << ident << endl;
@@ -323,23 +383,31 @@ namespace qiconn {
 			    p = getinteger (s, v, p);
 			    if (v == 0) {
 				cerr << "line: " << line << " : seeking for connection port could not find suitable value" << endl;
-				return -1;
+				safeclose() ; return -1;
 			    }
 			    curcs_port = v;
-			    pcurcs = new CollectionSet (curcs_name, curcs_fqdn, curcs_port);
+			    if (metaname.empty()) {
+				cerr << "line: " << line << " : no host or service currently declared cannot create CollectionSet" << endl;
+				safeclose() ; return -1;
+			    }
+			    pcurcs = new CollectionSet (curcs_name, metaname, curcs_fqdn, curcs_port);
 			    if (pcurcs == NULL) {
 				cerr << "line: " << line << " : could not allocate CollectionSet(" << curcs_name << ") : "
 				     << strerror(errno) << endl;
-				return -1;
+				safeclose() ; return -1;
 			    }
 			    // cout << "-----------> port: " << v << endl;
 			} else {
 			    // cout << "-----------> port: default" << endl; 
-			    pcurcs = new CollectionSet (curcs_name, curcs_fqdn);
+			    if (metaname.empty()) {
+				cerr << "line: " << line << " : no host or service currently declared cannot create CollectionSet" << endl;
+				safeclose() ; return -1;
+			    }
+			    pcurcs = new CollectionSet (curcs_name, metaname, curcs_fqdn);
 			    if (pcurcs == NULL) {
 				cerr << "line: " << line << " : could not allocate CollectionSet(" << curcs_name << ") : "
 				     << strerror(errno) << endl;
-				return -1;
+				safeclose() ; return -1;
 			    }
 			}
 			state = seekcolentry;
@@ -350,13 +418,13 @@ namespace qiconn {
 			if (ident.size() == 0) {
 			    if (p==string::npos) continue;
 			    cerr << "line: " << line << " : seeking for collect could not find any keyword" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			else if (ident == "collect") {
 			    state = seekcollectname;
 			} else {
 			    cerr << "line: " << line << " : unknown keyword \"" << ident << "\"" << endl ;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			break;
 		    case seekcollectname:
@@ -364,7 +432,7 @@ namespace qiconn {
 			if (ident.size() == 0) {
 			    if (p==string::npos) continue;
 			    cerr << "line: " << line << " : seeking for collect-name could not find any suitable ident" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			curcs_name = ident;
 			// cout << "-----------> collectname: " << ident << endl;
@@ -377,13 +445,13 @@ namespace qiconn {
 			if (ident.size() == 0) {
 			    if (p==string::npos) continue;
 			    cerr << "line: " << line << " : seeking for declaration could not find any keyword" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			else if (ident == "host") {
 			    state = seekhostname;
 			} else {
 			    cerr << "line: " << line << " : unknown keyword \"" << ident << "\"" << endl ;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			break;
 		    case seekhostname:
@@ -391,8 +459,10 @@ namespace qiconn {
 			if (ident.size() == 0) {
 			    if (p==string::npos) continue;
 			    cerr << "line: " << line << " : seeking for identifiername could not find any suitable ident" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
+			metaname = ident;
+			conf.add_host (metaname);
 			// cout << "-----------> hostname: " << ident << endl;
 			state = seekhostbegin;
 			break;
@@ -402,7 +472,7 @@ namespace qiconn {
 			if (p==string::npos) continue;
 			if (s[p] != '{') {
 			    cerr << "line: " << line << " : could not find opening brace, found è" << s[p] << "' instead" << endl;
-			    return -1;
+			    safeclose() ; return -1;
 			}
 			p++;
 			state = seekcollect;
@@ -412,14 +482,11 @@ namespace qiconn {
 	}
 	if (state != seekdeclare) {
 	    cerr << "line : " << line << " premature end of file !" << endl;
-	    return -1;
+	    safeclose() ; return -1;
 	}
 	return 0;
     }
 
-    // the current running config
-    list<CollectionSet *> runconfig;
-    
     ostream& TaggedMeasuredPoint::dump (ostream& cout) const {
 	cout << tagname << " = " << fn;
 	if (!params.empty())
@@ -455,12 +522,24 @@ namespace qiconn {
 	return cs.dump(cout);
     }
     
-    ostream& operator<< (ostream& cout, list<CollectionSet *> const& l) {
-	list<CollectionSet *>::const_iterator li;
+    ostream& operator<< (ostream& cout, map<string, CollectionSet *> const& l) {
+	map<string, CollectionSet *>::const_iterator li;
 	for (li=l.begin() ; li!=l.end() ; li++)
-	    cout << **li ;
+	    cout << *(li->second) ;
 	return cout;
     }
+
+    ostream& operator<< (ostream& cout, CollectionsConf const &conf) {
+	return conf.dump (cout);
+    }
+    
+    /*
+     *	------------------------------------------------------------------------------------------------------
+     */
+    
+    // the current running config
+    CollectionsConf runconfig;
+    
 } // namespace qiconn
 
 using namespace std;
@@ -476,7 +555,8 @@ int main (int nb, char ** cmde) {
 	return -1;
     }
     int nberr;
-    if ((nberr = readconf (fconf, runconfig)) != 0) {
+    ReadConf rc;
+    if ((nberr = rc.readconf (fconf, runconfig)) != 0) {
 	cerr << "there were errors reading fonf file \"" << confname << "\"" << endl;
 	return -1;
     }
