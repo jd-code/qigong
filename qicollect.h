@@ -52,7 +52,7 @@ namespace qiconn {
     {
 	public: 
 	    long interval, duration;
-	    inline CollectFreqDuration (long interval, long duration) {
+	    inline CollectFreqDuration (long interval = -1, long duration = -1) {
 		CollectFreqDuration::interval = interval;
 		CollectFreqDuration::duration = duration;
 		// cerr << "new CollectFreqDuration (" << interval << ", " << duration << ")" << endl;
@@ -66,15 +66,20 @@ namespace qiconn {
     class CollectionSet
     {
 	private:
-	    string name, fqdn;
-	    int port;
+	    string name,	// collection name
+		   fqdn,	// fqdn name for connection
+		   metaname;	// host or service meta-name (not connection)
+	    int port;		// port for connection
+	    string key;
 	    list<TaggedMeasuredPoint*> lptagmp;
 	    list<CollectFreqDuration> lfreq;
 	public:
-	    inline CollectionSet (string name, string fqdn, int port=1264) {
+	    inline CollectionSet (string name, string metaname, string fqdn, int port=1264) {
 		CollectionSet::name = name;
+		CollectionSet::metaname = metaname;
 		CollectionSet::fqdn = fqdn;
 		CollectionSet::port = port;
+		key = metaname + '_' + name;
 		// cerr << "new CollectionSet(" << name << ", " << fqdn << ":" << port << ")" << endl;
 	    }
 	    inline ~CollectionSet (void) {
@@ -89,6 +94,28 @@ namespace qiconn {
 		lfreq.push_back (freq);
 	    }
 	    ostream& dump (ostream& cout) const;
+	    inline const string & getkey (void) const {
+		return key;
+	    }
+    };
+    
+    
+    /*
+     *  ------------------- Configuration : CollectionsConf --------------------------------------------------
+     */
+
+    class CollectionsConf {
+	private:
+	    map<string, CollectionSet *> mpcs;
+	    map<string, int> hosts_names;
+	    map<string, int> services_names;
+	public:
+	    CollectionsConf () {}
+	    ~CollectionsConf (void);
+	    bool push_back (CollectionSet * pcs);
+	    bool add_host (string name);
+	    bool add_service (string name);
+	    ostream & dump (ostream &cout) const;
     };
     
     /*
@@ -128,6 +155,13 @@ namespace qiconn {
     };
 
 
+
+    ostream& operator<< (ostream& cout, TaggedMeasuredPoint const & tagmp);
+    ostream& operator<< (ostream& cout, CollectFreqDuration const & cfd);
+    ostream& operator<< (ostream& cout, CollectionSet const& cs);
+    ostream& operator<< (ostream& cout, map<string, CollectionSet *> const& l);
+    ostream& operator<< (ostream& cout, CollectionsConf const &conf);
+    
 } // namespace qiconn
 
 #endif // QICOLLECT_H_INCLUDE
