@@ -34,14 +34,17 @@ namespace qiconn {
     {
 	private:
 	    string tagname, fn, params;
+	    time_t interval;
 	public:
 	    TaggedMeasuredPoint (string tagname, string fn, string params) {
 		TaggedMeasuredPoint::tagname = tagname,
 		TaggedMeasuredPoint::fn = fn,
 		TaggedMeasuredPoint::params = params;
+		interval = 0;
 		// cerr << "new TaggedMeasuredPoint(" <<  tagname << ", " << fn << ", " << params << ")" << endl;
 	    }
 	    ostream& dump (ostream& cout) const;
+	    string get_DSdef (time_t heartbeat);
     };
     
     /*
@@ -56,6 +59,9 @@ namespace qiconn {
 		CollectFreqDuration::interval = interval;
 		CollectFreqDuration::duration = duration;
 		// cerr << "new CollectFreqDuration (" << interval << ", " << duration << ")" << endl;
+	    }
+	    bool operator< (CollectFreqDuration const & cfd) const {
+		return interval < cfd.interval;
 	    }
     };
     
@@ -97,6 +103,9 @@ namespace qiconn {
 	    inline const string & getkey (void) const {
 		return key;
 	    }
+
+	    int validate_freqs (void);
+	    void buildmissing_rrd (void);
     };
     
     
@@ -104,9 +113,11 @@ namespace qiconn {
      *  ------------------- Configuration : CollectionsConf --------------------------------------------------
      */
 
+    typedef map<string, CollectionSet *> MpCS;
+    
     class CollectionsConf {
 	private:
-	    map<string, CollectionSet *> mpcs;
+	    MpCS mpcs;
 	    map<string, int> hosts_names;
 	    map<string, int> services_names;
 	public:
@@ -116,6 +127,8 @@ namespace qiconn {
 	    bool add_host (string name);
 	    bool add_service (string name);
 	    ostream & dump (ostream &cout) const;
+
+	    void buildmissing_rrd (void);
     };
     
     /*

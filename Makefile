@@ -1,12 +1,13 @@
 
-all: qigong
+all: qigong qicollect
 
-vimtest: qigong qicollect
-	./qicollect
-	# ./qigong && telnet localhost 3307
+vimtest: all
+	# ./qicollect
+	# ./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
+	./qigong ; ./qicollect ; telnet localhost 1264 ; tail /var/log/qigong.log
 
 qicollect: qicollect.o qiconn.o
-	g++ -Wall -o qicollect qicollect.o qiconn.o
+	g++ -Wall -o qicollect  -L /usr/local/lib -lrrd   qicollect.o qiconn.o
 
 qigong: qigong.o qiconn.o
 	g++ -Wall -o qigong qigong.o qiconn.o

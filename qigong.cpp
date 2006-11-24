@@ -64,13 +64,13 @@ namespace qiconn {
 	time_t curt = time(NULL);
 	schedule.insert(pair<time_t, RecordSet*>(t + interval, this));
 	stringstream buf;
-	buf << "-->" << hostname << '_' << name << ' ' << curt;
+	buf << "-->" << name << ' ' << curt;
 // buf << ' ' << (curt % interval);
 	list <MeasurePoint *>::iterator li;
 	for (li=lmp.begin() ; li!=lmp.end() ; li++) {
 	    string b;
 	    (*li)->measure(b);
-	    buf << ' ' << b;
+	    buf << ':' << b;
 	}
 	buf << endl;
 
@@ -447,6 +447,32 @@ int main (int nb, char ** cmde) {
 	return -1;
     }
 
+
+    init_mmpcreators();
+
+    createrecordset ("allo 12 method(38) diskstats(sda) load() trcumuch(1 2 3   ", cerr);
+    createrecordset ("allo 1 method(38) diskstats(sda) load() diskstats", cerr);
+    createrecordset ("alli 5 method(38) diskstats(hda) load()", cerr);
+    
+    MeasurePool cp;
+    
+    cp.init_signal ();
+    
+    int s = server_pool (1264);
+    // init_connect ("miso.local", 25);
+    if (s < 0) {
+	cerr << "could not instanciate connection pool, bailing out !" << endl;
+	return -1;
+    }
+    SocketBinder *ls = new SocketBinder (s);
+    if (ls == NULL) {
+	cerr << "could not instanciate SocketBinder, bailing out !" << endl;
+	return -1;
+    }
+
+    ls->setname("*:1264");
+    cp.push (ls);
+
     {	pid_t child = fork ();
 	int e = errno;
 	switch (child) {
@@ -461,37 +487,13 @@ int main (int nb, char ** cmde) {
 	}
     }
 
-
-    init_mmpcreators();
-
-    createrecordset ("allo 12 method(38) diskstats(sda) load() trcumuch(1 2 3   ", cerr);
-    createrecordset ("allo 1 method(38) diskstats(sda) load() diskstats", cerr);
-    createrecordset ("alli 5 method(38) diskstats(hda) load()", cerr);
-    
-    MeasurePool cp;
-    
-    cp.init_signal ();
-    
-    int s = server_pool (3307);
-    // init_connect ("miso.local", 25);
-    if (s < 0) {
-	cerr << "could not instanciate connection pool, bailing out !" << endl;
-	return -1;
-    }
-    {
-	SocketBinder *ls = new SocketBinder (s);
-	if (ls != NULL) {
-	    ls->setname("*:3307");
-	    cp.push (ls);
-	}
-    }
     struct timeval timeout;
     timeout.tv_sec = 0;
     timeout.tv_usec = 100;
 
     cp.select_loop (timeout);
-//    init_connect ("www.nasa.gov", 22);
-    
+
+    cerr << "terminating" << endl;
     
     return 0;
 }

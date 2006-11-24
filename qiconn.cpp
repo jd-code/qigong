@@ -315,18 +315,20 @@ namespace qiconn
 
     void ConnectionPool::closeall (void) {
 	MConnections::reverse_iterator rmi;
-	cerr << "entering ConnectionPool::closeall" << endl;
+	cerr << "entering ConnectionPool::closeall..." << endl;
 	for (rmi=connections.rbegin() ; rmi!=connections.rend() ; rmi++) {
 	    rmi->second->close();
 	}
+	cerr << "...done." << endl;
     }
 
     void ConnectionPool::destroyall (void) {
 	MConnections::reverse_iterator rmi;
-	cerr << "entering ConnectionPool::closeall" << endl;
+	cerr << "entering ConnectionPool::destroyall..." << endl;
 	for (rmi=connections.rbegin() ; rmi!=connections.rend() ; rmi++) {
 	    rmi->second->schedule_for_destruction();
 	}
+	cerr << "...done." << endl;
     }
 
     ConnectionPool::~ConnectionPool (void) {
