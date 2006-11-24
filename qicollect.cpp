@@ -1,5 +1,11 @@
+//  #include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include <fstream>
 #include <iomanip>
+
+#include <rrd.h>
 
 #define QICOLLECT_H_GLOBINST
 #define QICONN_H_GLOBINST
@@ -42,18 +48,195 @@ namespace qiconn {
     }
     
 /*
+ *  ------------------- TaggedMeasuredPoint --------------------------------------------------------------
+ */
+
+    string TaggedMeasuredPoint::get_DSdef (time_t heartbeat) {
+	stringstream ds;
+	ds << "DS:" << tagname << ":" 
+	   << "GAUGE" << ":"		    // JDJDJDJD il faudrait rajouter ça dans la conf ???? ou via une définition de qqpart
+	   << heartbeat << ":"
+	   << "U" << ":"
+	   << "U"
+	;
+	return ds.str();
+    }
+
+    
+/*
+ *  ------------------- CollectionSet --------------------------------------------------------------------
+ */
+
+    string pathname = "/home/chiqong/rrd";
+
+//    char * s_to_malloc (string &s) {
+//	char *b = (char *) malloc (s.size()+1);
+//	if (b == NULL)
+//	    return NULL;
+//	strncpy (b, s.c_str(), s.size()+1);
+//	return b;
+//    }
+//    char * s_to_malloc (stringstream &s) {
+//	return s_to_malloc (s.c_str());
+//    }
+
+    class CharPP {
+	private:
+	    char ** charpp;
+	    int n;
+	    bool isgood;
+
+	public:
+	    CharPP (string const & s) {
+		isgood = false;
+		size_t size = s.size();
+		size_t p;
+		n = 0;
+		char *buf = (char *) malloc (size+1);
+		if (buf == NULL)
+		    return;
+		
+		list <char *> lp;
+		lp.push_back (buf);
+		for (p=0 ; p<size ; p++) {
+		    if (s[p] == 0)
+			lp.push_back (buf + p + 1);
+		    buf[p] = s[p];
+		}
+		n = lp.size() - 1;
+		charpp = (char **) malloc ((n+1) * sizeof (char *));
+		if (charpp == NULL) {
+		    delete (buf);
+		    n = 0;
+		    return;
+		}
+		list <char *>::iterator li;
+		int i;
+		for (li=lp.begin(), i=0 ; (li!=lp.end()) && (i<n) ; li++, i++)
+		    charpp[i] = *li;
+		charpp[i] = NULL;
+		isgood = true;
+	    }
+	    char ** get_charpp (void) {
+		if (isgood)
+		    return charpp;
+		else
+		    return NULL;
+	    }
+	    size_t size (void) {
+		return n;
+	    }
+	    ~CharPP (void) {
+		if (charpp != NULL) {
+		    if (n>0)
+			delete (charpp[0]);
+		    delete (charpp);
+		}
+	    }
+	    ostream& dump (ostream& cout) const {
+		int i = 0;
+		while (charpp[i] != NULL)
+		    cout << "    " << charpp[i++] << endl;
+		return cout;
+	    }
+    };
+    ostream & operator<< (ostream& cout, CharPP const & chpp) {
+	return chpp.dump (cout);
+    }
+    
+    int CollectionSet::validate_freqs (void) {
+	lfreq.sort();
+	int nbw = 0;
+	long base_interval = lfreq.begin()->interval;
+	list<CollectFreqDuration>::iterator li;
+	for (li=lfreq.begin() ; li!=lfreq.end() ; li++) {
+	    long rounded = ((long)(li->interval/base_interval))*base_interval;
+	    if (li->interval % base_interval != 0) {
+		cerr << "warning : " << "CollectionSet " << metaname << "_" << name << "subsequent entry "
+		     << li->interval << "s isn't a multiple of base interval " << base_interval << "s." << endl
+		     << "          It will be rounded to " << rounded << " when processed..." << endl;
+		nbw++;
+	    }
+	    if (li->duration % rounded != 0) {
+		cerr << "warning : " << "CollectionSet " << metaname << "_" << name << "subsequent entry "
+		    << li->duration << "s isn't a multiple of interval " << rounded << "s"
+		    << ( (li->interval % base_interval != 0) ? " (rounded)." : "." )  << endl
+		    << "           It will be rounded to " << ((long)(1+li->duration/rounded))*li->interval << "s." << endl;
+	    }
+	}
+	return nbw;
+    }
+
+    void CollectionSet::buildmissing_rrd (void) {
+	string fullname = pathname + '/' +metaname + '_' + name;
+	struct stat buf;
+	if (stat (fullname.c_str(), &buf) == 0) {
+	    cerr << "error: will not re-create already existing rrd \"" << fullname << "\"." << endl
+		 << "         change the collect name in configuration or remove/rename existing rrd" << endl;
+// JDJDJDJD marquer inactive
+// creer un ficher .def avec chaque rrd ????
+	    return;
+	}
+
+// JDJDJDJD on devrait trier cette liste et valider que les autres sont des multiples
+	time_t	base_interval = lfreq.begin()->interval,
+		heartbeat = 2 * base_interval;
+
+//	const char ** rdd_create_query = (const char **) malloc (sizeof (char *) * nbargs + 1);
+
+	stringstream rcq;
+
+	rcq << "create"		<< '\0'
+	    << fullname.c_str() << '\0'
+	    << "--start"	<< '\0'
+	    << time(NULL)	<< '\0'
+	    << "--step"		<< '\0'
+	    << base_interval	<< '\0'
+	;
+
+	{   list<TaggedMeasuredPoint*>::iterator li;
+	    for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++)
+		rcq << (*li)->get_DSdef(heartbeat) << '\0';
+	}
+
+	{   list<CollectFreqDuration>::iterator li;
+	    for (li=lfreq.begin() ; li!=lfreq.end() ; li++) {
+		rcq << "RRA" << ":"
+		    << "LAST" << ":"	// JDJDJDJD this too should be configurable....
+		    << "0.5" << ":"	// JDJDJDJD this value is set here almost as a guess (to be explained, please !)	
+		    << (long)(li->interval/base_interval) << ":"
+		    << (long)(li->duration/li->interval)
+		    << '\0'
+		;
+	    }
+	}
+
+	CharPP rdd_create_query (rcq.str());
+	if (rdd_create_query.get_charpp() == NULL) {
+	    cerr << "could not allocate mem for rdd_create_query" << endl;
+	    return;
+	}
+
+	// cout << "rrd_create (" << endl << rdd_create_query << ")" << endl ;
+	
+	if (rrd_create (rdd_create_query.size(), rdd_create_query.get_charpp()) != 0) {
+	    int e = errno;
+	    cerr << "error in rdd_create" << ": " << e << " = " << strerror(e) << endl;
+	}
+    }
+/*
  *  ------------------- CollectionsConf ------------------------------------------------------------------
  */
 
     CollectionsConf::~CollectionsConf (void) {
-	map<string, CollectionSet *>::iterator mi;
+	MpCS::iterator mi;
 	for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++)
 	    delete (mi->second);
     }
     bool CollectionsConf::push_back (CollectionSet * pcs) {
 	if (pcs==NULL)
 	    return false;
-	map<string, CollectionSet *>::iterator mi = mpcs.find(pcs->getkey());
+	MpCS::iterator mi = mpcs.find(pcs->getkey());
 	if (mi != mpcs.end())
 	    return false;
 	mpcs[pcs->getkey()] = pcs;
@@ -75,6 +258,15 @@ namespace qiconn {
     }
     ostream & CollectionsConf::dump (ostream &cout) const {
 	return cout << mpcs;
+    }
+    
+
+    void CollectionsConf::buildmissing_rrd (void) {
+	MpCS::iterator mi;
+	for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++) {
+	    mi->second->validate_freqs();
+	    mi->second->buildmissing_rrd ();
+	}
     }
     
 /*
@@ -232,6 +424,10 @@ namespace qiconn {
 				cerr << "line: " << line << " : trying to end the definition of CollectionSet whith NULL allocated ?" << endl;
 				safeclose() ; return -1;
 			    }
+			    if (pcurcs->validate_freqs() != 0) {
+				cerr << "line: " << line << "error : the warnings above are yet treated as errors." << endl;
+				safeclose() ; return -1;
+			    }
 			    conf.push_back(pcurcs);
 			    pcurcs = NULL;
 			    metaname = "";
@@ -251,6 +447,10 @@ namespace qiconn {
 			if (ident=="collect") {
 			    if (pcurcs == NULL) {
 				cerr << "line: " << line << " : trying to end the definition of CollectionSet whith NULL allocated ?" << endl;
+				safeclose() ; return -1;
+			    }
+			    if (pcurcs->validate_freqs() != 0) {
+				cerr << "line: " << line << " : the warnings above are yet treated as errors." << endl;
 				safeclose() ; return -1;
 			    }
 			    conf.push_back(pcurcs);
@@ -561,6 +761,9 @@ int main (int nb, char ** cmde) {
 	return -1;
     }
     cout << runconfig;
+
+    runconfig.buildmissing_rrd ();
+    
     return 0;
 
     
