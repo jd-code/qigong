@@ -677,5 +677,62 @@ cerr << "                                                                       
 	return p;
     }
 
+    CharPP::CharPP (string const & s) {
+	isgood = false;
+	size_t size = s.size();
+	size_t p;
+	n = 0;
+	char *buf = (char *) malloc (size+1);
+	if (buf == NULL)
+	    return;
+	
+	list <char *> lp;
+	lp.push_back (buf);
+	for (p=0 ; p<size ; p++) {
+	    if (s[p] == 0)
+		lp.push_back (buf + p + 1);
+	    buf[p] = s[p];
+	}
+	n = lp.size() - 1;
+	charpp = (char **) malloc ((n+1) * sizeof (char *));
+	if (charpp == NULL) {
+	    delete (buf);
+	    n = 0;
+	    return;
+	}
+	list <char *>::iterator li;
+	int i;
+	for (li=lp.begin(), i=0 ; (li!=lp.end()) && (i<n) ; li++, i++)
+	    charpp[i] = *li;
+	charpp[i] = NULL;
+	isgood = true;
+    }
+    char ** CharPP::get_charpp (void) {
+	if (isgood)
+	    return charpp;
+	else
+	    return NULL;
+    }
+    size_t CharPP::size (void) {
+	return n;
+    }
+    CharPP::~CharPP (void) {
+	if (charpp != NULL) {
+	    if (n>0)
+		delete (charpp[0]);
+	    delete (charpp);
+	}
+    }
+    ostream& CharPP::dump (ostream& cout) const {
+	int i = 0;
+	while (charpp[i] != NULL)
+	    cout << "    " << charpp[i++] << endl;
+	return cout;
+    }
+
+    ostream & operator<< (ostream& cout, CharPP const & chpp) {
+	return chpp.dump (cout);
+    }
+    
 } // namespace qiconn
 

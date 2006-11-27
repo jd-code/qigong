@@ -21,6 +21,9 @@ namespace qiconn {
     int CollectPool::select_poll (struct timeval *timeout) {
 	int r = ConnectionPool::select_poll (timeout);
 
+
+// rajouter ici une gestion des time-outs
+	
 //	time_t t = time (NULL);
 //	map<time_t, RecordSet*>::iterator mi;
 //	list <multimap<time_t, RecordSet*>::iterator> lmi;
@@ -41,7 +44,7 @@ namespace qiconn {
     CollectingConn::CollectingConn (int fd, struct sockaddr_in const &client_addr) : DummyConnection(fd, client_addr) {
 	state = welcome;
 	pending = false,
-	collecting = false;
+	is_collecting = false;
 	waiting_pcs = NULL;
 	waiting_pcs_nextstate = collect;
     }
@@ -53,8 +56,31 @@ namespace qiconn {
 	return true;
     }
 
+    string pathname = "/home/chiqong/rrd";
+
     void CollectingConn::lineread (void) {
 // cerr << "[" << getname() << "] got[" << bufin << "]" << endl;
+
+	if ((is_collecting) && (bufin[0]=='-') && (bufin.find("-->") == 0)) {
+	    stringstream upd;
+	    string rrd_name;
+	    size_t p = getidentifier (bufin, rrd_name, 3);
+
+	    upd << "update" << eos()
+		<< pathname << "/" << rrd_name << eos()
+		<< bufin.substr(p+1) << eos();
+
+	    CharPP rrd_update_query (upd.str());
+	    if (rrd_update_query.get_charpp() == NULL) {
+		cerr << "could not allocate mem for rrd_update_query" << endl;
+	    } else {
+		if (rrd_update (rrd_update_query.size(), rrd_update_query.get_charpp()) != 0) {
+		    int e = errno;
+		    cerr << "error in rdd_update" << ": " << e << " = " << strerror(e) << endl;
+		}
+	    }
+	}
+	
 	switch (state) {
 	    case welcome:
 		if (bufin.substr(0, 7) == "qigong[") {
@@ -73,7 +99,7 @@ cerr << "[" << getname() << "] ------------------------------>switching to state
 		if (bufin.substr(0, 7) == "qigong." ) {
 cerr << "[" << getname() << "] ----------------------------->switching to state ready" << endl;
 		    state = ready;
-		    collecting = true;
+		    is_collecting = true;
 		} else {
 		    nbtest ++;
 		    if (nbtest >= CC__MAXRETRY) {
@@ -124,6 +150,15 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 			    mi->second->create_remote ();
 			    state = waiting;
 			    wait_string = "creation done.";
+			    waiting_pcs = mi->second;
+			    waiting_pcs_nextstate = activate_remote;
+cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+			    pending = true;
+			    break;
+			case activate_remote:
+			    mi->second->activate_remote ();
+			    state = waiting;
+			    wait_string = "activate:";
 			    waiting_pcs = mi->second;
 			    waiting_pcs_nextstate = sub_remote;
 cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
@@ -183,83 +218,6 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
  *  ------------------- CollectionSet --------------------------------------------------------------------
  */
 
-    string pathname = "/home/chiqong/rrd";
-
-//    char * s_to_malloc (string &s) {
-//	char *b = (char *) malloc (s.size()+1);
-//	if (b == NULL)
-//	    return NULL;
-//	strncpy (b, s.c_str(), s.size()+1);
-//	return b;
-//    }
-//    char * s_to_malloc (stringstream &s) {
-//	return s_to_malloc (s.c_str());
-//    }
-
-    class CharPP {
-	private:
-	    char ** charpp;
-	    int n;
-	    bool isgood;
-
-	public:
-	    CharPP (string const & s) {
-		isgood = false;
-		size_t size = s.size();
-		size_t p;
-		n = 0;
-		char *buf = (char *) malloc (size+1);
-		if (buf == NULL)
-		    return;
-		
-		list <char *> lp;
-		lp.push_back (buf);
-		for (p=0 ; p<size ; p++) {
-		    if (s[p] == 0)
-			lp.push_back (buf + p + 1);
-		    buf[p] = s[p];
-		}
-		n = lp.size() - 1;
-		charpp = (char **) malloc ((n+1) * sizeof (char *));
-		if (charpp == NULL) {
-		    delete (buf);
-		    n = 0;
-		    return;
-		}
-		list <char *>::iterator li;
-		int i;
-		for (li=lp.begin(), i=0 ; (li!=lp.end()) && (i<n) ; li++, i++)
-		    charpp[i] = *li;
-		charpp[i] = NULL;
-		isgood = true;
-	    }
-	    char ** get_charpp (void) {
-		if (isgood)
-		    return charpp;
-		else
-		    return NULL;
-	    }
-	    size_t size (void) {
-		return n;
-	    }
-	    ~CharPP (void) {
-		if (charpp != NULL) {
-		    if (n>0)
-			delete (charpp[0]);
-		    delete (charpp);
-		}
-	    }
-	    ostream& dump (ostream& cout) const {
-		int i = 0;
-		while (charpp[i] != NULL)
-		    cout << "    " << charpp[i++] << endl;
-		return cout;
-	    }
-    };
-    ostream & operator<< (ostream& cout, CharPP const & chpp) {
-	return chpp.dump (cout);
-    }
-    
     int CollectionSet::validate_freqs (void) {
 	lfreq.sort();
 	int nbw = 0;
@@ -361,6 +319,11 @@ cerr << "                                                       key=" << key << 
     }
     int CollectionSet::sub_remote (void) {
 	pcc->get_out() << "sub " << key << eos();
+	pcc->flush();
+	return 0;
+    }
+    int CollectionSet::activate_remote (void) {
+	pcc->get_out() << "activate " << key << eos();
 	pcc->flush();
 	return 0;
     }

@@ -242,7 +242,24 @@ namespace qiconn
     size_t getidentifier (const string &s, string &ident, size_t p = 0);
     size_t getfqdn (const string &s, string &ident, size_t p = 0 );
     size_t getinteger (const string &s, long &n, size_t p = 0);
+
     inline char eos(void) { return '\0'; }
+
+    class CharPP {
+	private:
+	    char ** charpp;
+	    int n;
+	    bool isgood;
+
+	public:
+	    CharPP (string const & s);
+	    char ** get_charpp (void);
+	    size_t size (void);
+	    ~CharPP (void);
+	    ostream& dump (ostream& cout) const;
+    };
+    ostream & operator<< (ostream& cout, CharPP const & chpp);
+    
 
 }   // namespace qiconn
 
