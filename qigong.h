@@ -116,6 +116,7 @@ namespace qiconn {
 
     class CollectedConn : public DummyConnection
     {
+	    int nbp;
 	public:
 	    void add_subs (RecordSet * prs, bool completereg = true);
 	    void remove_subs (RecordSet * prs, bool completereg = true);
@@ -123,6 +124,7 @@ namespace qiconn {
 	    CollectedConn (int fd, struct sockaddr_in const &client_addr);
 	    virtual void lineread (void);
 	    map <RecordSet *, int> subs;
+	    virtual void poll (void) {};
     };
 
     class SocketBinder : public ListeningSocket
@@ -133,6 +135,7 @@ namespace qiconn {
 	    virtual DummyConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
 		return new CollectedConn (fd, client_addr);
 	    }
+	    virtual void poll (void) {}
     };
 
     /*

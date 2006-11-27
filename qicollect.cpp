@@ -39,11 +39,121 @@ namespace qiconn {
  */
 
     CollectingConn::CollectingConn (int fd, struct sockaddr_in const &client_addr) : DummyConnection(fd, client_addr) {
+	state = welcome;
+	pending = false,
+	collecting = false;
+	waiting_pcs = NULL;
+	waiting_pcs_nextstate = collect;
+    }
+
+    bool CollectingConn::assign (CollectionSet * pcc) {
+	mpcs[pcc->getkey()] = pcc;
+	pcc->state = del_remote_for_create;
+	pending = true;
+	return true;
     }
 
     void CollectingConn::lineread (void) {
+// cerr << "[" << getname() << "] got[" << bufin << "]" << endl;
+	switch (state) {
+	    case welcome:
+		if (bufin.substr(0, 7) == "qigong[") {
+cerr << "[" << getname() << "] ------------------------------>switching to state verify" << endl;
+		    state = verify;
+		    nbtest = 0;
+		    (*out) << "qiging ?" << eos();
+		    flush();
+		} else {
+		    (*out) << eos();
+		    flush();
+		}
+		break;
+
+	    case verify:
+		if (bufin.substr(0, 7) == "qigong." ) {
+cerr << "[" << getname() << "] ----------------------------->switching to state ready" << endl;
+		    state = ready;
+		    collecting = true;
+		} else {
+		    nbtest ++;
+		    if (nbtest >= CC__MAXRETRY) {
+			// JDJDJDJD faire qqchose pour gérer time-outs, retry et echecs....
+			state = timeout;
+cerr << "[" << getname() << "] ----------------------------->switching to state timeout" << endl;
+		    }
+		    (*out) << "qiging ?" << eos();
+		    flush();
+		}
+		break;
+
+	    case waiting:
+		if (bufin.find(wait_string) == 0) {
+		    if (waiting_pcs != NULL) {
+			waiting_pcs->state = waiting_pcs_nextstate;
+			waiting_pcs = NULL;
+		    }
+cerr << "[" << getname() << "] ----------------------------->switching to state ready" << endl;
+		    state = ready;
+		} else
+		    cerr <<  "[" << getname() << "] waiting for \"" << wait_string << "\" got \"" << bufin << "\". garbaged." << endl;
+		break;
+		
+	    case ready:
+	    case timeout:
+		break;
+	}
     }
 
+    void CollectingConn::poll (void) {
+	if (state==ready) {
+	    if (pending) {
+		MpCS::iterator mi;
+		pending = false;
+		for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++) {
+		    switch (mi->second->state) {
+			case del_remote_for_create:
+			    mi->second->delete_remote ();
+			    state = waiting;
+			    wait_string = "delete:";
+			    waiting_pcs = mi->second;
+			    waiting_pcs_nextstate = create_remote;
+cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+			    pending = true;
+			    break;
+			case create_remote:
+			    mi->second->create_remote ();
+			    state = waiting;
+			    wait_string = "creation done.";
+			    waiting_pcs = mi->second;
+			    waiting_pcs_nextstate = sub_remote;
+cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+			    pending = true;
+			    break;
+			case sub_remote:
+			    mi->second->sub_remote ();
+			    state = waiting;
+			    wait_string = "subscribed";
+			    waiting_pcs = mi->second;
+cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+			    waiting_pcs_nextstate = collect;
+			    pending = true;
+			    break;
+			case collect:
+			    break;
+
+			case unmatched:
+			case del_remote:
+			case unsub_remote:
+			    break;
+		    }
+		    
+		    if (pending)
+			break;
+		}
+	    }
+	}
+    }
+    
     CollectingConn::~CollectingConn (void) {
     }
     
@@ -62,6 +172,12 @@ namespace qiconn {
 	return ds.str();
     }
 
+    string TaggedMeasuredPoint::getremote_def (void) {
+	string s = fn;
+	if (!params.empty())
+	    s += '(' + params + ')';
+	return s;
+    }
     
 /*
  *  ------------------- CollectionSet --------------------------------------------------------------------
@@ -147,7 +263,7 @@ namespace qiconn {
     int CollectionSet::validate_freqs (void) {
 	lfreq.sort();
 	int nbw = 0;
-	long base_interval = lfreq.begin()->interval;
+	base_interval = lfreq.begin()->interval;
 	list<CollectFreqDuration>::iterator li;
 	for (li=lfreq.begin() ; li!=lfreq.end() ; li++) {
 	    long rounded = ((long)(li->interval/base_interval))*base_interval;
@@ -168,7 +284,7 @@ namespace qiconn {
     }
 
     void CollectionSet::buildmissing_rrd (void) {
-	string fullname = pathname + '/' +metaname + '_' + name;
+	string fullname = pathname + '/' + key;
 	struct stat buf;
 	if (stat (fullname.c_str(), &buf) == 0) {
 	    cerr << "error: will not re-create already existing rrd \"" << fullname << "\"." << endl
@@ -178,25 +294,23 @@ namespace qiconn {
 	    return;
 	}
 
-// JDJDJDJD on devrait trier cette liste et valider que les autres sont des multiples
-	time_t	base_interval = lfreq.begin()->interval,
-		heartbeat = 2 * base_interval;
+	time_t heartbeat = 2 * base_interval;
 
 //	const char ** rdd_create_query = (const char **) malloc (sizeof (char *) * nbargs + 1);
 
 	stringstream rcq;
 
-	rcq << "create"		<< '\0'
-	    << fullname.c_str() << '\0'
-	    << "--start"	<< '\0'
-	    << time(NULL)	<< '\0'
-	    << "--step"		<< '\0'
-	    << base_interval	<< '\0'
+	rcq << "create"		<< eos()
+	    << fullname.c_str() << eos()
+	    << "--start"	<< eos()
+	    << time(NULL)	<< eos()
+	    << "--step"		<< eos()
+	    << base_interval	<< eos()
 	;
 
 	{   list<TaggedMeasuredPoint*>::iterator li;
 	    for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++)
-		rcq << (*li)->get_DSdef(heartbeat) << '\0';
+		rcq << (*li)->get_DSdef(heartbeat) << eos();
 	}
 
 	{   list<CollectFreqDuration>::iterator li;
@@ -206,7 +320,7 @@ namespace qiconn {
 		    << "0.5" << ":"	// JDJDJDJD this value is set here almost as a guess (to be explained, please !)	
 		    << (long)(li->interval/base_interval) << ":"
 		    << (long)(li->duration/li->interval)
-		    << '\0'
+		    << eos()
 		;
 	    }
 	}
@@ -224,6 +338,38 @@ namespace qiconn {
 	    cerr << "error in rdd_create" << ": " << e << " = " << strerror(e) << endl;
 	}
     }
+
+    void CollectionSet::bindcc (CollectingConn *pcc) {
+	CollectionSet::pcc = pcc;
+    }
+    
+    int CollectionSet::create_remote (void) {
+cerr << "                                                       key=" << key << endl;
+	pcc->get_out() << "create " << key << ' ' << (long)base_interval ;
+	list<TaggedMeasuredPoint*>::iterator li;
+	for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++) {
+	    pcc->get_out() << " " << (*li)->getremote_def();
+	}
+	pcc->get_out() << eos();
+	pcc->flush();
+	return 0;
+    }
+    int CollectionSet::delete_remote (void) {
+	pcc->get_out() << "delete " << key << eos();
+	pcc->flush();
+	return 0;
+    }
+    int CollectionSet::sub_remote (void) {
+	pcc->get_out() << "sub " << key << eos();
+	pcc->flush();
+	return 0;
+    }
+    int CollectionSet::unsub_remote (void) {
+	pcc->get_out() << "unsub " << key << eos();
+	pcc->flush();
+	return 0;
+    }
+
 /*
  *  ------------------- CollectionsConf ------------------------------------------------------------------
  */
@@ -425,10 +571,13 @@ namespace qiconn {
 				safeclose() ; return -1;
 			    }
 			    if (pcurcs->validate_freqs() != 0) {
-				cerr << "line: " << line << "error : the warnings above are yet treated as errors." << endl;
+				cerr << "line: " << line << " : error : the warnings above are yet treated as errors." << endl;
 				safeclose() ; return -1;
 			    }
-			    conf.push_back(pcurcs);
+			    if (!conf.push_back(pcurcs)) {
+				cerr << "line: " << line << " : error : could not add CollectionSet(" << curcs_name << "). already registred maybe ?." << endl;
+				safeclose() ; return -1;
+			    }
 			    pcurcs = NULL;
 			    metaname = "";
 			    state = seekdeclare;
@@ -453,7 +602,10 @@ namespace qiconn {
 				cerr << "line: " << line << " : the warnings above are yet treated as errors." << endl;
 				safeclose() ; return -1;
 			    }
-			    conf.push_back(pcurcs);
+			    if (!conf.push_back(pcurcs)) {
+				cerr << "line: " << line << " : error : could not add CollectionSet(" << curcs_name << "). already registred maybe ?." << endl;
+				safeclose() ; return -1;
+			    }
 			    pcurcs = NULL;
 			    state = seekcollectname;
 			} else {
@@ -671,7 +823,7 @@ namespace qiconn {
 			p = seekspace (s, p);
 			if (p==string::npos) continue;
 			if (s[p] != '{') {
-			    cerr << "line: " << line << " : could not find opening brace, found è" << s[p] << "' instead" << endl;
+			    cerr << "line: " << line << " : could not find opening brace, found '" << s[p] << "' instead" << endl;
 			    safeclose() ; return -1;
 			}
 			p++;
@@ -703,9 +855,9 @@ namespace qiconn {
     }
     
     ostream& CollectionSet::dump (ostream& cout) const {
-	cout << "    collect " << name << " " << fqdn ;
-	if (port != 1264)
-	    cout << ":" << port;
+	cout << "    collect " << name << " " << fp.fqdn ;
+	if (fp.port != 1264)
+	    cout << ":" << fp.port;
 	{   list<CollectFreqDuration>::const_iterator li;
 	    for (li=lfreq.begin() ; li!=lfreq.end() ; li++)
 		cout << " " << *li;
@@ -734,11 +886,38 @@ namespace qiconn {
     }
     
     /*
+     *  ------------------- Configuration : CollectionsConfEngine --------------------------------------------
+     */
+
+    void CollectionsConfEngine::startnpoll (ConnectionPool & cp) {
+	MpCS::iterator mi;
+	map<FQDNPort, CollectingConn *>::iterator mj;
+
+	for (mi=mpcs.begin() ;mi!=mpcs.end() ; mi++) {
+	    mj = mpcc.find(mi->second->get_fqdnport());
+	    if (mj == mpcc.end()) {
+		struct sockaddr_in sin;
+		int fd = init_connect(	mi->second->get_fqdnport().fqdn.c_str(),
+					mi->second->get_fqdnport().port,
+					&sin
+				     );
+
+		CollectingConn *pcc = new CollectingConn (fd, sin);
+		mpcc[mi->second->get_fqdnport()] = pcc;
+		cp.push(pcc);
+		mi->second->bindcc (pcc);
+		pcc->assign(mi->second);
+	    }
+	}
+    }
+    
+    /*
      *	------------------------------------------------------------------------------------------------------
      */
     
     // the current running config
-    CollectionsConf runconfig;
+    // CollectionsConf runconfig;
+    CollectionsConfEngine runconfig;
     
 } // namespace qiconn
 
@@ -762,44 +941,14 @@ int main (int nb, char ** cmde) {
     }
     cout << runconfig;
 
-    runconfig.buildmissing_rrd ();
-    
-    return 0;
+//     return 0;
 
     
-//    if (close (0) != 0) {
-//	cerr << "could not close stdin" << strerror (errno) << endl;
-//	return -1;
-//    }
-//    if (freopen ("/var/log/qicollect.log", "a", stdout) == NULL) {
-//	cerr << "could not open /var/log/qicollect.log : " << strerror (errno) << endl;
-//	return -1;
-//    }
-//    if (freopen ("/var/log/qicollect.log", "a", stderr) == NULL) {
-//	cerr << "could not open /var/log/qicollect.log : " << strerror (errno) << endl;
-//	return -1;
-//    }
-//
-//    {	pid_t child = fork ();
-//	int e = errno;
-//	switch (child) {
-//	    case -1:
-//		cerr << "could not fork to background ! " << strerror (e) <<  " -  exiting..." << endl;
-//		return -1;
-//	    case 0:
-//		break;
-//	    default:
-//		cerr << "daemon pid=" << child << endl;
-//		return 0;
-//	}
-//    }
-
-
     CollectPool cp;
     
     cp.init_signal ();
     
-    int s = server_pool (3308);
+    int s = server_pool (1264+1);
     // init_connect ("miso.local", 25);
     if (s < 0) {
 	cerr << "could not instanciate connection pool, bailing out !" << endl;
@@ -816,9 +965,44 @@ int main (int nb, char ** cmde) {
     timeout.tv_sec = 0;
     timeout.tv_usec = 100;
 
+    runconfig.buildmissing_rrd ();
+    runconfig.startnpoll (cp);
+
+if (false) {
+    // --------- let's start talking only on log file
+    if (close (0) != 0) {
+	cerr << "could not close stdin" << strerror (errno) << endl;
+	return -1;
+    }
+    if (freopen ("/var/log/qicollect.log", "a", stdout) == NULL) {
+	cerr << "could not open /var/log/qicollect.log : " << strerror (errno) << endl;
+	return -1;
+    }
+    if (freopen ("/var/log/qicollect.log", "a", stderr) == NULL) {
+	cerr << "could not open /var/log/qicollect.log : " << strerror (errno) << endl;
+	return -1;
+    }
+
+    // --------- and fork to the background
+    {	pid_t child = fork ();
+	int e = errno;
+	switch (child) {
+	    case -1:
+		cerr << "could not fork to background ! " << strerror (e) <<  " -  exiting..." << endl;
+		return -1;
+	    case 0:
+		break;
+	    default:
+		cerr << "daemon pid=" << child << endl;
+		return 0;
+	}
+    }
+}
+
+
     cp.select_loop (timeout);
-//    init_connect ("www.nasa.gov", 22);
     
+    cerr << "on sort bye" << endl;
     
     return 0;
 }

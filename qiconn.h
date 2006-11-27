@@ -32,8 +32,28 @@ namespace qiconn
      *  ---------------------------- init_connect : makes a telnet over socket, yes yes ----------------------
      */
 
-    int init_connect (char *fqdn, int port);
+    int init_connect (const char *fqdn, int port, struct sockaddr_in *ps = NULL);
 
+    /*
+     *  ---------------------------- init_connect : makes a telnet over socket, yes yes ----------------------
+     */
+
+    class FQDNPort {
+	public:
+	    string fqdn;
+	    int port;
+	    inline FQDNPort (string fqdn = "", int port = 0) {
+		FQDNPort::fqdn = fqdn,
+		FQDNPort::port = port;
+	    }
+	    inline bool operator< (const FQDNPort & fp) const {
+		if (port != fp.port)
+		    return port < fp.port ;
+		else
+		    return fqdn < fp.fqdn ;
+	    }
+    };
+    
     /*
      *  ---------------------------- Connectionl : handles an incoming connection from fd --------------------
      */
@@ -73,6 +93,7 @@ namespace qiconn
 	    void deregister_from_pool ();
 	    void close (void);
 	    void schedule_for_destruction (void);
+	    virtual void poll (void) = NULL;
     };
 
     class SocketConnection : public Connection
@@ -185,6 +206,7 @@ namespace qiconn
 				   virtual void	lineread (void);
 					   void	flush(void);
 				   virtual void	write (void);
+				   virtual void poll (void) {}
     };
 
     #ifdef QICONN_H_GLOBINST
@@ -220,6 +242,7 @@ namespace qiconn
     size_t getidentifier (const string &s, string &ident, size_t p = 0);
     size_t getfqdn (const string &s, string &ident, size_t p = 0 );
     size_t getinteger (const string &s, long &n, size_t p = 0);
+    inline char eos(void) { return '\0'; }
 
 }   // namespace qiconn
 

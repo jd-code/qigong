@@ -45,6 +45,7 @@ namespace qiconn {
 	    }
 	    ostream& dump (ostream& cout) const;
 	    string get_DSdef (time_t heartbeat);
+	    string getremote_def (void);
     };
     
     /*
@@ -69,24 +70,44 @@ namespace qiconn {
      *  ------------------- Configuration : CollectionSet ----------------------------------------------------
      */
 
+    class CollectingConn;
+    typedef enum {
+	unmatched,
+	del_remote,
+	del_remote_for_create,
+	create_remote,
+	sub_remote,
+	unsub_remote,
+	collect
+    } CSState;
+    
     class CollectionSet
     {
 	private:
 	    string name,	// collection name
-		   fqdn,	// fqdn name for connection
 		   metaname;	// host or service meta-name (not connection)
 	    int port;		// port for connection
+	    FQDNPort fp;	// fqdn name and port for connection
 	    string key;
 	    list<TaggedMeasuredPoint*> lptagmp;
 	    list<CollectFreqDuration> lfreq;
+	    CollectingConn *pcc;
+	    time_t base_interval;
+
 	public:
+	    CSState state;
+
 	    inline CollectionSet (string name, string metaname, string fqdn, int port=1264) {
 		CollectionSet::name = name;
 		CollectionSet::metaname = metaname;
-		CollectionSet::fqdn = fqdn;
-		CollectionSet::port = port;
+		fp = FQDNPort(fqdn, port);
+		// CollectionSet::fqdn = fqdn;
+		// CollectionSet::port = port;
 		key = metaname + '_' + name;
 		// cerr << "new CollectionSet(" << name << ", " << fqdn << ":" << port << ")" << endl;
+		pcc = NULL;
+		base_interval = 0;
+		state = unmatched;
 	    }
 	    inline ~CollectionSet (void) {
 		list <TaggedMeasuredPoint*>::iterator li;
@@ -103,9 +124,17 @@ namespace qiconn {
 	    inline const string & getkey (void) const {
 		return key;
 	    }
+	    inline FQDNPort const& get_fqdnport (void) const {
+		return fp;
+	    }
 
 	    int validate_freqs (void);
 	    void buildmissing_rrd (void);
+	    void bindcc (CollectingConn *pcc);
+	    int create_remote (void);
+	    int delete_remote (void);
+	    int sub_remote (void);
+	    int unsub_remote (void);
     };
     
     
@@ -116,7 +145,7 @@ namespace qiconn {
     typedef map<string, CollectionSet *> MpCS;
     
     class CollectionsConf {
-	private:
+	protected:
 	    MpCS mpcs;
 	    map<string, int> hosts_names;
 	    map<string, int> services_names;
@@ -128,9 +157,22 @@ namespace qiconn {
 	    bool add_service (string name);
 	    ostream & dump (ostream &cout) const;
 
-	    void buildmissing_rrd (void);
+	    void buildmissing_rrd (void);   // JDJDJDJD might move to CollectionsConfEngine
     };
-    
+   
+    /*
+     *  ------------------- Configuration : CollectionsConfEngine --------------------------------------------
+     */
+
+    class CollectionsConfEngine : public CollectionsConf {
+	private:
+	    map<FQDNPort, CollectingConn *> mpcc;
+	public:
+	    CollectionsConfEngine () {}
+	    ~CollectionsConfEngine (void) {};
+	    void startnpoll (ConnectionPool & cp);
+    };
+
     /*
      *  ------------------- the measuring polling system -----------------------------------------------------
      */
@@ -150,10 +192,33 @@ namespace qiconn {
 
     class CollectingConn : public DummyConnection
     {
+	private:
+	    typedef enum {
+		welcome,
+		verify,
+		ready,
+		waiting,
+		timeout
+	    } ConnStat;
+	    ConnStat state;
+#define CC__MAXRETRY 7
+	    int nbtest;
+	    map<string, CollectionSet *> mpcs;
+
+	    bool pending,
+		 collecting;
+
+	    string wait_string;
+	    CollectionSet * waiting_pcs;
+	    CSState waiting_pcs_nextstate;
+
 	public:
 	    virtual ~CollectingConn (void);
 	    CollectingConn (int fd, struct sockaddr_in const &client_addr);
 	    virtual void lineread (void);
+	    ostream& get_out() { return *out; }
+	    bool assign (CollectionSet * pcc);
+	    virtual void poll (void);
     };
 
 
@@ -165,6 +230,7 @@ namespace qiconn {
 	    virtual DummyConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
 		return new CollectingConn (fd, client_addr);
 	    }
+	    virtual void poll (void) {}
     };
 
 
