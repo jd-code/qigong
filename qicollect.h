@@ -77,6 +77,7 @@ namespace qiconn {
 	del_remote_for_create,
 	create_remote,
 	sub_remote,
+	activate_remote,
 	unsub_remote,
 	collect
     } CSState;
@@ -134,6 +135,7 @@ namespace qiconn {
 	    int create_remote (void);
 	    int delete_remote (void);
 	    int sub_remote (void);
+	    int activate_remote (void);
 	    int unsub_remote (void);
     };
     
@@ -206,7 +208,7 @@ namespace qiconn {
 	    map<string, CollectionSet *> mpcs;
 
 	    bool pending,
-		 collecting;
+		 is_collecting;
 
 	    string wait_string;
 	    CollectionSet * waiting_pcs;
