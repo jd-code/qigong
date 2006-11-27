@@ -136,8 +136,9 @@ namespace qiconn {
 	while (p != string::npos) {
 	    p = getidentifier (s, ident, p);
 	    if (ident.size() == 0) {
-		cerr << "error: createrecordset: measure-point identifier is 0 bytes long." << endl;
-		continue;
+		if (p != string::npos)
+		    cerr << "error: createrecordset: measure-point identifier is 0 bytes long." << endl;
+		break;
 	    }
 	    if (s[p] == '(') {
 		p++;
