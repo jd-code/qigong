@@ -86,7 +86,7 @@ namespace qiconn
      *  ---------------------------- init_connect : makes a telnet over socket, yes yes ----------------------
      */
 
-    int init_connect (char *fqdn, int port) {
+    int init_connect (const char *fqdn, int port, struct sockaddr_in *ps /* = NULL */ ) {
 	struct hostent * he;
 	he = gethostbyname (fqdn);
 	if (he != NULL) {
@@ -103,6 +103,9 @@ namespace qiconn
 	bcopy (he->h_addr_list[0], (char *)&sin.sin_addr, he->h_length);
 	sin.sin_port = htons(port);
 
+	if (ps != NULL)
+	    *ps = sin;
+	
 	struct protoent *pe = getprotobyname ("tcp");
 	if (pe == NULL) {
 	    int e = errno;
@@ -278,6 +281,10 @@ namespace qiconn
 	    scheddest = false;
 	}
 
+	MConnections::iterator mi;
+	for (mi=connections.begin() ; mi!=connections.end() ; mi++)
+	    mi->second->poll ();
+	
 	fd_set cr_fd = r_fd,
 	       cw_fd = w_fd;
 	select (biggest_fd, &cr_fd, &cw_fd, NULL, timeout);
@@ -393,11 +400,23 @@ namespace qiconn
 		clog << s[i];
 	    clog << endl;
 	}
-
+if (false)
+{   int i;
+    cerr << "DummyConnection::read got[";
+    for (i=0 ; i<n ; i++)
+	cerr << s[i];
+    cerr << endl;
+}
 	int i;
 	for (i=0 ; i<n ; i++) {
-	    if ((s[i]==10) || (s[i]==13)) {
-		if ((i+1<n) && ((s[i+1]==13) || (s[i+1]==10))) i++;
+	    if ((s[i]==10) || (s[i]==13) || s[i]==0) {
+		if (i+1<n) {
+		    if ( ((s[i]==10) && (s[i+1]==13)) || ((s[i]==13) && (s[i+1]==10)) )
+			i++;
+		}
+if (false) {
+    cerr << "DummyConnection::read->lienread(" << bufin << ")" << endl;
+}
 		lineread ();
 		bufin = "";
 	    } else
@@ -444,6 +463,7 @@ namespace qiconn
 	if (cp != NULL)
 	    cp->reqw (fd);
 	bufout += out->str();
+cerr << "                                                                                      ->out=" << out->str() << endl ;
 	delete (out); 
 	out = new stringstream ();
     }
@@ -584,7 +604,7 @@ namespace qiconn
 	    return p;
 
 	while (p < l) {
-	    if (isalnum (s[p])) {
+	    if (isalnum (s[p]) || (s[p]=='_')) {
 		ident += s[p];
 		p++;
 	    } else

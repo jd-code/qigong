@@ -223,7 +223,7 @@ namespace qiconn {
     }
 
 /*
- *  create 60s newmexico diskstat(sda) diskstat(sdb) load mem
+ *  create newmexico 60 diskstat(sda) diskstat(sdb) load mem
  *  subscribe newmexico
  *
  */
@@ -237,6 +237,7 @@ namespace qiconn {
 
 
     CollectedConn::CollectedConn (int fd, struct sockaddr_in const &client_addr) : DummyConnection(fd, client_addr) {
+	nbp = 0;
 	char buf[256];
 	if (gethostname (buf, 256) != 0)
 	    cerr << "could not get hostname : " << strerror (errno) << endl;
@@ -244,7 +245,7 @@ namespace qiconn {
 	    hostname = buf;
 	(*out) << version << " - host:" << hostname << endl << endl;
 	prompt = "qigong[" + hostname + "] : ";
-	(*out) << prompt ;
+	(*out) << prompt << nbp++ << " : " << eos();
 	flush();
     }
     CollectedConn::~CollectedConn (void) {
@@ -391,11 +392,16 @@ namespace qiconn {
 	    }
 	    (*out) << "unsubscribe: " << n << " unsubsription" << ((n!=1) ? "s" : "") << " performed." << endl;
 
+	} else if (command=="qiging") { // ---------------------------------------------------------------------
+	    (*out) << eos() << "qigong." << eos() ;
+	    prompt = "";
+
 	} else {    // ---------------------------------------------------------------------------------------------------------------------
 
 	    (*out) << "unknown command : \"" << command << "\"" << endl;
 	}
-	(*out) << prompt;
+	if (!prompt.empty())
+	    (*out) << prompt << nbp++ << " : " << eos();
 	flush();
     }
 
@@ -453,6 +459,7 @@ int main (int nb, char ** cmde) {
     createrecordset ("allo 12 method(38) diskstats(sda) load() trcumuch(1 2 3   ", cerr);
     createrecordset ("allo 1 method(38) diskstats(sda) load() diskstats", cerr);
     createrecordset ("alli 5 method(38) diskstats(hda) load()", cerr);
+    createrecordset ("mexico 5 method(38) diskstats(hda) load()", cerr);
     
     MeasurePool cp;
     
