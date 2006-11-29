@@ -3,6 +3,7 @@
 
 #ifdef QICOLLECT_H_GLOBINST
 #define SCOPE
+#define QIMEASURE_H_GLOBINST
 #else
 #define SCOPE external
 #endif
@@ -11,6 +12,7 @@
 #include <iomanip>
 
 #include "qiconn.h"
+#include "qimeasure.h"
 
 namespace qiconn {
 
