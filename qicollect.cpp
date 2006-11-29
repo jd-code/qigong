@@ -67,7 +67,7 @@ namespace qiconn {
 	    size_t p = getidentifier (bufin, rrd_name, 3);
 
 	    upd << "update" << eos()
-		<< pathname << "/" << rrd_name << eos()
+		<< pathname << "/" << rrd_name << ".rrd" << eos()
 		<< bufin.substr(p+1) << eos();
 
 	    CharPP rrd_update_query (upd.str());
@@ -197,13 +197,20 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
  */
 
     string TaggedMeasuredPoint::get_DSdef (time_t heartbeat) {
+	MeasurePoint * pmp = mmpcreators[fn](params);
+	if (pmp == NULL) {
+	    cerr << "could not allocate MeasurePoint(" << fn << ")" << endl;
+	}
 	stringstream ds;
-	ds << "DS:" << tagname << ":" 
-	   << "GAUGE" << ":"		    // JDJDJDJD il faudrait rajouter ça dans la conf ???? ou via une définition de qqpart
-	   << heartbeat << ":"
-	   << "U" << ":"
-	   << "U"
-	;
+	ds << "DS:" << tagname << ':' ;
+
+	if (pmp == NULL)
+	    ds << "GAUGE" << ':';
+	else
+	    ds << pmp->get_source_type() << ':' ;
+	ds << heartbeat << ':'
+	   << 'U' << ':'
+	   << 'U' ;
 	return ds.str();
     }
 
@@ -242,7 +249,7 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
     }
 
     void CollectionSet::buildmissing_rrd (void) {
-	string fullname = pathname + '/' + key;
+	string fullname = pathname + '/' + key + ".rrd";
 	struct stat buf;
 	if (stat (fullname.c_str(), &buf) == 0) {
 	    cerr << "error: will not re-create already existing rrd \"" << fullname << "\"." << endl
@@ -274,7 +281,8 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 	{   list<CollectFreqDuration>::iterator li;
 	    for (li=lfreq.begin() ; li!=lfreq.end() ; li++) {
 		rcq << "RRA" << ":"
-		    << "LAST" << ":"	// JDJDJDJD this too should be configurable....
+		    // << "LAST" << ":"	// JDJDJDJD this too should be configurable....
+		    << ((li == lfreq.begin()) ? "LAST" : "AVERAGE") << ":"	// JDJDJDJD this too should be configurable....
 		    << "0.5" << ":"	// JDJDJDJD this value is set here almost as a guess (to be explained, please !)	
 		    << (long)(li->interval/base_interval) << ":"
 		    << (long)(li->duration/li->interval)
@@ -294,6 +302,7 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 	if (rrd_create (rdd_create_query.size(), rdd_create_query.get_charpp()) != 0) {
 	    int e = errno;
 	    cerr << "error in rdd_create" << ": " << e << " = " << strerror(e) << endl;
+	    cerr << "rrd_create (" << endl << rdd_create_query << ")" << endl ;
 	}
     }
 
@@ -491,6 +500,10 @@ cerr << "                                                       key=" << key << 
 			    safeclose() ; return -1;
 			}
 			tagmp_fn = ident;
+			if (mmpcreators.find(tagmp_fn) == mmpcreators.end()) {
+			    cerr << "line: " << line << " : unknown MeasurePoint function :\"" << tagmp_fn << "\"" << endl;
+			    safeclose() ; return -1;
+			}
 			// cout << "-----------> function: " << ident << endl;
 			if (p!=string::npos && (s[p]=='(')) {
 			    p++;
@@ -860,16 +873,25 @@ cerr << "                                                       key=" << key << 
 	    mj = mpcc.find(mi->second->get_fqdnport());
 	    if (mj == mpcc.end()) {
 		struct sockaddr_in sin;
-		int fd = init_connect(	mi->second->get_fqdnport().fqdn.c_str(),
-					mi->second->get_fqdnport().port,
-					&sin
-				     );
-
-		CollectingConn *pcc = new CollectingConn (fd, sin);
-		mpcc[mi->second->get_fqdnport()] = pcc;
-		cp.push(pcc);
-		mi->second->bindcc (pcc);
-		pcc->assign(mi->second);
+		int retry = 0;
+#define NB_RETRY 10
+		while (retry < NB_RETRY) {
+		    int fd = init_connect(	mi->second->get_fqdnport().fqdn.c_str(),
+					    mi->second->get_fqdnport().port,
+					    &sin
+					 );
+		    if (fd != -1) {
+			CollectingConn *pcc = new CollectingConn (fd, sin);
+			mpcc[mi->second->get_fqdnport()] = pcc;
+			cp.push(pcc);
+			mi->second->bindcc (pcc);
+			pcc->assign(mi->second);
+			break;
+		    }
+		    cerr << "retrying" << endl;
+		    sleep (1);
+		    retry ++;
+		}
 	    }
 	}
     }
@@ -889,6 +911,8 @@ using namespace qiconn;
 
 int main (int nb, char ** cmde) {
 
+    init_mmpcreators();
+    
     string confname ("test.conf");
     
     ifstream fconf (confname.c_str());
