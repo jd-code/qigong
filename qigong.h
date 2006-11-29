@@ -1,17 +1,18 @@
-
 #ifndef QIGONG_H_INCLUDE
 #define QIGONG_H_INCLUDE
 
 #ifdef QIGONG_H_GLOBINST
-#define SCOPE
+#define QIGONG_H_SCOPE
+#define QIMEASURE_H_GLOBINST
 #else
-#define SCOPE external
+#define QIGONG_H_SCOPE external
 #endif
 
 #include <fstream>
 #include <iomanip>
 
 #include "qiconn.h"
+#include "qimeasure.h"
 
 namespace qiconn {
 
@@ -23,50 +24,12 @@ namespace qiconn {
     external char * version;
 #endif
 
-    class MeasurePoint {
-	protected:
-	    string param;
-	    string name;
-	public:
-	    virtual ~MeasurePoint (void) {}
-	    MeasurePoint (const string & param) { MeasurePoint::param = param; }
-	    virtual bool measure (string &result) = NULL;
-	    string getname (void) const {
-		return name + '(' + param + ')';
-	    }
-
-	    void dump (ostream& cout) const {
-		cout << getname();
-	    }
-    };
-
-    ostream& operator<< (ostream& cout, const MeasurePoint& mp);
-
-    typedef MeasurePoint* (*MPCreator) (const string & param); 
-
-    SCOPE map<string, MPCreator> mmpcreators;
-
-    /*
-     *  --------------------------------------------------------------------------------------------------------
-     */
-
-    class MPdiskstats : public MeasurePoint {
-	public:
-	    virtual ~MPdiskstats (void) {}
-	    MPdiskstats (const string & param) : MeasurePoint (param) { name="diskstats"; }
-
-	    bool proc_diskstats (const string &disk, int field, string & result);
-
-	    virtual bool measure (string &result);
-    };
-
-    MeasurePoint* MPdiskstats_creator (const string & param);
 
     class RecordSet;
     class CollectedConn;
 
-    SCOPE map<string, RecordSet*> mrecordsets;
-    SCOPE multimap<time_t, RecordSet*> schedule;
+    QIGONG_H_SCOPE map<string, RecordSet*> mrecordsets;
+    QIGONG_H_SCOPE multimap<time_t, RecordSet*> schedule;
     
     class RecordSet {
 	friend RecordSet * createrecordset (string s, ostream& cerr);

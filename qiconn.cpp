@@ -26,7 +26,7 @@ namespace qiconn
 		i++;
 	    }
 	} else {
-	    cout << " h_addrtype not none" << endl ;
+	    cout << " h_addrtype not known" << endl ;
 	}
 	return out;
     }
