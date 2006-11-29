@@ -1,0 +1,8 @@
+
+all:
+    switch to syslog for logging
+
+qiconn:
+    handle connections time-outs at large
+
+
