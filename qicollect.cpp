@@ -138,6 +138,7 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 		for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++) {
 		    switch (mi->second->state) {
 			case del_remote_for_create:
+cerr << "************taille de mpcs:" << mpcs.size() << endl;
 			    mi->second->delete_remote ();
 			    state = waiting;
 			    wait_string = "delete:";
@@ -870,8 +871,9 @@ cerr << "                                                       key=" << key << 
 	map<FQDNPort, CollectingConn *>::iterator mj;
 
 	for (mi=mpcs.begin() ;mi!=mpcs.end() ; mi++) {
-	    mj = mpcc.find(mi->second->get_fqdnport());
-	    if (mj == mpcc.end()) {
+cerr << "{{{{{{{{{{{{{{{{{{{{ taille de mpcs: " << mpcs.size() << endl ;
+	    mj = mpcc.find(mi->second->get_fqdnport());	// do we already have a connection for that fqdn ?
+	    if (mj == mpcc.end()) {			// no we don't, lets create one
 		struct sockaddr_in sin;
 		int retry = 0;
 #define NB_RETRY 10
@@ -888,10 +890,13 @@ cerr << "                                                       key=" << key << 
 			pcc->assign(mi->second);
 			break;
 		    }
-		    cerr << "retrying" << endl;
+		    cerr << "connection failed to " << sin << " : retrying" << endl;
 		    sleep (1);
 		    retry ++;
 		}
+	    } else {					// we already have a connection let's add some work for it
+		mi->second->bindcc (mj->second);
+		mj->second->assign(mi->second);
 	    }
 	}
     }

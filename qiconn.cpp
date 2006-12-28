@@ -646,6 +646,37 @@ cerr << "                                                                       
 	return p;
     }
 
+    size_t getinteger (const string &s, long long &n, size_t p /* = 0 */ ) {
+	size_t l = s.size();
+	string buf;
+
+	p = seekspace(s, p);
+	
+	if (p == string::npos)
+	    return string::npos;
+	
+	if (p >= l)
+	    return string::npos;
+
+	if (! isdigit(s[p]))
+	    return p;
+
+	while (p < l) {
+	    if (isdigit (s[p])) {
+		buf += s[p];
+		p++;
+	    } else
+		break;
+	}
+
+	n = atoll (buf.c_str());
+	
+	if (p >= l)
+	    return string::npos;
+
+	return p;
+    }
+
     size_t getinteger (const string &s, long &n, size_t p /* = 0 */ ) {
 	size_t l = s.size();
 	string buf;
