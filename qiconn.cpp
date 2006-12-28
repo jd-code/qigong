@@ -463,7 +463,9 @@ if (false) {
 	if (cp != NULL)
 	    cp->reqw (fd);
 	bufout += out->str();
-cerr << "                                                                                      ->out=" << out->str() << endl ;
+if (false) {
+    cerr << "                                                                                      ->out=" << out->str() << endl ;
+}
 	delete (out); 
 	out = new stringstream ();
     }

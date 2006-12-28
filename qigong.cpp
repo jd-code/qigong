@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iomanip>
+#include <string.h>
 
 #define QICONN_H_GLOBINST
 #define QIGONG_H_GLOBINST
@@ -387,6 +388,18 @@ using namespace qiconn;
 
 int main (int nb, char ** cmde) {
 
+    int port = QICONNPORT;
+    
+    {	int i;
+	for (i=1 ; i<nb ; i++) {
+	    if ((strncmp (cmde[i], "-port", 5) == 0) && (i+1 < nb)) {
+		port = atoi (cmde[i+1]);
+		i++;
+	    }
+	}
+    }
+
+    
     if (close (0) != 0) {
 	cerr << "could not close stdin" << strerror (errno) << endl;
 	return -1;
@@ -412,7 +425,7 @@ int main (int nb, char ** cmde) {
     
     cp.init_signal ();
     
-    int s = server_pool (1264);
+    int s = server_pool (port);
     // init_connect ("miso.local", 25);
     if (s < 0) {
 	cerr << "could not instanciate connection pool, bailing out !" << endl;
@@ -424,7 +437,10 @@ int main (int nb, char ** cmde) {
 	return -1;
     }
 
-    ls->setname("*:1264");
+    {	stringstream name;
+	name << "*:" << port;
+	ls->setname(name.str());
+    }
     cp.push (ls);
 
     {	pid_t child = fork ();

@@ -10,6 +10,8 @@
 #include <list>
 #include <map>
 
+#define QICONNPORT 1264
+
 namespace qiconn
 {
     using namespace std;
