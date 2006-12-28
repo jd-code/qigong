@@ -138,7 +138,6 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 		for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++) {
 		    switch (mi->second->state) {
 			case del_remote_for_create:
-cerr << "************taille de mpcs:" << mpcs.size() << endl;
 			    mi->second->delete_remote ();
 			    state = waiting;
 			    wait_string = "delete:";
@@ -709,7 +708,7 @@ cerr << "                                                       key=" << key << 
 			// cout << "-----------> connection: " << ident << endl;
 			if ((p!=string::npos) && (s[p]==':')) { // there's a port attached
 			    v = 0;
-			    p = getinteger (s, v, p);
+			    p = getinteger (s, v, p+1);
 			    if (v == 0) {
 				cerr << "line: " << line << " : seeking for connection port could not find suitable value" << endl;
 				safeclose() ; return -1;
@@ -833,7 +832,7 @@ cerr << "                                                       key=" << key << 
     
     ostream& CollectionSet::dump (ostream& cout) const {
 	cout << "    collect " << name << " " << fp.fqdn ;
-	if (fp.port != 1264)
+	if (fp.port != QICONNPORT)
 	    cout << ":" << fp.port;
 	{   list<CollectFreqDuration>::const_iterator li;
 	    for (li=lfreq.begin() ; li!=lfreq.end() ; li++)
@@ -871,7 +870,6 @@ cerr << "                                                       key=" << key << 
 	map<FQDNPort, CollectingConn *>::iterator mj;
 
 	for (mi=mpcs.begin() ;mi!=mpcs.end() ; mi++) {
-cerr << "{{{{{{{{{{{{{{{{{{{{ taille de mpcs: " << mpcs.size() << endl ;
 	    mj = mpcc.find(mi->second->get_fqdnport());	// do we already have a connection for that fqdn ?
 	    if (mj == mpcc.end()) {			// no we don't, lets create one
 		struct sockaddr_in sin;
@@ -916,6 +914,17 @@ using namespace qiconn;
 
 int main (int nb, char ** cmde) {
 
+    int port = QICONNPORT + 1;
+    
+    {	int i;
+	for (i=1 ; i<nb ; i++) {
+	    if ((strncmp (cmde[i], "-port", 5) == 0) && (i+1 < nb)) {
+		port = atoi (cmde[i+1]);
+		i++;
+	    }
+	}
+    }
+
     init_mmpcreators();
     
     string confname ("test.conf");
@@ -940,7 +949,7 @@ int main (int nb, char ** cmde) {
     
     cp.init_signal ();
     
-    int s = server_pool (1264+1);
+    int s = server_pool (port);
     // init_connect ("miso.local", 25);
     if (s < 0) {
 	cerr << "could not instanciate connection pool, bailing out !" << endl;
