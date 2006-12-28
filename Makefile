@@ -6,6 +6,8 @@ vimtest: all
 	# ./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
 	./qigong ; ./qicollect && ( telnet localhost 1264 ; tail /var/log/qigong.log )
 
+testqigong: qigong
+	./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
 
 
 qicollect: qicollect.o qiconn.o qimeasure.o
