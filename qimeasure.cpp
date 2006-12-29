@@ -1,3 +1,7 @@
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include <fstream>
 #include <iomanip>
 
@@ -129,9 +133,123 @@ namespace qiconn {
     }
 
 
-    void init_mmpcreators (void) {
+/*
+ *  ---- MPfilelen -----------------------------------------------------------------------------------------
+ */
+
+    class LogCountConn : public Connection
+    {
+#define LCC_BUFLEN 4096
+	protected:
+	    long long nl;
+	    string fname;
+	public:
+	    virtual ~LogCountConn (void) {}
+	    LogCountConn (const string &fname, int fd) : Connection (fd) {
+		LogCountConn::fname = fname;
+		nl = 0;
+	    }
+	    virtual void read (void) {
+		char s[LCC_BUFLEN];
+		ssize_t n = LCC_BUFLEN;
+		int i;
+		while (n == LCC_BUFLEN) {
+		    n = ::read (fd, (void *)s, LCC_BUFLEN);
+		    for (i=0 ; i<n ; i++) {
+			if ((s[i]==10) || (s[i]==13) || s[i]==0) {
+			    if (i+1<n) {
+				if ( ((s[i]==10) && (s[i+1]==13)) || ((s[i]==13) && (s[i+1]==10)) )
+				    i++;
+			    }
+			    nl++;
+			}
+		    }
+		}
+	    }
+	    virtual void write (void) {}
+	    virtual string getname (void) {
+		return (fname);
+	    }
+	    virtual void poll (void) {}
+	friend class MPfilelen;
+    };
+/*
+ *  ---- MPfilelen -----------------------------------------------------------------------------------------
+ */
+
+    void MPfilelen::reopen (bool seekend) {
+	fd = open (fname.c_str(), O_RDONLY);
+	plcc = NULL;
+
+	if (fd == -1)
+	    return;
+
+	if (fstat (fd, &curstat) == -1)
+	    return;
+
+	if (seekend)
+	    lseek (fd, 0, SEEK_END);
+	
+	if (pcp != NULL) {
+	    plcc = new LogCountConn (fname, fd);
+	    if (plcc != NULL) {
+		if (!seekend)
+		    plcc->read();
+		pcp->push(plcc);
+	    }
+	}
+
+    }
+    
+    MPfilelen::MPfilelen (const string & param) : MeasurePoint (param) {
+	name="filelen";
+	fname = param;
+	reopen (true);
+    }
+
+    bool MPfilelen::measure (string &result) {
+	stringstream out;
+	if (plcc == NULL) {
+	    reopen (false);
+	    out << "U";
+	} else if (oldnl == plcc->nl) {
+	    struct stat newstat;
+	    lstat (fname.c_str(), &newstat);
+	    if ((newstat.st_dev != curstat.st_dev) || (newstat.st_ino != curstat.st_ino)) {
+		if (plcc != NULL) delete (plcc);
+		reopen (false);
+		if (plcc == NULL)
+		    out << "U";
+		else {
+		    oldnl = plcc->nl;
+		    out << oldnl;
+		}
+	    } else {
+		out << oldnl;
+		lseek (fd, 0, SEEK_END);
+	    }
+	} else {
+	    oldnl = plcc->nl;
+	    out << oldnl;
+	}
+	result = out.str();
+	return true;
+    }
+
+    MeasurePoint* MPfilelen_creator (const string & param) {
+	return new MPfilelen (param);
+    }
+
+    ConnectionPool *MPfilelen::pcp = NULL;
+/*
+ *  ---- initialisation of MPs -----------------------------------------------------------------------------
+ */
+
+    void init_mmpcreators (ConnectionPool *pcp) {
 	mmpcreators["diskstats"]    = MPdiskstats_creator;
 	mmpcreators["netstats"]	    = MPnetstats_creator;
+	mmpcreators["filelen"]	    = MPfilelen_creator;
+	MPfilelen::pcp = pcp;
     }
 
 } // namespace qiconn
