@@ -426,8 +426,12 @@ if (false) {
 	if (n==0) {
 	    cerr << "read() returned 0. we may close the fd[" << fd << "] ????" << endl;
 	    // close ();
-	    schedule_for_destruction();
+	    reconnect_hook();
 	}
+    }
+
+    void DummyConnection::reconnect_hook (void) {
+	    schedule_for_destruction();
     }
 
     void DummyConnection::lineread (void) {
@@ -495,7 +499,7 @@ if (debugdummyout) {
 
 	    if (e == EPIPE) {   /* we can assume the connection is shut (and wasn't detected by read) */
 		// close ();
-		schedule_for_destruction();
+		reconnect_hook();
 	    } else {
 		cerr << "error writing to fd[" << fd << ":" << getname() << "] : (" << e << ") " << strerror (e) << endl ;
 	    }

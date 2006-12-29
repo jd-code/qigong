@@ -209,6 +209,7 @@ namespace qiconn
 					   void	flush(void);
 				   virtual void	write (void);
 				   virtual void poll (void) {}
+				   virtual void reconnect_hook (void);
     };
 
     #ifdef QICONN_H_GLOBINST
