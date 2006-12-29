@@ -183,6 +183,10 @@ namespace qiconn
     SocketConnection::SocketConnection (int fd, struct sockaddr_in const &client_addr)
 	: Connection (fd)
     {
+	setname (client_addr);
+    }
+
+    void SocketConnection::setname (struct sockaddr_in const &client_addr) {
 	SocketConnection::client_addr = client_addr;
 	stringstream s;
 	s << client_addr;
@@ -253,14 +257,17 @@ namespace qiconn
 	MConnections::iterator mi;
 	FD_ZERO (&r_fd);
 	for (mi=connections.begin() ; mi!=connections.end() ; mi++)
-	    FD_SET (mi->first, &r_fd);
+	    if (mi->first >= 0) FD_SET (mi->first, &r_fd);
     }
 
     int ConnectionPool::set_biggest (void) {
 	if (connections.empty())
 	    biggest_fd = -1;
-	else
+	else {
 	    biggest_fd = connections.begin()->first + 1;
+	    if (biggest_fd < 0)
+		biggest_fd = -1;
+	}
 	return biggest_fd;
     }
 
@@ -349,6 +356,15 @@ namespace qiconn
 	} else if (c->cp != this) {
 	    cerr << "warning: connection[" << c->fd << ":" << c->getname() << "] already commited to another cp !" << endl;
 	    return;
+	}
+	if (c->fd == -1) {  // we're setting a pending connection...
+	    if (connections.empty())
+		c->fd = -2;
+	    else {
+		c->fd = connections.begin()->second->fd - 1;
+		if (c->fd >= 0)
+		    c->fd = -2;
+	    }
 	}
 	MConnections::iterator mi = connections.find (c->fd);
 	if (mi == connections.end()) {

@@ -413,17 +413,6 @@ int main (int nb, char ** cmde) {
 	return -1;
     }
 
-    MeasurePool cp;
-
-    init_mmpcreators(&cp);
-
-    createrecordset ("allo 12 method(38) diskstats(sda) load() trcumuch(1 2 3   ", cerr);
-    createrecordset ("allo 1 method(38) diskstats(sda) load() diskstats", cerr);
-    createrecordset ("alli 5 method(38) diskstats(hda) load()", cerr);
-    createrecordset ("mexico 5 method(38) diskstats(hda) load()", cerr);
-    
-    cp.init_signal ();
-    
     int s = server_pool (port);
     // init_connect ("miso.local", 25);
     if (s < 0) {
@@ -440,7 +429,6 @@ int main (int nb, char ** cmde) {
 	name << "*:" << port;
 	ls->setname(name.str());
     }
-    cp.push (ls);
 
     {	pid_t child = fork ();
 	int e = errno;
@@ -455,6 +443,19 @@ int main (int nb, char ** cmde) {
 		return 0;
 	}
     }
+
+    MeasurePool cp;
+
+    init_mmpcreators(&cp);
+
+    createrecordset ("allo 12 method(38) diskstats(sda) load() trcumuch(1 2 3   ", cerr);
+    createrecordset ("allo 1 method(38) diskstats(sda) load() diskstats", cerr);
+    createrecordset ("alli 5 method(38) diskstats(hda) load()", cerr);
+    createrecordset ("mexico 5 method(38) diskstats(hda) load()", cerr);
+    
+    cp.init_signal ();
+    
+    cp.push (ls);
 
     struct timeval timeout;
     timeout.tv_sec = 0;

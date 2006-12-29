@@ -197,7 +197,11 @@ namespace qiconn {
     class CollectingConn : public DummyConnection
     {
 	private:
+	    string fqdn;
+	    int port;
+	    time_t lastattempt;
 	    typedef enum {
+		needtoconnect,
 		welcome,
 		verify,
 		ready,
@@ -218,11 +222,13 @@ namespace qiconn {
 
 	public:
 	    virtual ~CollectingConn (void);
-	    CollectingConn (int fd, struct sockaddr_in const &client_addr);
+	    CollectingConn (string const & fqdn, int port);
+	    // CollectingConn (int fd, struct sockaddr_in const &client_addr);
 	    virtual void lineread (void);
 	    ostream& get_out() { return *out; }
 	    bool assign (CollectionSet * pcc);
 	    virtual void poll (void);
+	    virtual void reconnect_hook (void);
     };
 
 
@@ -232,7 +238,9 @@ namespace qiconn {
 	    virtual ~ListeningBinder (void) {}
 	    ListeningBinder (int fd) : ListeningSocket (fd, "socketbinder") {}
 	    virtual DummyConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
-		return new CollectingConn (fd, client_addr);
+		// return new CollectingConn (fd, client_addr);
+		// JDJD WTF was the above ??? never used ?
+		return NULL;
 	    }
 	    virtual void poll (void) {}
     };
