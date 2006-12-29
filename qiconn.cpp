@@ -8,7 +8,8 @@ namespace qiconn
 {
     using namespace std;
 
-    bool debug_transmit = false; // debug all transmitions
+    bool debug_transmit = false;    // debug all transmitions
+    bool debugdummyout = true;	    // debug output of dummyconn
 
     /*
      *  ---------------------------- simple ostream operators for hostent and sockaddr_in --------------------
@@ -463,7 +464,7 @@ if (false) {
 	if (cp != NULL)
 	    cp->reqw (fd);
 	bufout += out->str();
-if (false) {
+if (debugdummyout) {
     cerr << "                                                                                      ->out=" << out->str() << endl ;
 }
 	delete (out); 

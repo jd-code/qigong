@@ -413,15 +413,14 @@ int main (int nb, char ** cmde) {
 	return -1;
     }
 
+    MeasurePool cp;
 
-    init_mmpcreators();
+    init_mmpcreators(&cp);
 
     createrecordset ("allo 12 method(38) diskstats(sda) load() trcumuch(1 2 3   ", cerr);
     createrecordset ("allo 1 method(38) diskstats(sda) load() diskstats", cerr);
     createrecordset ("alli 5 method(38) diskstats(hda) load()", cerr);
     createrecordset ("mexico 5 method(38) diskstats(hda) load()", cerr);
-    
-    MeasurePool cp;
     
     cp.init_signal ();
     

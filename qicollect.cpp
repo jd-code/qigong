@@ -925,7 +925,9 @@ int main (int nb, char ** cmde) {
 	}
     }
 
-    init_mmpcreators();
+    CollectPool cp;
+    
+    init_mmpcreators(&cp);
     
     string confname ("test.conf");
     
@@ -944,8 +946,6 @@ int main (int nb, char ** cmde) {
 
 //     return 0;
 
-    
-    CollectPool cp;
     
     cp.init_signal ();
     

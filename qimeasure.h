@@ -7,6 +7,10 @@
 #define QIMEASURE_H_SCOPE extern
 #endif
 
+#include <sys/types.h>	// struct stat
+#include <sys/stat.h>	// struct stat
+#include <unistd.h>	// struct stat
+
 #include <string>
 #include <map>
 
@@ -42,10 +46,10 @@ namespace qiconn {
 
     QIMEASURE_H_SCOPE map<string, MPCreator> mmpcreators;
 
-    void init_mmpcreators (void);
+    void init_mmpcreators (ConnectionPool *pcp);
 
     /*
-     *  --------------------------------------------------------------------------------------------------------
+     *  ----- MPdiskstats --------------------------------------------------------------------------------------
      */
 
     class MPdiskstats : public MeasurePoint {
@@ -65,10 +69,8 @@ namespace qiconn {
 	    virtual string get_next_rras (void) { return "AVERAGE"; }	// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
     };
 
-    MeasurePoint* MPdiskstats_creator (const string & param);
-
     /*
-     *  --------------------------------------------------------------------------------------------------------
+     *  ----- MPnetstats ---------------------------------------------------------------------------------------
      */
 
     class MPnetstats : public MeasurePoint {
@@ -88,7 +90,35 @@ namespace qiconn {
 	    virtual string get_next_rras (void) { return "AVERAGE"; }	// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
     };
 
-    MeasurePoint* MPdiskstats_creator (const string & param);
+    /*
+     *  ----- MPfilelen ----------------------------------------------------------------------------------------
+     */
+
+    class LogCountConn;
+    
+    class MPfilelen : public MeasurePoint {
+	protected:
+	    long long oldnl;
+	    string fname;
+	    int fd;
+	    LogCountConn *plcc;
+	    static ConnectionPool *pcp;
+	    struct stat curstat;
+	    void reopen (bool seekend);
+	    
+	public:
+	    virtual ~MPfilelen (void) {}
+	    MPfilelen (const string & param);
+
+	    virtual bool measure (string &result);			// the measuring function itself
+	    virtual string get_source_type(void) { return "DERIVE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
+	    virtual string get_min(void) { return "0"; }		// min or U for unknown
+	    virtual string get_max(void) { return "U"; }		// min or U for unknown
+	    virtual string get_first_rra (void) { return "LAST"; }	// consolidation function for first rra (AVERAGE MIN MAX or LMAST)
+	    virtual string get_next_rras (void) { return "AVERAGE"; }	// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
+
+	friend void init_mmpcreators (ConnectionPool *pcp);
+    };
 
 } // namespace qiconn
 
