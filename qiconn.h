@@ -101,19 +101,12 @@ namespace qiconn
     class SocketConnection : public Connection
     {
 	protected:
-	    struct sockaddr_in client_addr;
-	    string name;
-
+	                           struct sockaddr_in client_addr;
+	                           string name;
 	public:
-	    virtual ~SocketConnection (void) { cerr << "destruction of fd[" << fd << ", " << name << "]" << endl; }
-
-	    SocketConnection (int fd, struct sockaddr_in const &client_addr);
-    //	SocketConnection (int fd, struct sockaddr_in const &client_addr) : Connection (fd) {
-    //	    SocketConnection::client_addr = client_addr;
-    //	    stringstream s;
-    //	    s << client_addr;
-    //	    name = s.str();
-    //	}
+	        virtual ~SocketConnection (void) { cerr << "destruction of fd[" << fd << ", " << name << "]" << endl; }
+	                 SocketConnection (int fd, struct sockaddr_in const &client_addr);
+	             virtual void setname (struct sockaddr_in const &client_addr);
 	    inline virtual string getname (void) {
 		return name;
 	    }
@@ -178,7 +171,7 @@ namespace qiconn
 	    void destroyall (void);
 
 	    /* request writing */
-	    inline void reqw (int fd) { FD_SET (fd, &w_fd); }
+	    inline void reqw (int fd) { if (fd >= 0) FD_SET (fd, &w_fd); }
 	    
 	    virtual ~ConnectionPool (void);
 

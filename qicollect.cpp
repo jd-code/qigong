@@ -40,9 +40,13 @@ namespace qiconn {
 /*
  *  ------------------- the collecting connections -------------------------------------------------------
  */
-
-    CollectingConn::CollectingConn (int fd, struct sockaddr_in const &client_addr) : DummyConnection(fd, client_addr) {
-	state = welcome;
+    struct sockaddr_in empty_addr;
+    
+    CollectingConn::CollectingConn (string const & fqdn, int port) : DummyConnection(-1, empty_addr) {
+	CollectingConn::fqdn = fqdn;
+	CollectingConn::port = port;
+	lastattempt = 0;
+	state = needtoconnect;
 	pending = false,
 	is_collecting = false;
 	waiting_pcs = NULL;
@@ -126,66 +130,102 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 		
 	    case ready:
 	    case timeout:
+	    case needtoconnect:
 		break;
 	}
     }
 
-    void CollectingConn::poll (void) {
-	if (state==ready) {
-	    if (pending) {
-		MpCS::iterator mi;
-		pending = false;
-		for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++) {
-		    switch (mi->second->state) {
-			case del_remote_for_create:
-			    mi->second->delete_remote ();
-			    state = waiting;
-			    wait_string = "delete:";
-			    waiting_pcs = mi->second;
-			    waiting_pcs_nextstate = create_remote;
-cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
-			    pending = true;
-			    break;
-			case create_remote:
-			    mi->second->create_remote ();
-			    state = waiting;
-			    wait_string = "creation done.";
-			    waiting_pcs = mi->second;
-			    waiting_pcs_nextstate = activate_remote;
-cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
-			    pending = true;
-			    break;
-			case activate_remote:
-			    mi->second->activate_remote ();
-			    state = waiting;
-			    wait_string = "activate:";
-			    waiting_pcs = mi->second;
-			    waiting_pcs_nextstate = sub_remote;
-cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
-			    pending = true;
-			    break;
-			case sub_remote:
-			    mi->second->sub_remote ();
-			    state = waiting;
-			    wait_string = "subscribed";
-			    waiting_pcs = mi->second;
-cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
-			    waiting_pcs_nextstate = collect;
-			    pending = true;
-			    break;
-			case collect:
-			    break;
+    void CollectingConn::reconnect_hook (void) {
+	cp->pull (this);
+	fd = -1;
+	cp->push (this);
+	state = needtoconnect;
+cerr << "[" << getname() << "] ----------------------------->switching to state needtoconnect" << endl;
+    }
 
-			case unmatched:
-			case del_remote:
-			case unsub_remote:
+    void CollectingConn::poll (void) {
+	switch (state) {
+	    case ready:
+		if (pending) {
+		    MpCS::iterator mi;
+		    pending = false;
+		    for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++) {
+			switch (mi->second->state) {
+			    case del_remote_for_create:
+				mi->second->delete_remote ();
+				state = waiting;
+				wait_string = "delete:";
+				waiting_pcs = mi->second;
+				waiting_pcs_nextstate = create_remote;
+cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+				pending = true;
+				break;
+			    case create_remote:
+				mi->second->create_remote ();
+				state = waiting;
+				wait_string = "creation done.";
+				waiting_pcs = mi->second;
+				waiting_pcs_nextstate = activate_remote;
+cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+				pending = true;
+				break;
+			    case activate_remote:
+				mi->second->activate_remote ();
+				state = waiting;
+				wait_string = "activate:";
+				waiting_pcs = mi->second;
+				waiting_pcs_nextstate = sub_remote;
+cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+				pending = true;
+				break;
+			    case sub_remote:
+				mi->second->sub_remote ();
+				state = waiting;
+				wait_string = "subscribed";
+				waiting_pcs = mi->second;
+cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+				waiting_pcs_nextstate = collect;
+				pending = true;
+				break;
+			    case collect:
+				break;
+
+			    case unmatched:
+			    case del_remote:
+			    case unsub_remote:
+				break;
+			}
+			
+			if (pending)
 			    break;
 		    }
-		    
-		    if (pending)
-			break;
 		}
-	    }
+		break;
+	    case needtoconnect:
+		{   
+		    if (time(NULL) - lastattempt > 1) {
+			struct sockaddr_in sin;
+			int newfd = init_connect (fqdn.c_str(), port, &sin);
+			if (newfd != -1) {
+			    setname (sin);
+			    cp->pull (this);
+			    fd = newfd;
+			    cp->push (this);
+			    MpCS::iterator mi;
+			    for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++)
+				mi->second->state = del_remote_for_create;
+			    pending = true;
+			    state = welcome;
+cerr << "[" << getname() << "] ----------------------------->switching to state welcome" << endl;
+			} else {
+			    lastattempt = time(NULL);
+cerr << "[" << getname() << "] ----------------------------->attempt to connect failed" << endl;
+			}
+		    }
+		}
+		break;
+	    default:
+		break;
 	}
     }
     
@@ -872,26 +912,13 @@ cerr << "                                                       key=" << key << 
 	for (mi=mpcs.begin() ;mi!=mpcs.end() ; mi++) {
 	    mj = mpcc.find(mi->second->get_fqdnport());	// do we already have a connection for that fqdn ?
 	    if (mj == mpcc.end()) {			// no we don't, lets create one
-		struct sockaddr_in sin;
-		int retry = 0;
-#define NB_RETRY 10
-		while (retry < NB_RETRY) {
-		    int fd = init_connect(	mi->second->get_fqdnport().fqdn.c_str(),
-					    mi->second->get_fqdnport().port,
-					    &sin
-					 );
-		    if (fd != -1) {
-			CollectingConn *pcc = new CollectingConn (fd, sin);
-			mpcc[mi->second->get_fqdnport()] = pcc;
-			cp.push(pcc);
-			mi->second->bindcc (pcc);
-			pcc->assign(mi->second);
-			break;
-		    }
-		    cerr << "connection failed to " << sin << " : retrying" << endl;
-		    sleep (1);
-		    retry ++;
-		}
+		CollectingConn *pcc = new CollectingConn (  mi->second->get_fqdnport().fqdn.c_str(),
+							    mi->second->get_fqdnport().port
+							 );
+		mpcc[mi->second->get_fqdnport()] = pcc;
+		cp.push(pcc);
+		mi->second->bindcc (pcc);
+		pcc->assign(mi->second);
 	    } else {					// we already have a connection let's add some work for it
 		mi->second->bindcc (mj->second);
 		mj->second->assign(mi->second);
