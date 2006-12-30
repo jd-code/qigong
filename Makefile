@@ -7,6 +7,7 @@ all: qigong qicollect
 vimtest: all
 	# ./qicollect
 	# ./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
+	# ./qigong -debugout ; ./qicollect ; tail /var/log/qigong.log
 	./qigong -debugout ; ./qicollect -nofork && ( telnet localhost 1264 ; tail /var/log/qigong.log )
 
 testqigong: qigong
