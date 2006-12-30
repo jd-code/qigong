@@ -157,7 +157,7 @@ namespace qiconn {
 		int i;
 		    while (n == LCC_BUFLEN) {
 			n = ::read (fd, (void *)s, LCC_BUFLEN);
-    if (n==0) cerr << "read 0 b" << ((long) time(NULL)) << endl;
+//    if (n==0) cerr << "read 0 b" << ((long) time(NULL)) << endl;
 			for (i=0 ; i<n ; i++) {
 			    if ((s[i]==10) || (s[i]==13) || s[i]==0) {
 				if (i+1<n) {

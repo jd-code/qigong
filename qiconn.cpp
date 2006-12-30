@@ -416,7 +416,7 @@ namespace qiconn
 		clog << s[i];
 	    clog << endl;
 	}
-if (false)
+if (debug_dummyin)
 {   int i;
     cerr << "DummyConnection::read got[";
     for (i=0 ; i<n ; i++)
@@ -430,8 +430,8 @@ if (false)
 		    if ( ((s[i]==10) && (s[i+1]==13)) || ((s[i]==13) && (s[i+1]==10)) )
 			i++;
 		}
-if (false) {
-    cerr << "DummyConnection::read->lienread(" << bufin << ")" << endl;
+if (debug_lineread) {
+    cerr << "DummyConnection::read->lineread(" << bufin << ")" << endl;
 }
 		lineread ();
 		bufin = "";

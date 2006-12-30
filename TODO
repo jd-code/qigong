@@ -1,6 +1,7 @@
 
 all:
     switch to syslog for logging
+    create pid-files for daemons
 
 qiconn:
     handle connections time-outs at large

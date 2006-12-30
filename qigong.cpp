@@ -21,7 +21,6 @@ namespace qiconn {
 	schedule.insert(pair<time_t, RecordSet*>(t + interval, this));
 	stringstream buf;
 	buf << "-->" << name << ' ' << curt;
-// buf << ' ' << (curt % interval);
 	list <MeasurePoint *>::iterator li;
 	for (li=lmp.begin() ; li!=lmp.end() ; li++) {
 	    string b;
@@ -35,7 +34,6 @@ namespace qiconn {
 	    *(mi->first->out) << endl << buf.str();
 	    mi->first->flush();
 	}
-	// cerr << buf.str() ;
     }
     void RecordSet::dump (ostream& cout) const {
 	cout << "RecordSet: \"" << name << "\":" << endl;
@@ -386,6 +384,12 @@ namespace qiconn {
 using namespace std;
 using namespace qiconn;
 
+void param_match (const char * param, const char * match, bool &flag) {
+    size_t l = strlen (match);
+    if (strncmp (param, match, l) == 0)
+	flag = true;
+}   
+
 int main (int nb, char ** cmde) {
 
     int port = QICONNPORT;
@@ -397,17 +401,17 @@ int main (int nb, char ** cmde) {
 		port = atoi (cmde[i+1]);
 		i++;
 	    }
-	    if (strncmp (cmde[i], "-debugtransmit", 14) == 0) {
-		debug_transmit = true;
-	    }
-	    if (strncmp (cmde[i], "-debugout", 9) == 0) {
-		debug_dummyout = true;
-	    }
+	    param_match (cmde[i], "-debugtransmit",	debug_transmit);
+	    param_match (cmde[i], "-debugout",		debug_dummyout);
+	    param_match (cmde[i], "-debuginput",	debug_dummyin);
+	    param_match (cmde[i], "-debuglineread",	debug_lineread);
+
 	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
 		dofork = false;
 	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
-		cout << "usage : " << cmde[0] << " [-port N] [-debugtransmit] [-debugout] [-nofork] [--help]" << endl;
+		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [--help]" << endl
+		     << "                         [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl;
 		return 0;
 	    }
 	}
