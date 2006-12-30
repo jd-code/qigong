@@ -962,6 +962,7 @@ int main (int nb, char ** cmde) {
 		port = atoi (cmde[i+1]);
 		i++;
 	    }
+	    param_match (cmde[i], "-debugresolver",	debug_resolver);
 	    param_match (cmde[i], "-debugtransmit",	debug_transmit);
 	    param_match (cmde[i], "-debugout",		debug_dummyout);
 	    param_match (cmde[i], "-debuginput",	debug_dummyin);
@@ -974,7 +975,7 @@ int main (int nb, char ** cmde) {
 	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
 		cout << "usage : " << cmde[0] << " [-port N] [-debugccstates] [-nofork] [--help]" << endl
-		     << "                         [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
+		     << "                         [-debugresolver] [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
 		     << "                         [-debugccstates]" << endl;
 		return 0;
 	    }
@@ -998,7 +999,7 @@ int main (int nb, char ** cmde) {
 	cerr << "there were errors reading fonf file \"" << confname << "\"" << endl;
 	return -1;
     }
-    cout << runconfig;
+    cerr << "running config :" << endl << runconfig << endl;
 
 //     return 0;
 
