@@ -401,6 +401,7 @@ int main (int nb, char ** cmde) {
 		port = atoi (cmde[i+1]);
 		i++;
 	    }
+	    param_match (cmde[i], "-debugresolver",	debug_resolver);
 	    param_match (cmde[i], "-debugtransmit",	debug_transmit);
 	    param_match (cmde[i], "-debugout",		debug_dummyout);
 	    param_match (cmde[i], "-debuginput",	debug_dummyin);
@@ -411,7 +412,8 @@ int main (int nb, char ** cmde) {
 	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
 		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [--help]" << endl
-		     << "                         [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl;
+		     << "                         [-debugresolver] [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
+		;
 		return 0;
 	    }
 	}

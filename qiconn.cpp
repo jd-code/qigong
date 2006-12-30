@@ -88,7 +88,7 @@ namespace qiconn
 	struct hostent * he;
 	he = gethostbyname (fqdn);
 	if (he != NULL) {
-	    cout << *he;
+	    if (debug_resolver) cout << "gethostbyname(" << fqdn << ") = " << *he;
 	} else
 	    return -1;		    // A logger et détailler JDJDJDJD
 
