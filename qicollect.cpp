@@ -956,6 +956,9 @@ int main (int nb, char ** cmde) {
     int port = QICONNPORT + 1;
     bool dofork = true;
     
+    string logfile = "/var/log/qicollect.log",
+	   pidfile = "/var/run/qicollect.pid";
+    
     {	int i;
 	for (i=1 ; i<nb ; i++) {
 	    if ((strncmp (cmde[i], "-port", 5) == 0) && (i+1 < nb)) {
@@ -979,6 +982,22 @@ int main (int nb, char ** cmde) {
 		     << "                         [-debugccstates]" << endl;
 		return 0;
 	    }
+	}
+    }
+
+    if (dofork) {
+	// --------- let's start talking only on log file
+	if (close (0) != 0) {
+	    cerr << "could not close stdin" << strerror (errno) << endl;
+	    return -1;
+	}
+	if (freopen (logfile.c_str(), "a", stdout) == NULL) {
+	    cerr << "could not open " << logfile << " : " << strerror (errno) << endl;
+	    return -1;
+	}
+	if (freopen (logfile.c_str(), "a", stderr) == NULL) {
+	    cerr << "could not open " << logfile << " : " << strerror (errno) << endl;
+	    return -1;
 	}
     }
 
@@ -1027,22 +1046,15 @@ int main (int nb, char ** cmde) {
     runconfig.startnpoll (cp);
 
     if (dofork) {
-	// --------- let's start talking only on log file
-	if (close (0) != 0) {
-	    cerr << "could not close stdin" << strerror (errno) << endl;
-	    return -1;
-	}
-	if (freopen ("/var/log/qicollect.log", "a", stdout) == NULL) {
-	    cerr << "could not open /var/log/qicollect.log : " << strerror (errno) << endl;
-	    return -1;
-	}
-	if (freopen ("/var/log/qicollect.log", "a", stderr) == NULL) {
-	    cerr << "could not open /var/log/qicollect.log : " << strerror (errno) << endl;
+	ofstream pidf(pidfile.c_str());
+	if (!pidf) {
+	    int e = errno;
+	    cerr << "could not open pif-file : " << pidfile << " : " << strerror(e) << endl;
 	    return -1;
 	}
 
 	// --------- and fork to the background
-	{	pid_t child = fork ();
+	{   pid_t child = fork ();
 	    int e = errno;
 	    switch (child) {
 		case -1:
@@ -1052,6 +1064,7 @@ int main (int nb, char ** cmde) {
 		    break;
 		default:
 		    cerr << "daemon pid=" << child << endl;
+		    pidf << child << endl;
 		    return 0;
 	    }
 	}

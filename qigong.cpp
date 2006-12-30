@@ -394,6 +394,9 @@ int main (int nb, char ** cmde) {
 
     int port = QICONNPORT;
     bool dofork = true;
+
+    string logfile = "/var/log/qigong.log",
+	   pidfile = "/var/run/qigong.pid";
     
     {	int i;
 	for (i=1 ; i<nb ; i++) {
@@ -419,18 +422,20 @@ int main (int nb, char ** cmde) {
 	}
     }
 
-    
-    if (close (0) != 0) {
-	cerr << "could not close stdin" << strerror (errno) << endl;
-	return -1;
-    }
-    if (freopen ("/var/log/qigong.log", "a", stdout) == NULL) {
-	cerr << "could not open /var/log/qigong.log : " << strerror (errno) << endl;
-	return -1;
-    }
-    if (freopen ("/var/log/qigong.log", "a", stderr) == NULL) {
-	cerr << "could not open /var/log/qigong.log : " << strerror (errno) << endl;
-	return -1;
+    if (dofork) {    
+	// --------- let's start talking only on log file
+	if (close (0) != 0) {
+	    cerr << "could not close stdin" << strerror (errno) << endl;
+	    return -1;
+	}
+	if (freopen (logfile.c_str(), "a", stdout) == NULL) {
+	    cerr << "could not open " << logfile << " : " << strerror (errno) << endl;
+	    return -1;
+	}
+	if (freopen (logfile.c_str(), "a", stderr) == NULL) {
+	    cerr << "could not open " << logfile << " : " << strerror (errno) << endl;
+	    return -1;
+	}
     }
 
     int s = server_pool (port);
@@ -450,8 +455,16 @@ int main (int nb, char ** cmde) {
 	ls->setname(name.str());
     }
 
-    if (dofork)
-    {	pid_t child = fork ();
+    if (dofork) {
+	ofstream pidf(pidfile.c_str());
+	if (!pidf) {
+	    int e = errno;
+	    cerr << "could not open pif-file : " << pidfile << " : " << strerror(e) << endl;
+	    return -1;
+	}
+	
+	// --------- and fork to the background
+	pid_t child = fork ();
 	int e = errno;
 	switch (child) {
 	    case -1:
@@ -461,6 +474,7 @@ int main (int nb, char ** cmde) {
 		break;
 	    default:
 		cerr << "daemon pid=" << child << endl;
+		pidf << child << endl;
 		return 0;
 	}
     }
