@@ -88,7 +88,7 @@ namespace qiconn {
 	switch (state) {
 	    case welcome:
 		if (bufin.substr(0, 7) == "qigong[") {
-cerr << "[" << getname() << "] ------------------------------>switching to state verify" << endl;
+if (debug_ccstates) cerr << "[" << getname() << "] ------------------------------>switching to state verify" << endl;
 		    state = verify;
 		    nbtest = 0;
 		    (*out) << "qiging ?" << eos();
@@ -101,7 +101,7 @@ cerr << "[" << getname() << "] ------------------------------>switching to state
 
 	    case verify:
 		if (bufin.substr(0, 7) == "qigong." ) {
-cerr << "[" << getname() << "] ----------------------------->switching to state ready" << endl;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state ready" << endl;
 		    state = ready;
 		    is_collecting = true;
 		} else {
@@ -109,7 +109,7 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 		    if (nbtest >= CC__MAXRETRY) {
 			// JDJDJDJD faire qqchose pour gérer time-outs, retry et echecs....
 			state = timeout;
-cerr << "[" << getname() << "] ----------------------------->switching to state timeout" << endl;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state timeout" << endl;
 		    }
 		    (*out) << "qiging ?" << eos();
 		    flush();
@@ -122,10 +122,10 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 			waiting_pcs->state = waiting_pcs_nextstate;
 			waiting_pcs = NULL;
 		    }
-cerr << "[" << getname() << "] ----------------------------->switching to state ready" << endl;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state ready" << endl;
 		    state = ready;
 		} else
-		    cerr <<  "[" << getname() << "] waiting for \"" << wait_string << "\" got \"" << bufin << "\". garbaged." << endl;
+if (debug_ccstates) cerr <<  "[" << getname() << "] waiting for \"" << wait_string << "\" got \"" << bufin << "\". garbaged." << endl;
 		break;
 		
 	    case ready:
@@ -146,7 +146,7 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 	fd = -1;
 	cp->push (this);
 	state = needtoconnect;
-cerr << "[" << getname() << "] ----------------------------->switching to state needtoconnect" << endl;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state needtoconnect" << endl;
     }
 
     void CollectingConn::poll (void) {
@@ -163,7 +163,7 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 				wait_string = "delete:";
 				waiting_pcs = mi->second;
 				waiting_pcs_nextstate = create_remote;
-cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
 				pending = true;
 				break;
 			    case create_remote:
@@ -172,7 +172,7 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 				wait_string = "creation done.";
 				waiting_pcs = mi->second;
 				waiting_pcs_nextstate = activate_remote;
-cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
 				pending = true;
 				break;
 			    case activate_remote:
@@ -181,7 +181,7 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 				wait_string = "activate:";
 				waiting_pcs = mi->second;
 				waiting_pcs_nextstate = sub_remote;
-cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
 				pending = true;
 				break;
 			    case sub_remote:
@@ -189,7 +189,7 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 				state = waiting;
 				wait_string = "subscribed";
 				waiting_pcs = mi->second;
-cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state waiting(" << wait_string << ")" << endl;
 				waiting_pcs_nextstate = collect;
 				pending = true;
 				break;
@@ -222,10 +222,10 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 				mi->second->state = del_remote_for_create;
 			    pending = true;
 			    state = welcome;
-cerr << "[" << getname() << "] ----------------------------->switching to state welcome" << endl;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state welcome" << endl;
 			} else {
 			    lastattempt = time(NULL);
-cerr << "[" << getname() << "] ----------------------------->attempt to connect failed" << endl;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->attempt to connect failed" << endl;
 			}
 		    }
 		}
@@ -357,7 +357,7 @@ cerr << "[" << getname() << "] ----------------------------->attempt to connect 
     }
     
     int CollectionSet::create_remote (void) {
-cerr << "                                                       key=" << key << endl;
+if (debug_ccstates) cerr << "                                                       key=" << key << endl;
 	pcc->get_out() << "create " << key << ' ' << (long)base_interval ;
 	list<TaggedMeasuredPoint*>::iterator li;
 	for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++) {
@@ -945,6 +945,12 @@ cerr << "                                                       key=" << key << 
 using namespace std;
 using namespace qiconn;
 
+void param_match (const char * param, const char * match, bool &flag) {
+    size_t l = strlen (match);
+    if (strncmp (param, match, l) == 0)
+	flag = true;
+}   
+
 int main (int nb, char ** cmde) {
 
     int port = QICONNPORT + 1;
@@ -956,17 +962,20 @@ int main (int nb, char ** cmde) {
 		port = atoi (cmde[i+1]);
 		i++;
 	    }
-	    if (strncmp (cmde[i], "-debugtransmit", 14) == 0) {
-		debug_transmit = true;
-	    }
-	    if (strncmp (cmde[i], "-debugout", 9) == 0) {
-		debug_dummyout = true;
-	    }
+	    param_match (cmde[i], "-debugtransmit",	debug_transmit);
+	    param_match (cmde[i], "-debugout",		debug_dummyout);
+	    param_match (cmde[i], "-debuginput",	debug_dummyin);
+	    param_match (cmde[i], "-debuglineread",	debug_lineread);
+
+	    param_match (cmde[i], "-debugccstates",	debug_ccstates);
+
 	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
 		dofork = false;
 	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
-		cout << "usage : " << cmde[0] << " [-port N] [-debugtransmit] [-debugout] [-nofork] [--help]" << endl;
+		cout << "usage : " << cmde[0] << " [-port N] [-debugccstates] [-nofork] [--help]" << endl
+		     << "                         [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
+		     << "                         [-debugccstates]" << endl;
 		return 0;
 	    }
 	}
@@ -1050,7 +1059,7 @@ int main (int nb, char ** cmde) {
 
     cp.select_loop (timeout);
     
-    cerr << "on sort bye" << endl;
+    cerr << "exiting qicollect" << endl;
     
     return 0;
 }

@@ -5,7 +5,7 @@
 #define QICOLLECT_H_SCOPE
 #define QIMEASURE_H_GLOBINST
 #else
-#define QICOLLECT_H_SCOPE external
+#define QICOLLECT_H_SCOPE extern
 #endif
 
 #include <fstream>
@@ -20,8 +20,10 @@ namespace qiconn {
 
 #ifdef QICOLLECT_H_GLOBINST
     char * version = "Qicollect v0.5 - $Id$";
+    bool debug_ccstates = false;
 #else
-    external char * version;
+    QICOLLECT_H_SCOPE char * version;
+    QICOLLECT_H_SCOPE bool debug_ccstates;
 #endif
 
 
