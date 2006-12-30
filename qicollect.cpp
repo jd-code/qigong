@@ -137,6 +137,12 @@ cerr << "[" << getname() << "] ----------------------------->switching to state 
 
     void CollectingConn::reconnect_hook (void) {
 	cp->pull (this);
+	if (fd > 0) {
+	    if (::close(fd) != 0) {
+		int e = errno;
+		cerr << "error closing fd[" << fd << "] : " << strerror(e) << endl ;
+	    }
+	}
 	fd = -1;
 	cp->push (this);
 	state = needtoconnect;
@@ -942,12 +948,26 @@ using namespace qiconn;
 int main (int nb, char ** cmde) {
 
     int port = QICONNPORT + 1;
+    bool dofork = true;
     
     {	int i;
 	for (i=1 ; i<nb ; i++) {
 	    if ((strncmp (cmde[i], "-port", 5) == 0) && (i+1 < nb)) {
 		port = atoi (cmde[i+1]);
 		i++;
+	    }
+	    if (strncmp (cmde[i], "-debugtransmit", 14) == 0) {
+		debug_transmit = true;
+	    }
+	    if (strncmp (cmde[i], "-debugout", 9) == 0) {
+		debug_dummyout = true;
+	    }
+	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
+		dofork = false;
+	    }
+	    if (strncmp (cmde[i], "--help", 6) == 0) {
+		cout << "usage : " << cmde[0] << " [-port N] [-debugtransmit] [-debugout] [-nofork] [--help]" << endl;
+		return 0;
 	    }
 	}
     }
@@ -996,36 +1016,36 @@ int main (int nb, char ** cmde) {
     runconfig.buildmissing_rrd ();
     runconfig.startnpoll (cp);
 
-if (false) {
-    // --------- let's start talking only on log file
-    if (close (0) != 0) {
-	cerr << "could not close stdin" << strerror (errno) << endl;
-	return -1;
-    }
-    if (freopen ("/var/log/qicollect.log", "a", stdout) == NULL) {
-	cerr << "could not open /var/log/qicollect.log : " << strerror (errno) << endl;
-	return -1;
-    }
-    if (freopen ("/var/log/qicollect.log", "a", stderr) == NULL) {
-	cerr << "could not open /var/log/qicollect.log : " << strerror (errno) << endl;
-	return -1;
-    }
+    if (dofork) {
+	// --------- let's start talking only on log file
+	if (close (0) != 0) {
+	    cerr << "could not close stdin" << strerror (errno) << endl;
+	    return -1;
+	}
+	if (freopen ("/var/log/qicollect.log", "a", stdout) == NULL) {
+	    cerr << "could not open /var/log/qicollect.log : " << strerror (errno) << endl;
+	    return -1;
+	}
+	if (freopen ("/var/log/qicollect.log", "a", stderr) == NULL) {
+	    cerr << "could not open /var/log/qicollect.log : " << strerror (errno) << endl;
+	    return -1;
+	}
 
-    // --------- and fork to the background
-    {	pid_t child = fork ();
-	int e = errno;
-	switch (child) {
-	    case -1:
-		cerr << "could not fork to background ! " << strerror (e) <<  " -  exiting..." << endl;
-		return -1;
-	    case 0:
-		break;
-	    default:
-		cerr << "daemon pid=" << child << endl;
-		return 0;
+	// --------- and fork to the background
+	{	pid_t child = fork ();
+	    int e = errno;
+	    switch (child) {
+		case -1:
+		    cerr << "could not fork to background ! " << strerror (e) <<  " -  exiting..." << endl;
+		    return -1;
+		case 0:
+		    break;
+		default:
+		    cerr << "daemon pid=" << child << endl;
+		    return 0;
+	    }
 	}
     }
-}
 
 
     cp.select_loop (timeout);

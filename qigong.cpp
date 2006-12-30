@@ -389,12 +389,26 @@ using namespace qiconn;
 int main (int nb, char ** cmde) {
 
     int port = QICONNPORT;
+    bool dofork = true;
     
     {	int i;
 	for (i=1 ; i<nb ; i++) {
 	    if ((strncmp (cmde[i], "-port", 5) == 0) && (i+1 < nb)) {
 		port = atoi (cmde[i+1]);
 		i++;
+	    }
+	    if (strncmp (cmde[i], "-debugtransmit", 14) == 0) {
+		debug_transmit = true;
+	    }
+	    if (strncmp (cmde[i], "-debugout", 9) == 0) {
+		debug_dummyout = true;
+	    }
+	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
+		dofork = false;
+	    }
+	    if (strncmp (cmde[i], "--help", 6) == 0) {
+		cout << "usage : " << cmde[0] << " [-port N] [-debugtransmit] [-debugout] [-nofork] [--help]" << endl;
+		return 0;
 	    }
 	}
     }
@@ -430,6 +444,7 @@ int main (int nb, char ** cmde) {
 	ls->setname(name.str());
     }
 
+    if (dofork)
     {	pid_t child = fork ();
 	int e = errno;
 	switch (child) {

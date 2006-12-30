@@ -8,9 +8,6 @@ namespace qiconn
 {
     using namespace std;
 
-    bool debug_transmit = false;    // debug all transmitions
-    bool debugdummyout = true;	    // debug output of dummyconn
-
     /*
      *  ---------------------------- simple ostream operators for hostent and sockaddr_in --------------------
      */
@@ -131,7 +128,7 @@ namespace qiconn
     }
 
     /*
-     *  ---------------------------- Connectionl : handles an incoming connection from fd --------------------
+     *  ---------------------------- Connection : handles an incoming connection from fd --------------------
      */
 
     /*
@@ -145,9 +142,11 @@ namespace qiconn
 
     void Connection::close (void) {
 	deregister_from_pool ();
-	if (::close(fd) != 0) {
-	    int e = errno;
-	    cerr << "error closing fd[" << fd << "] : " << strerror(e) << endl ;
+	if (fd >= 0) {
+	    if (::close(fd) != 0) {
+		int e = errno;
+		cerr << "error closing fd[" << fd << "] : " << strerror(e) << endl ;
+	    }
 	}
     }
 
@@ -441,7 +440,6 @@ if (false) {
 	}
 	if (n==0) {
 	    cerr << "read() returned 0. we may close the fd[" << fd << "] ????" << endl;
-	    // close ();
 	    reconnect_hook();
 	}
     }
@@ -484,7 +482,7 @@ if (false) {
 	if (cp != NULL)
 	    cp->reqw (fd);
 	bufout += out->str();
-if (debugdummyout) {
+if (debug_dummyout) {
     cerr << "                                                                                      ->out=" << out->str() << endl ;
 }
 	delete (out); 
@@ -514,7 +512,6 @@ if (debugdummyout) {
 	    int e = errno;
 
 	    if (e == EPIPE) {   /* we can assume the connection is shut (and wasn't detected by read) */
-		// close ();
 		reconnect_hook();
 	    } else {
 		cerr << "error writing to fd[" << fd << ":" << getname() << "] : (" << e << ") " << strerror (e) << endl ;

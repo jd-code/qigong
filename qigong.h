@@ -5,7 +5,7 @@
 #define QIGONG_H_SCOPE
 #define QIMEASURE_H_GLOBINST
 #else
-#define QIGONG_H_SCOPE external
+#define QIGONG_H_SCOPE extern
 #endif
 
 #include <fstream>
@@ -21,7 +21,7 @@ namespace qiconn {
 #ifdef QIGONG_H_GLOBINST
     char * version = "Qigong v0.5 - $Id$";
 #else
-    external char * version;
+    extern char * version;
 #endif
 
 
@@ -73,8 +73,8 @@ namespace qiconn {
 	     string hostname = "unknown_host";
 	     string prompt = "qigong[unknown_host] : ";
 #else
-    external string hostname;
-    external string prompt;
+    extern string hostname;
+    extern string prompt;
 #endif
 
     class CollectedConn : public DummyConnection
