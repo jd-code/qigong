@@ -143,34 +143,45 @@ namespace qiconn {
 	protected:
 	    long long nl;
 	    string fname;
+	    off_t prevsize;
 	public:
 	    virtual ~LogCountConn (void) {}
 	    LogCountConn (const string &fname, int fd) : Connection (fd) {
 		LogCountConn::fname = fname;
 		nl = 0;
+		prevsize = 0;
 	    }
 	    virtual void read (void) {
 		char s[LCC_BUFLEN];
 		ssize_t n = LCC_BUFLEN;
 		int i;
-		while (n == LCC_BUFLEN) {
-		    n = ::read (fd, (void *)s, LCC_BUFLEN);
-		    for (i=0 ; i<n ; i++) {
-			if ((s[i]==10) || (s[i]==13) || s[i]==0) {
-			    if (i+1<n) {
-				if ( ((s[i]==10) && (s[i+1]==13)) || ((s[i]==13) && (s[i+1]==10)) )
-				    i++;
+		    while (n == LCC_BUFLEN) {
+			n = ::read (fd, (void *)s, LCC_BUFLEN);
+    if (n==0) cerr << "read 0 b" << ((long) time(NULL)) << endl;
+			for (i=0 ; i<n ; i++) {
+			    if ((s[i]==10) || (s[i]==13) || s[i]==0) {
+				if (i+1<n) {
+				    if ( ((s[i]==10) && (s[i+1]==13)) || ((s[i]==13) && (s[i+1]==10)) )
+					i++;
+				}
+				nl++;
 			    }
-			    nl++;
 			}
 		    }
-		}
+		    cp->reqnor(fd);
 	    }
 	    virtual void write (void) {}
 	    virtual string getname (void) {
 		return (fname);
 	    }
-	    virtual void poll (void) {}
+	    virtual void poll (void) {
+		struct stat newstat;
+		fstat (fd, &newstat);
+		if (newstat.st_size != prevsize) {
+		    prevsize = newstat.st_size;
+		    cp->reqr(fd);
+		}
+	    }
 	friend class MPfilelen;
     };
 /*

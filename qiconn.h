@@ -1,6 +1,13 @@
 #ifndef QICONN_H_INCLUDE
 #define QICONN_H_INCLUDE
 
+#ifdef QICONN_H_GLOBINST
+#define QICONN_H_SCOPE
+#else
+#define QICONN_H_SCOPE extern
+#endif
+
+
 #include <netdb.h>	    // gethostbyname
 // #include <sys/types.h>
 // #include <sys/socket.h>	    // connect
@@ -15,6 +22,14 @@
 namespace qiconn
 {
     using namespace std;
+
+#ifdef QICONN_H_GLOBINST
+    QICONN_H_SCOPE bool debug_transmit = false;	    // debug all transmitions
+    QICONN_H_SCOPE bool debug_dummyout = false;	    // debug output of dummyconn
+#else
+    QICONN_H_SCOPE bool debug_transmit;		    // debug all transmitions
+    QICONN_H_SCOPE bool debug_dummyout;		    // debug output of dummyconn
+#endif
 
     /*
      *  ---------------------------- simple ostream operators for hostent and sockaddr_in --------------------
@@ -170,6 +185,10 @@ namespace qiconn
 
 	    void destroyall (void);
 
+	    /* request no read (for files select always return read available)  */
+	    inline void reqnor (int fd) { if (fd >= 0) FD_CLR (fd, &r_fd); }
+	    /* request reading */
+	    inline void reqr (int fd) { if (fd >= 0) FD_SET (fd, &r_fd); }
 	    /* request writing */
 	    inline void reqw (int fd) { if (fd >= 0) FD_SET (fd, &w_fd); }
 	    

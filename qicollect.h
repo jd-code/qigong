@@ -2,10 +2,10 @@
 #define QICOLLECT_H_INCLUDE
 
 #ifdef QICOLLECT_H_GLOBINST
-#define SCOPE
+#define QICOLLECT_H_SCOPE
 #define QIMEASURE_H_GLOBINST
 #else
-#define SCOPE external
+#define QICOLLECT_H_SCOPE external
 #endif
 
 #include <fstream>
