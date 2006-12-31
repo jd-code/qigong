@@ -8,7 +8,8 @@ vimtest: all
 	# ./qicollect
 	# ./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
 	# ./qigong -debugout ; ./qicollect ; tail /var/log/qigong.log
-	./qigong -debugout ; ./qicollect -nofork && ( telnet localhost 1264 ; tail /var/log/qigong.log )
+	./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout
+	./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -nofork && ( telnet localhost 1264 ; tail /var/log/qigong.log )
 
 testqigong: qigong
 	./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log

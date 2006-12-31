@@ -949,15 +949,22 @@ void param_match (const char * param, const char * match, bool &flag) {
     size_t l = strlen (match);
     if (strncmp (param, match, l) == 0)
 	flag = true;
-}   
+}
+
+void param_match (string param, string match, string &s) {
+    match += '=';
+    if (param.find(match) == 0)
+	s = param.substr (match.size());
+}
 
 int main (int nb, char ** cmde) {
 
     int port = QICONNPORT + 1;
     bool dofork = true;
     
-    string logfile = "/var/log/qicollect.log",
-	   pidfile = "/var/run/qicollect.pid";
+    string logfile ("/var/log/qicollect.log"),
+	   pidfile ("/var/run/qicollect.pid"),
+	   conffile ("/etc/qicollect.conf");
     
     {	int i;
 	for (i=1 ; i<nb ; i++) {
@@ -970,16 +977,19 @@ int main (int nb, char ** cmde) {
 	    param_match (cmde[i], "-debugout",		debug_dummyout);
 	    param_match (cmde[i], "-debuginput",	debug_dummyin);
 	    param_match (cmde[i], "-debuglineread",	debug_lineread);
+	    param_match (cmde[i], "-pidfile",		pidfile);
+	    param_match (cmde[i], "-logfile",		logfile);
 
 	    param_match (cmde[i], "-debugccstates",	debug_ccstates);
+	    param_match (cmde[i], "-conffile",		conffile);
 
 	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
 		dofork = false;
 	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
-		cout << "usage : " << cmde[0] << " [-port N] [-debugccstates] [-nofork] [--help]" << endl
+		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [-pidfile=fname] [-logfile=fname] [--help]" << endl
 		     << "                         [-debugresolver] [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
-		     << "                         [-debugccstates]" << endl;
+		     << "                         [-debugccstates] [-conffile=fname]" << endl;
 		return 0;
 	    }
 	}
@@ -1005,17 +1015,15 @@ int main (int nb, char ** cmde) {
     
     init_mmpcreators(&cp);
     
-    string confname ("test.conf");
-    
-    ifstream fconf (confname.c_str());
+    ifstream fconf (conffile.c_str());
     if (!fconf) {
-	cerr << "could not open " << confname << " : " << strerror (errno) << endl;
+	cerr << "could not open " << conffile << " : " << strerror (errno) << endl;
 	return -1;
     }
     int nberr;
     ReadConf rc;
     if ((nberr = rc.readconf (fconf, runconfig)) != 0) {
-	cerr << "there were errors reading fonf file \"" << confname << "\"" << endl;
+	cerr << "there were errors reading fonf file \"" << conffile << "\"" << endl;
 	return -1;
     }
     cerr << "running config :" << endl << runconfig << endl;

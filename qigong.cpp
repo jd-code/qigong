@@ -390,6 +390,12 @@ void param_match (const char * param, const char * match, bool &flag) {
 	flag = true;
 }   
 
+void param_match (string param, string match, string &s) {
+    match += '=';
+    if (param.find(match) == 0)
+	s = param.substr (match.size());
+}
+
 int main (int nb, char ** cmde) {
 
     int port = QICONNPORT;
@@ -409,12 +415,14 @@ int main (int nb, char ** cmde) {
 	    param_match (cmde[i], "-debugout",		debug_dummyout);
 	    param_match (cmde[i], "-debuginput",	debug_dummyin);
 	    param_match (cmde[i], "-debuglineread",	debug_lineread);
+	    param_match (cmde[i], "-pidfile",		pidfile);
+	    param_match (cmde[i], "-logfile",		logfile);
 
 	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
 		dofork = false;
 	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
-		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [--help]" << endl
+		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [-pidfile=fname] [-logfile=fname] [--help]" << endl
 		     << "                         [-debugresolver] [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
 		;
 		return 0;
