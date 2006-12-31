@@ -16,7 +16,7 @@ do
     DEST="${PREFIX}/sbin/${NOM}"
     if [ -e "${DEST}" ]
     then
-	mv -a "${DEST}" "${DEST}-${BACKUP_TAG}"
+	mv "${DEST}" "${DEST}-${BACKUP_TAG}"
     fi
     cp "${NOM}" "${DEST}"
     chmod 755 "${DEST}"
@@ -27,7 +27,7 @@ do
     DEST="/etc/init.d/${NOM}"
     if [ -e "${DEST}" ]
     then
-	mv -a "${DEST}" "${DEST}-${BACKUP_TAG}"
+	mv "${DEST}" "${DEST}-${BACKUP_TAG}"
     fi
     cp "${NOM}".rc "${DEST}"
     chmod 755 "${DEST}"
