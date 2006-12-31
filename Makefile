@@ -6,7 +6,7 @@ SHELL=/bin/sh
 
 all: qigong qicollect qigong.rc
 
-install: qigong qicollect
+install: all
 	./installscript "${PREFIX}"
 
 vimtest: all

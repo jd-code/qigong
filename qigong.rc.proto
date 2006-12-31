@@ -5,7 +5,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DESC="status reporting daemon"
 NAME="qigong"
 DAEMON="@@PREFIX@@/sbin/${NAME}"
-PIDFILE="var/run/${NAME}.pid"
+PIDFILE="/var/run/${NAME}.pid"
 SCRIPTNAME="/etc/init.d/${NAME}"
 
 d_start() {
@@ -15,15 +15,22 @@ d_start() {
 d_stop() {
 	if [ ! -e "${PIDFILE}" ]
 	then
+	    echo
 	    echo " no pid file found (${PIDFILE})"
 	    exit 1
 	fi
-	PID=`cat ici.pid`
-	EXENAME=`ps -p "${PID}" | cut -b25-`
-	if [ E"$EXENAME" = E"${NAME}" ]
+	PID=`cat "${PIDFILE}"`
+	EXENAME=`ps -p "${PID}" | grep "${PID}" | cut -b25-`
+	if [ E"${EXENAME}" = E"${NAME}" ]
 	then
 	    kill "${PID}"
+	    if [ -e "${PIDFILE}" ]
+	    then
+		rm "${PIDFILE}"
+	    fi
 	else
+	    echo
+	    echo " pid file doesn't match daemon"
 	    exit 1
 	fi
 }
@@ -34,11 +41,12 @@ test -x "${DAEMON}" || exit 0
 case "$1" in
   start)
 	echo -n "Starting $DESC: $NAME"
-	"${DAEMON}"
+	d_start
 	echo "."
 	;;
   stop)
 	echo -n "Stopping $DESC: $NAME"
+	d_stop
 	echo "."
 	;;
   #reload)
