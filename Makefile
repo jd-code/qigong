@@ -1,8 +1,13 @@
 
 #DEBUG=-g
 DEBUG=
+PREFIX=/usr/local
+SHELL=/bin/sh
 
-all: qigong qicollect
+all: qigong qicollect qigong.rc
+
+install: qigong qicollect
+	./installscript "${PREFIX}"
 
 vimtest: all
 	# ./qicollect
@@ -14,6 +19,11 @@ vimtest: all
 testqigong: qigong
 	./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
 
+
+qigong.rc: qigong.rc.proto
+	( echo ': reboucle' ; echo 's/\//_slash_/' ; echo 't reboucle' ; \
+	  echo ': boucle2' ; echo 's/_slash_/\\\//' ; echo 't boucle2' ) > /tmp/build_qigong.sed
+	( PREFIXSUB=`echo "${PREFIX}" | sed -f /tmp/build_qigong.sed` ; sed "s/@@PREFIX@@/$${PREFIXSUB}/" < qigong.rc.proto > qigong.rc )
 
 qicollect: qicollect.o qiconn.o qimeasure.o
 	g++ ${DEBUG} -Wall -o qicollect  -L /usr/local/lib -lrrd   qicollect.o qiconn.o qimeasure.o
@@ -40,7 +50,7 @@ qimeasure.o: qimeasure.cpp qimeasure.h
 
 
 clean:
-	rm -f qiconn.o qigong.o qigong qicollect.o qicollect
+	rm -f qiconn.o qigong.o qigong qicollect.o qicollect qimeasure.o qigong.rc testqigong.log testqicoll.log
 
 distclean: clean
 
