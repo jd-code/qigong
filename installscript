@@ -2,7 +2,7 @@
 
 PREFIX="${1}"
 SBINTARGET="qigong qicollect"
-INITTARGET="qigong"
+INITTARGET="qigong qicollect"
 BACKUP_TAG=`date +"%Y%m%d"`
 
 if [ ! -d "${PREFIX}" ]
