@@ -1,7 +1,9 @@
 
 all:
     switch to syslog for logging
-    create pid-files for daemons
+
+rc.scripts:
+    check for good start of daemons
 
 qiconn:
     handle connections time-outs at large

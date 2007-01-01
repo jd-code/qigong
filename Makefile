@@ -4,7 +4,7 @@ DEBUG=
 PREFIX=/usr/local
 SHELL=/bin/sh
 
-all: qigong qicollect qigong.rc
+all: qigong qicollect qigong.rc qicollect.rc
 
 install: all
 	./installscript "${PREFIX}"
@@ -13,17 +13,21 @@ vimtest: all
 	# ./qicollect
 	# ./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
 	# ./qigong -debugout ; ./qicollect ; tail /var/log/qigong.log
-	./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout
-	./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -nofork && ( telnet localhost 1264 ; tail /var/log/qigong.log )
+	./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
+	./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -nofork && ( telnet localhost 1364 ; tail /var/log/qigong.log )
 
 testqigong: qigong
 	./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
 
-
-qigong.rc: qigong.rc.proto
+prefix.sed:
 	( echo ': reboucle' ; echo 's/\//_slash_/' ; echo 't reboucle' ; \
-	  echo ': boucle2' ; echo 's/_slash_/\\\//' ; echo 't boucle2' ) > /tmp/build_qigong.sed
-	( PREFIXSUB=`echo "${PREFIX}" | sed -f /tmp/build_qigong.sed` ; sed "s/@@PREFIX@@/$${PREFIXSUB}/" < qigong.rc.proto > qigong.rc )
+	  echo ': boucle2' ; echo 's/_slash_/\\\//' ; echo 't boucle2' ) > prefix.sed
+
+qigong.rc: qigong.rc.proto prefix.sed
+	( PREFIXSUB=`echo "${PREFIX}" | sed -f prefix.sed` ; sed "s/@@PREFIX@@/$${PREFIXSUB}/" < qigong.rc.proto > qigong.rc )
+
+qicollect.rc: qicollect.rc.proto
+	( PREFIXSUB=`echo "${PREFIX}" | sed -f prefix.sed` ; sed "s/@@PREFIX@@/$${PREFIXSUB}/" < qicollect.rc.proto > qicollect.rc )
 
 qicollect: qicollect.o qiconn.o qimeasure.o
 	g++ ${DEBUG} -Wall -o qicollect  -L /usr/local/lib -lrrd   qicollect.o qiconn.o qimeasure.o
@@ -50,7 +54,9 @@ qimeasure.o: qimeasure.cpp qimeasure.h
 
 
 clean:
-	rm -f qiconn.o qigong.o qigong qicollect.o qicollect qimeasure.o qigong.rc testqigong.log testqicoll.log
+	rm -f qiconn.o qigong.o qigong qicollect.o qicollect qimeasure.o
+	rm -f qigong.rc qicollect.rc prefix.sed
+	rm -f testqigong.log testqicoll.log
 
 distclean: clean
 
