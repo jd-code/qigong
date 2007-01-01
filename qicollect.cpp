@@ -60,7 +60,7 @@ namespace qiconn {
 	return true;
     }
 
-    string pathname = "/home/chiqong/rrd";
+    string pathname = "/home/qicollect/rrd";
 
     void CollectingConn::lineread (void) {
 // cerr << "[" << getname() << "] got[" << bufin << "]" << endl;

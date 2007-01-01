@@ -8,9 +8,12 @@ DAEMON="@@PREFIX@@/sbin/${NAME}"
 PIDFILE="/var/run/${NAME}.pid"
 CONFFILE="/etc/qicollect.conf"
 SCRIPTNAME="/etc/init.d/${NAME}"
+USER=qicollect
 
 d_start() {
-	"${DAEMON}"
+	: > "${PIDFILE}"
+	chown "${USER}" "${PIDFILE}"
+	su - "${USER}" -c "${DAEMON}" 
 }
 
 d_stop() {
