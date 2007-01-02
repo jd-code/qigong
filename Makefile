@@ -1,6 +1,6 @@
 
-DEBUG=-g
-#DEBUG=
+#DEBUG=-g
+DEBUG=
 PREFIX=/usr/local
 SHELL=/bin/sh
 
