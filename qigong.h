@@ -40,7 +40,7 @@ namespace qiconn {
 	    string name;
 	    map <CollectedConn *, int> channels;
 	    RecordSet () {}
-	    ~RecordSet () {}
+	    ~RecordSet ();
 	public:
 	    void add_channel  (CollectedConn * pcc);
 	    void remove_channel (CollectedConn * pcc);

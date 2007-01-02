@@ -134,6 +134,12 @@ namespace qiconn {
 	return prs;
     }
 
+    RecordSet::~RecordSet (void) {
+	list <MeasurePoint *>::iterator li;
+	for (li=lmp.begin() ; li!=lmp.end() ; li++)
+	    delete (* li);
+    }
+
     bool suppressrecordset (string &ident, ostream& cerr) {
 	map<string, RecordSet*>::iterator mi = mrecordsets.find(ident);
 	if (mi==mrecordsets.end()) {
