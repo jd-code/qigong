@@ -168,7 +168,8 @@ namespace qiconn {
 			    }
 			}
 		    }
-		    cp->reqnor(fd);
+		    if (cp != NULL)
+			cp->reqnor(fd);
 	    }
 	    virtual void write (void) {}
 	    virtual string getname (void) {
@@ -179,7 +180,8 @@ namespace qiconn {
 		fstat (fd, &newstat);
 		if (newstat.st_size != prevsize) {
 		    prevsize = newstat.st_size;
-		    cp->reqr(fd);
+		    if (cp != NULL)
+			cp->reqr(fd);
 		}
 	    }
 	friend class MPfilelen;
@@ -207,10 +209,15 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	
 	if (pcp != NULL) {
 	    plcc = new LogCountConn (fname, fd);
+	    plcc = NULL ; //new LogCountConn (fname, fd);
 	    if (plcc != NULL) {
 		if (!seekend)
 		    plcc->read();
 		pcp->push(plcc);
+	    } else {
+		cerr << "MPfilelen::reopen : could not allocate LogCountConn (" << fname << "," << fd << ")" << endl;
+		close (fd);
+		fd = -1;
 	    }
 	}
 

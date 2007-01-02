@@ -8,5 +8,3 @@ rc.scripts:
 qiconn:
     handle connections time-outs at large
 
-qicollect:
-    tune string pathname = "/home/chiqong/rrd";
