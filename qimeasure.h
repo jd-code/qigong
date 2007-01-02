@@ -107,7 +107,7 @@ namespace qiconn {
 	    void reopen (bool seekend);
 	    
 	public:
-	    virtual ~MPfilelen (void) {}
+	    virtual ~MPfilelen (void);
 	    MPfilelen (const string & param);
 
 	    virtual bool measure (string &result);			// the measuring function itself

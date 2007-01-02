@@ -222,6 +222,11 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 
     }
     
+    MPfilelen::~MPfilelen (void) {
+	if (plcc != NULL) delete (plcc);
+	plcc = NULL;
+    }
+    
     MPfilelen::MPfilelen (const string & param) : MeasurePoint (param) {
 	name="filelen";
 	fname = param;
