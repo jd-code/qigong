@@ -273,6 +273,39 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
     }
 
     ConnectionPool *MPfilelen::pcp = NULL;
+
+
+/*
+ *  ---- MPloadavg -----------------------------------------------------------------------------------------
+ */
+
+    MPloadavg::~MPloadavg (void) {
+    }
+    
+    MPloadavg::MPloadavg (const string & param) : MeasurePoint (param) {
+    }
+
+    bool MPloadavg::measure (string &result) {
+	string s;
+	ifstream loadavg ("/proc/loadavg");
+	if (!loadavg) {
+	    result = "U";
+	    return true;
+	}
+	getstring (loadavg, s);
+	size_t p = s.find(' ');
+	if (p == string::npos) {
+	    result = "U";
+	    return true;
+	}
+	result = s.substr(0, p);
+	return true;
+    }
+
+    MeasurePoint* MPloadavg_creator (const string & param) {
+	return new MPloadavg (param);
+    }
+
 /*
  *  ---- initialisation of MPs -----------------------------------------------------------------------------
  */
@@ -281,6 +314,7 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	mmpcreators["diskstats"]    = MPdiskstats_creator;
 	mmpcreators["netstats"]	    = MPnetstats_creator;
 	mmpcreators["filelen"]	    = MPfilelen_creator;
+	mmpcreators["loadavg"]	    = MPloadavg_creator;
 	MPfilelen::pcp = pcp;
     }
 
