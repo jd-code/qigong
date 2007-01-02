@@ -258,8 +258,8 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 	else
 	    ds << pmp->get_source_type() << ':' ;
 	ds << heartbeat << ':'
-	   << 'U' << ':'
-	   << 'U' ;
+	   << pmp->get_min() << ':'
+	   << pmp->get_max() ;
 	return ds.str();
     }
 

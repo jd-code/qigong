@@ -228,6 +228,7 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
     }
     
     MPfilelen::MPfilelen (const string & param) : MeasurePoint (param) {
+	oldnl = 0;
 	name="filelen";
 	fname = param;
 	reopen (true);
