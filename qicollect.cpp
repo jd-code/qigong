@@ -60,7 +60,7 @@ namespace qiconn {
 	return true;
     }
 
-    string pathname = "/home/qicollect/rrd";
+    string rrd_path = "/home/qicollect/rrd";
 
     void CollectingConn::lineread (void) {
 // cerr << "[" << getname() << "] got[" << bufin << "]" << endl;
@@ -71,7 +71,7 @@ namespace qiconn {
 	    size_t p = getidentifier (bufin, rrd_name, 3);
 
 	    upd << "update" << eos()
-		<< pathname << "/" << rrd_name << ".rrd" << eos()
+		<< rrd_path << "/" << rrd_name << ".rrd" << eos()
 		<< bufin.substr(p+1) << eos();
 
 	    CharPP rrd_update_query (upd.str());
@@ -209,10 +209,12 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 		break;
 	    case needtoconnect:
 		{   
+static int gromp = 0;
 		    if (time(NULL) - lastattempt > 1) {
 			struct sockaddr_in sin;
 			int newfd = init_connect (fqdn.c_str(), port, &sin);
 			if (newfd != -1) {
+gromp = 0;
 			    setname (sin);
 			    cp->pull (this);
 			    fd = newfd;
@@ -225,7 +227,8 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state welcome" << endl;
 			} else {
 			    lastattempt = time(NULL);
-if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->attempt to connect failed" << endl;
+gromp ++;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->attempt to connect failed " << gromp << endl;
 			}
 		    }
 		}
@@ -295,7 +298,7 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
     }
 
     void CollectionSet::buildmissing_rrd (void) {
-	string fullname = pathname + '/' + key + ".rrd";
+	string fullname = rrd_path + '/' + key + ".rrd";
 	struct stat buf;
 	if (stat (fullname.c_str(), &buf) == 0) {
 	    cerr << "error: will not re-create already existing rrd \"" << fullname << "\"." << endl
@@ -982,6 +985,7 @@ int main (int nb, char ** cmde) {
 
 	    param_match (cmde[i], "-debugccstates",	debug_ccstates);
 	    param_match (cmde[i], "-conffile",		conffile);
+	    param_match (cmde[i], "-rrdpath",		rrd_path);
 
 	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
 		dofork = false;
@@ -989,7 +993,7 @@ int main (int nb, char ** cmde) {
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
 		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [-pidfile=fname] [-logfile=fname] [--help]" << endl
 		     << "                         [-debugresolver] [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
-		     << "                         [-debugccstates] [-conffile=fname]" << endl;
+		     << "                         [-debugccstates] [-conffile=fname] [-rrdpath=pathname]" << endl;
 		return 0;
 	    }
 	}

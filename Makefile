@@ -1,6 +1,6 @@
 
-#DEBUG=-g
-DEBUG=
+DEBUG=-g
+#DEBUG=
 PREFIX=/usr/local
 SHELL=/bin/sh
 
@@ -10,11 +10,9 @@ install: all
 	./installscript "${PREFIX}"
 
 vimtest: all
-	# ./qicollect
-	# ./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
-	# ./qigong -debugout ; ./qicollect ; tail /var/log/qigong.log
+	# ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
 	./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
-	./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -nofork && ( telnet localhost 1364 ; tail /var/log/qigong.log )
+	./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugccstates && ( telnet localhost 1364 ; tail testqigong.log )
 
 testqigong: qigong
 	./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log

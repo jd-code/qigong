@@ -121,6 +121,7 @@ namespace qiconn
 	if (connect (s, (const struct sockaddr *)&sin, sizeof(sin)) < 0) {
 	    int e = errno;
 	    cerr << "could not connect to " << fqdn << ":" << port << " : " << strerror (e) << endl ;
+	    close (s);
 	    return -1;
 	}
 	else 
@@ -496,7 +497,8 @@ if (debug_dummyout) {
 	    return;
 
 	if (size > BUFLEN) {
-	    cp->reqw (fd);
+	    if (cp != NULL)
+		cp->reqw (fd);
 	    nb = BUFLEN;
 	} else {
 	    nb = size;
@@ -506,7 +508,8 @@ if (debug_dummyout) {
 	    wpos += nt;
 	    if (nt != nb) {
 		cerr << "some pending chars" << endl;
-		cp->reqw (fd);
+		if (cp != NULL)
+		    cp->reqw (fd);
 	    }
 	} else {
 	    int e = errno;
