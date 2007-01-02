@@ -192,11 +192,15 @@ namespace qiconn {
 	fd = open (fname.c_str(), O_RDONLY);
 	plcc = NULL;
 
+cerr << "MPfilelen::reopen (" << fname << ") = " << fd << endl;
+	
 	if (fd == -1)
 	    return;
 
-	if (fstat (fd, &curstat) == -1)
+	if (fstat (fd, &curstat) == -1) {
+cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	    return;
+	}
 
 	if (seekend)
 	    lseek (fd, 0, SEEK_END);
@@ -222,7 +226,12 @@ namespace qiconn {
 	stringstream out;
 	if (plcc == NULL) {
 	    reopen (false);
-	    out << "U";
+	    if (plcc == NULL)
+		out << "U";
+	    else {
+		oldnl = plcc->nl;
+		out << oldnl;
+	    }
 	} else if (oldnl == plcc->nl) {
 	    struct stat newstat;
 	    lstat (fname.c_str(), &newstat);
