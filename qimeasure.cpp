@@ -307,6 +307,81 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
     }
 
 /*
+ *  ---- MPmeminfo -----------------------------------------------------------------------------------------
+ */
+
+    MPmeminfo::~MPmeminfo (void) {
+    }
+    
+    MPmeminfo::MPmeminfo (const string & param) : MeasureMultiPoint (param) {
+	mss ["MemTotal:"] = 0;
+	mss ["MemFree:"] = 0;
+	mss ["Buffers:"] = 0;
+	mss ["SwapTotal:"] = 0;
+	mss ["SwapFree:"] = 0;
+    }
+
+    bool MPmeminfo::measure (string &result) {
+	ifstream fmem ("/proc/meminfo");
+	if (!fmem) {
+	    result = "U:U:U:U:U";
+	    return true;
+	}
+	while (fmem) {
+	    string s;
+	    getstring (fmem, s);
+	    size_t p = s.find(' ');
+	    string tag = s.substr(0, p);
+	    map<string, long long>::iterator mi = mss.find(tag);
+	    int match = 0;
+	    if (mi != mss.end()) {
+// cerr << s << endl;
+		p = seekspace (s, p);
+		long long v;
+		getinteger (s, v, p);
+		mi->second = v;
+// cerr << "..." << tag << "..." << v << "..." << endl;
+		match ++;
+		if (match == 5) break;
+	    }
+	}
+	
+	stringstream out;
+	out << mss ["MemFree:"] << ':' 
+	    << mss ["Buffers:"] << ':'
+	    << mss ["MemFree:"] - mss ["Buffers:"] << ':'
+	    << mss ["SwapTotal:"] - mss ["SwapFree:"] << ':'
+	    << mss ["SwapFree:"];
+	result = out.str();
+	return true;
+    }
+
+    MeasurePoint* MPmeminfo_creator (const string & param) {
+	return new MPmeminfo (param);
+    }
+
+    int MPmeminfo::get_nbpoints (void) {
+	return 5;
+    }
+
+    string MPmeminfo::get_tagsub (int i) {
+static char *s[] = {"free", "buffers", "used", "sw_used", "sw_free"};
+	if ((i>0) && (i<5))
+	    return s[i];
+	else
+	    return "";
+    }
+    
+    string MPmeminfo::get_next_rras (int i) {
+// static char *s[] = {"free", "buffers", "used", "sw_used", "sw_free"};
+static char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MIN"};
+	if ((i>0) && (i<5))
+	    return s[i];
+	else
+	    return "";
+    }
+    
+/*
  *  ---- initialisation of MPs -----------------------------------------------------------------------------
  */
 
@@ -315,6 +390,7 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	mmpcreators["netstats"]	    = MPnetstats_creator;
 	mmpcreators["filelen"]	    = MPfilelen_creator;
 	mmpcreators["loadavg"]	    = MPloadavg_creator;
+	mmpcreators["meminfo"]	    = MPmeminfo_creator;
 	MPfilelen::pcp = pcp;
     }
 

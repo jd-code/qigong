@@ -247,19 +247,31 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 
     string TaggedMeasuredPoint::get_DSdef (time_t heartbeat) {
 	MeasurePoint * pmp = mmpcreators[fn](params);
+	stringstream ds;
 	if (pmp == NULL) {
 	    cerr << "could not allocate MeasurePoint(" << fn << ")" << endl;
+	    ds << "GAUGE:" << heartbeat << ":U:U" ;
+	    return ds.str();
 	}
-	stringstream ds;
-	ds << "DS:" << tagname << ':' ;
-
-	if (pmp == NULL)
-	    ds << "GAUGE" << ':';
-	else
-	    ds << pmp->get_source_type() << ':' ;
-	ds << heartbeat << ':'
-	   << pmp->get_min() << ':'
-	   << pmp->get_max() ;
+	int nb = pmp->get_nbpoints();
+	if (nb == 1) {
+	    ds << "DS:" << tagname << ':'
+	       << pmp->get_source_type() << ':'
+	       << heartbeat << ':'
+	       << pmp->get_min() << ':'
+	       << pmp->get_max() ;
+	} else {
+	    int i;
+	    for (i=0 ; i<nb ; i++) {
+		if (i>0)
+		    ds << eos();
+		ds << "DS:" << tagname << '_' << pmp->get_tagsub(i) << ':' 
+		   << pmp->get_source_type(i) << ':'
+		   << heartbeat << ':'
+		   << pmp->get_min(i) << ':'
+		   << pmp->get_max(i) ;
+	    }
+	}
 	return ds.str();
     }
 
