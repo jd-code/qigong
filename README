@@ -1,0 +1,15 @@
+
+roadmap:
+    qicollect:
+	depends on rrdtool-1.2.11
+	should run with a dedicated user (qicollect as defined by default in rc script)
+	uses a rdd repository path that shoiuld at least contain writable rrd or be writeable
+	default is /home/qicollect/rrd/
+
+    rrdtool-1.2.11:
+	depends on
+	    libpng (libpng12-dev for building on sarge)
+	    libart-2.0 (libart-2.0-dev for building on sarge)
+	    freetype2 (libfreetype6-dev for building on sarge)
+	minimum build is more or less :
+	    ./configure --disable-rrdcgi --disable-perl --disable-tcl --disable-python --prefix=/usr/local
