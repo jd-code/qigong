@@ -491,10 +491,12 @@ int main (int nb, char ** cmde) {
 
     init_mmpcreators(&cp);
 
+if (false) {
     createrecordset ("allo 12 method(38) diskstats(sda) load() trcumuch(1 2 3   ", cerr);
     createrecordset ("allo 1 method(38) diskstats(sda) load() diskstats", cerr);
     createrecordset ("alli 5 method(38) diskstats(hda) load()", cerr);
     createrecordset ("mexico 5 method(38) diskstats(hda) load()", cerr);
+}
     
     cp.init_signal ();
     
