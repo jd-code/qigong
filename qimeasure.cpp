@@ -209,7 +209,6 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	
 	if (pcp != NULL) {
 	    plcc = new LogCountConn (fname, fd);
-	    plcc = NULL ; //new LogCountConn (fname, fd);
 	    if (plcc != NULL) {
 		if (!seekend)
 		    plcc->read();
