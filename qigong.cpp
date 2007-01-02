@@ -183,14 +183,6 @@ namespace qiconn {
 	return true;
     }
 
-/*
- *  create newmexico 60 diskstat(sda) diskstat(sdb) load mem
- *  subscribe newmexico
- *
- */
-
-
-
 
 /*
  *  ------------------- the collected connections --------------------------------------------------------
