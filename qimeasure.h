@@ -32,13 +32,13 @@ namespace qiconn {
 	    void dump (ostream& cout) const {
 		cout << getname();
 	    }
-	    virtual bool measure (string &result) = NULL;   // the measuring function itself
+	    virtual bool measure (string &result) = 0;			// the measuring function itself
 	    virtual int get_nbpoints (void) { return 1; }		// the number of measure reported
-	    virtual string get_source_type(void) = NULL;    // GAUGE COUNTER DERIVE ABSOLUTE
-	    virtual string get_min(void) = NULL;	    // min or U for unknown
-	    virtual string get_max(void) = NULL;	    // min or U for unknown
-	    virtual string get_first_rra (void) = NULL;	    // consolidation function for first rra (AVERAGE MIN MAX or LMAST)
-	    virtual string get_next_rras (void) = NULL;	    // consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
+	    virtual string get_source_type(void) = 0;			// GAUGE COUNTER DERIVE ABSOLUTE
+	    virtual string get_min(void) = 0;				// min or U for unknown
+	    virtual string get_max(void) = 0;				// min or U for unknown
+	    virtual string get_first_rra (void) = 0;			// consolidation function for first rra (AVERAGE MIN MAX or LMAST)
+	    virtual string get_next_rras (void) = 0;			// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
 
 	    virtual string get_tagsub (int i) { return ""; }		// gives the suffix for appending to the tagname
 	    virtual string get_source_type (int i) { return "GAUGE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
@@ -62,8 +62,8 @@ namespace qiconn {
 	    void dump (ostream& cout) const {
 		cout << getname();
 	    }
-	    virtual bool measure (string &result) = NULL;   // the measuring function itself
-	    virtual int get_nbpoints (void) =NULL;		// the number of measure reported
+	    virtual bool measure (string &result) = 0;			// the measuring function itself
+	    virtual int get_nbpoints (void) = 0;			// the number of measure reported
 
 	    virtual string get_source_type (void) { return "GAUGE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
 	    virtual string get_min (void) { return "0"; }		// min or U for unknown
@@ -71,12 +71,12 @@ namespace qiconn {
 	    virtual string get_first_rra (void) { return "LAST"; }	// consolidation function for first rra (AVERAGE MIN MAX or LMAST)
 	    virtual string get_next_rras (void) { return "AVERAGE"; }	// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
 
-	    virtual string get_tagsub (int i) = NULL;			// gives the suffix for appending to the tagname
-	    virtual string get_source_type (int i) = NULL;		// GAUGE COUNTER DERIVE ABSOLUTE
-	    virtual string get_min (int i) = NULL;			// min or U for unknown
-	    virtual string get_max (int i) = NULL;			// max or U for unknown
-	    virtual string get_first_rra (int i) = NULL;		// consolidation function for first rra (AVERAGE MIN MAX or LMAST)
-	    virtual string get_next_rras (int i) = NULL;		// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
+	    virtual string get_tagsub (int i) = 0;			// gives the suffix for appending to the tagname
+	    virtual string get_source_type (int i) = 0;			// GAUGE COUNTER DERIVE ABSOLUTE
+	    virtual string get_min (int i) = 0;				// min or U for unknown
+	    virtual string get_max (int i) = 0;				// max or U for unknown
+	    virtual string get_first_rra (int i) = 0;			// consolidation function for first rra (AVERAGE MIN MAX or LMAST)
+	    virtual string get_next_rras (int i) = 0;			// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
     };
 
     ostream& operator<< (ostream& cout, const MeasurePoint& mp);

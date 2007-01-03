@@ -2,6 +2,8 @@
 #include <iomanip>
 #include <string.h>
 
+#include <errno.h>
+
 #define QICONN_H_GLOBINST
 #define QIGONG_H_GLOBINST
 #include "qigong.h"

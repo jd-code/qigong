@@ -1,4 +1,5 @@
 #include <signal.h>
+#include <errno.h>
 
 #include <iomanip>
 
@@ -358,12 +359,20 @@ namespace qiconn
 	    return;
 	}
 	if (c->fd == -1) {  // we're setting a pending connection...
-	    if (connections.empty())
+// cerr << "ici" << endl;
+	    if (connections.empty()) {
+// cerr << "set -2 because empty" << endl;
 		c->fd = -2;
-	    else {
-		c->fd = connections.begin()->second->fd - 1;
+	    } else {
+		c->fd = connections.rbegin()->first - 1;    // MConnections is reverse-ordered !! (and needs to be)
+// cerr << "not empty so calculuus gives :" << c->fd << endl;
+// {   MConnections::iterator mi;
+//     for (mi=connections.begin() ; mi!=connections.end() ; mi++)
+// 	cerr << "    fd[" << mi->first << "] used" << endl;
+// }
 		if (c->fd >= 0)
 		    c->fd = -2;
+// cerr << "not empty final value :" << c->fd << endl;
 	    }
 	}
 	MConnections::iterator mi = connections.find (c->fd);
@@ -373,7 +382,7 @@ namespace qiconn
 	    build_r_fd ();
 	    reqw (c->fd);	/* we ask straightforwardly for write for welcome message */
 	} else
-	    cerr << "warning: connection[" << c->getname() << "] was already in pool ???" << endl;
+	    cerr << "warning: connection[" << c->getname() << ", fd=" << c->fd << "] was already in pool ???" << endl;
     }
 
     void ConnectionPool::pull (Connection *c) {
