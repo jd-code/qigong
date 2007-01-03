@@ -349,7 +349,7 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	stringstream out;
 	out << mss ["MemFree:"] << ':' 
 	    << mss ["Buffers:"] << ':'
-	    << mss ["MemTotal:"] - mss ["Buffers:"] << ':'
+	    << mss ["MemTotal:"] - mss ["Buffers:"] - mss ["MemFree:"] << ':'
 	    << mss ["SwapTotal:"] - mss ["SwapFree:"] << ':'
 	    << mss ["SwapFree:"];
 	result = out.str();
