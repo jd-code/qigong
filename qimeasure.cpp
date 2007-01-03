@@ -366,7 +366,7 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 
     string MPmeminfo::get_tagsub (int i) {
 static char *s[] = {"free", "buffers", "used", "sw_used", "sw_free"};
-	if ((i>0) && (i<5))
+	if ((i>=0) && (i<5))
 	    return s[i];
 	else
 	    return "";
@@ -375,7 +375,7 @@ static char *s[] = {"free", "buffers", "used", "sw_used", "sw_free"};
     string MPmeminfo::get_next_rras (int i) {
 // static char *s[] = {"free", "buffers", "used", "sw_used", "sw_free"};
 static char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MIN"};
-	if ((i>0) && (i<5))
+	if ((i>=0) && (i<5))
 	    return s[i];
 	else
 	    return "";
