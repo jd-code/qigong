@@ -8,3 +8,9 @@ rc.scripts:
 qiconn:
     handle connections time-outs at large
 
+qimeasure:
+    dedicated filelen for apache logs
+	- hit/s
+	- average delay of query
+	- min delay - max delay - ecart-type
+

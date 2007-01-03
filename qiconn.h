@@ -109,14 +109,14 @@ namespace qiconn
 		Connection::fd = fd;
 		cp = NULL;
 	    }
-	    virtual void read (void) = NULL;
-	    virtual void write (void) = NULL;
-	    virtual string getname (void) = NULL;
+	    virtual void read (void) = 0;
+	    virtual void write (void) = 0;
+	    virtual string getname (void) = 0;
 	    void register_into_pool (ConnectionPool *cp);
 	    void deregister_from_pool ();
 	    void close (void);
 	    void schedule_for_destruction (void);
-	    virtual void poll (void) = NULL;
+	    virtual void poll (void) = 0;
     };
 
     class SocketConnection : public Connection
