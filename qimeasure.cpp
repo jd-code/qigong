@@ -319,6 +319,7 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	mss ["Buffers:"] = 0;
 	mss ["SwapTotal:"] = 0;
 	mss ["SwapFree:"] = 0;
+	mss ["Cached:"] = 0;
     }
 
     bool MPmeminfo::measure (string &result) {
@@ -342,14 +343,15 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 		mi->second = v;
 // cerr << "..." << tag << "..." << v << "..." << endl;
 		match ++;
-		if (match == 5) break;
+		if (match == 6) break;
 	    }
 	}
 	
 	stringstream out;
 	out << mss ["MemFree:"] << ':' 
 	    << mss ["Buffers:"] << ':'
-	    << mss ["MemTotal:"] - mss ["Buffers:"] - mss ["MemFree:"] << ':'
+	    << mss ["Cached:"] << ':'
+	    << mss ["MemTotal:"] - mss ["Buffers:"] - mss ["MemFree:"] - mss ["Cached:"] << ':'
 	    << mss ["SwapTotal:"] - mss ["SwapFree:"] << ':'
 	    << mss ["SwapFree:"];
 	result = out.str();
@@ -361,12 +363,12 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
     }
 
     int MPmeminfo::get_nbpoints (void) {
-	return 5;
+	return 6;
     }
 
     string MPmeminfo::get_tagsub (int i) {
-static char *s[] = {"free", "buffers", "used", "sw_used", "sw_free"};
-	if ((i>=0) && (i<5))
+static char *s[] = {"free", "buffers", "cached", "used", "sw_used", "sw_free"};
+	if ((i>=0) && (i<6))
 	    return s[i];
 	else
 	    return "";
@@ -374,8 +376,8 @@ static char *s[] = {"free", "buffers", "used", "sw_used", "sw_free"};
     
     string MPmeminfo::get_next_rras (int i) {
 // static char *s[] = {"free", "buffers", "used", "sw_used", "sw_free"};
-static char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MIN"};
-	if ((i>=0) && (i<5))
+static char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
+	if ((i>=0) && (i<6))
 	    return s[i];
 	else
 	    return "";
