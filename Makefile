@@ -55,7 +55,7 @@ clean:
 	rm -f qiconn.o qigong.o qigong qicollect.o qicollect qimeasure.o
 	rm -f qigong.rc qicollect.rc prefix.sed
 	rm -f testqigong.log testqicoll.log
-	rm -f mint_testfiles.rrd  mint_testglobal.rrd  mint_testnet.rrd
+	rm -f *_testfiles.rrd  *_testglobal.rrd  *_testnet.rrd *_testmem.rrd *_testload.rrd
 
 distclean: clean
 
