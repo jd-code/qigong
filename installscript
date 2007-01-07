@@ -1,8 +1,22 @@
 #!/bin/sh
 
 PREFIX="${1}"
-SBINTARGET="qigong qicollect"
-INITTARGET="qigong qicollect"
+
+case "${2}" in
+    "qigong")
+	SBINTARGET="qigong"
+	INITTARGET="qigong"
+	;;
+    "qicollect")
+	SBINTARGET="qicollect"
+	INITTARGET="qicollect"
+	;;
+    *)
+	SBINTARGET="qigong qicollect"
+	INITTARGET="qigong qicollect"
+	;;
+esac
+
 BACKUP_TAG=`date +"%Y%m%d"`
 
 if [ ! -d "${PREFIX}" ]
