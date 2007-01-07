@@ -3,11 +3,40 @@
 DEBUG=
 PREFIX=/usr/local
 SHELL=/bin/sh
+VERSION="1.0.1"
+
+default:
+	@echo "interesting targets : all , install , install_qigong ..."
 
 all: qigong qicollect qigong.rc qicollect.rc
 
-install: all
+allstrip: all
+	strip qigong qicollect
+
+install: allstrip
 	./installscript "${PREFIX}"
+
+install_qigong: qigong qigong.rc
+	./installscript qigong
+
+bintar: allstrip
+	@( ARCH=`arch` ;						\
+	   SRCDIR="qigong-${VERSION}-$${ARCH}" ;			\
+	   mkdir "$${SRCDIR}" ;						\
+	   cp -a qigong qicollect qigong.rc qicollect.rc Makefile installscript "$${SRCDIR}" ; \
+	  tar -zcpvf "$${SRCDIR}".tgz "$${SRCDIR}" ;			\
+	  ls -l "$${SRCDIR}"/qigong "$${SRCDIR}"/qicollect ;		\
+	  rm -r "$${SRCDIR}" ;						\
+	  ls -l "$${SRCDIR}".tgz )
+
+#	@( ARCH=`arch` ;						\
+#	  SRCDIR="qigong-${VERSION}-$${ARCH}" ;				\
+#	  svn export . "$${SRCDIR}" ;					\
+#	  ( cd "$${SRCDIR}" ; make allstrip ) ;				\
+#	  tar -zcpvf "$${SRCDIR}".tgz "$${SRCDIR}" ;			\
+#	  ls -l "$${SRCDIR}"/qigong "$${SRCDIR}"/qicollect ;		\
+#	  rm -r "$${SRCDIR}" ;						\
+#	  ls -l "$${SRCDIR}".tgz )
 
 vimtest: all
 	# ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
@@ -18,7 +47,8 @@ testqigong: qigong
 	./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
 
 prefix.sed:
-	( echo ': reboucle' ; echo 's/\//_slash_/' ; echo 't reboucle' ; \
+	@echo creating prefix.sed
+	@( echo ': reboucle' ; echo 's/\//_slash_/' ; echo 't reboucle' ; \
 	  echo ': boucle2' ; echo 's/_slash_/\\\//' ; echo 't boucle2' ) > prefix.sed
 
 qigong.rc: qigong.rc.proto prefix.sed
