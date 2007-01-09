@@ -87,6 +87,7 @@ clean:
 	rm -f qigong.rc qicollect.rc prefix.sed
 	rm -f testqigong.log testqicoll.log
 	rm -f *_testfiles.rrd  *_testglobal.rrd  *_testnet.rrd *_testmem.rrd *_testload.rrd
+	rm -f qigong-*.tgz
 
 distclean: clean
 
