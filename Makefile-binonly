@@ -1,0 +1,31 @@
+
+PREFIX=/usr/local
+SHELL=/bin/sh
+VERSION="1.0.1"
+
+default:
+	@echo "interesting targets : all , install , install_qigong ..."
+
+all: qigong qicollect qigong.rc qicollect.rc
+
+allstrip: all
+	strip qigong qicollect
+
+install: allstrip
+	./installscript "${PREFIX}"
+
+install_qigong: qigong qigong.rc
+	./installscript  "${PREFIX}" qigong
+
+clean:
+	rm -f qiconn.o qigong.o qigong qicollect.o qicollect qimeasure.o
+	rm -f qigong.rc qicollect.rc prefix.sed
+	rm -f testqigong.log testqicoll.log
+	rm -f *_testfiles.rrd  *_testglobal.rrd  *_testnet.rrd *_testmem.rrd *_testload.rrd
+
+distclean: clean
+
+.PHONY: clean
+
+.PHONY: distclean
+
