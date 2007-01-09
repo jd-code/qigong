@@ -23,7 +23,8 @@ bintar: allstrip
 	@( ARCH=`arch` ;						\
 	   SRCDIR="qigong-${VERSION}-$${ARCH}" ;			\
 	   mkdir "$${SRCDIR}" ;						\
-	   cp -a qigong qicollect qigong.rc qicollect.rc Makefile installscript "$${SRCDIR}" ; \
+	   cp -a qigong qicollect qigong.rc qicollect.rc installscript "$${SRCDIR}" ; \
+	   cp -a Makefile-binonly "$${SRCDIR}"/Makefile ;		\
 	  tar -zcpvf "$${SRCDIR}".tgz "$${SRCDIR}" ;			\
 	  ls -l "$${SRCDIR}"/qigong "$${SRCDIR}"/qicollect ;		\
 	  rm -r "$${SRCDIR}" ;						\
