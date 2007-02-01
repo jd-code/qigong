@@ -248,7 +248,7 @@ namespace qiconn
     }
 
     ConnectionPool::ConnectionPool (void) {
-	biggest_fd = -1;
+	biggest_fd = 0;
 	exitselect = false;
 	scheddest = false;
     }
@@ -263,11 +263,11 @@ namespace qiconn
 
     int ConnectionPool::set_biggest (void) {
 	if (connections.empty())
-	    biggest_fd = -1;
+	    biggest_fd = 0;
 	else {
 	    biggest_fd = connections.begin()->first + 1;
 	    if (biggest_fd < 0)
-		biggest_fd = -1;
+		biggest_fd = 0;
 	}
 	return biggest_fd;
     }
