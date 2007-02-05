@@ -403,7 +403,7 @@ static char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	struct statvfs buf;
 
 	if (statvfs (fname.c_str(), &buf) == 0) {
-	    s << buf.f_frsize * buf.f_bfree ;
+	    s << ((long long)buf.f_frsize * buf.f_bavail) ;
 	    result = s.str();
 	    if (lasterr != 0) {
 		lasterr = 0;
