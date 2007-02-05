@@ -1,0 +1,142 @@
+
+qigong a pour but premier de collecter de la façon la plus sûre possible 
+diverses infos critiques depuis des serveurs, afin de renseigner une base 
+de donnée du type Round-Robin Database (rrd [1])
+
+par "sûre" on entend l'ensemble des conditions suivantes :
+ - l'application sonde [qigong] qui va chercher l'info sur le serveur doit 
+   provoquer le moins de changement de consommation ressource possible :
+    - fonctionner en mode daemon afin d'avoir ses ressources déjà allouées
+    - pas de fork non nécessaire
+    - le moins de charge cpu possible, pas de saute de charge cpu
+    - le moins de saute d'allocation mémoire possible
+    - être disponible à la reconnection depuis l'outil de collecte réseau
+    - avoir fait ses preuves dans le fonctionnement sur le long terme (pas 
+      de fuite d'allocation, le moins possible de cas d'erreur non traités)
+    - ne pas nécessiter de fichier locaux, ou le moins possible. en 
+      particulier, elle reçoit la liste des points de mesure depuis l'outil 
+      de collecte distant
+
+ - l'application de collecte distant [qicollect] (par le réseau) doit 
+   pouvoir reprendre la collection à tout moment. Il a beaucoup moins de 
+   contraintes de ressource que la sonde, mais doit néammoins aussi faire 
+   ses preuves pour le fonctionnement en daemon sur le long terme.
+
+ - l'application de "rendu" [à developper (php+rrdtools)]
+    - doit s'installer le plus facilement possible
+    - doit utiliser comme première source d'info les même fichiers de 
+      configuration que l'outil de collecte [qicollect]
+    - doit présenter une interface utilisateur avec des graphs par defaut 
+      pour tous les points de mesure
+    - doit permettre le réglage de toutes les options de rendu avec des 
+      points de sauvegarde, au niveau déploiement (réglages globaux), au 
+      niveau de chaque utilisateur (réglages personnels), et au niveau de 
+      sessions (réglages pour geler une vue particulière et son partage)
+
+    - en contrainte suplémentaire, l'outil de rendu doit permettre la 
+      rédaction, via une interface web, des fichiers de configurations 
+      communs avec qicollect.
+
+
+voilà ce qui existe aujourd'hui :
+    - qigong = qigong.cpp + qigong.h  +  qimeasure.cpp + qimeasure.h  +
+	       qiconn.cpp +qiconn.h
+      tourne en mode daemon
+      écoute un port pour répondre à des connexions
+      reçoit des liste de points de mesure et leurs fréquence de mesure
+      sonde les points de mesures
+      reçoit des abonnements à certaines listes de points de mesure
+      renvoit les mesures correspondants aux abonnements
+      résilie les abonnement à la perte de connexion, mais pas les mesures
+      a une api de création/destruction de ces listes.
+
+    - qicollect = qicollect.cpp + qicollect.h  +  qimeasure.cpp +
+		  qimeasure.h  +  qiconn.cpp +qiconn.h
+      tourne en mode daemon
+      lit un fichier de conf
+      (devrait être capable de le relire et de faire un diff à la volée)
+      crée au besoin de nouvelles bases rrd
+      ne détruit pas de base rrd existantes
+      crée le nombre minimal de connexions pour effectuer les collectes
+      envoie les ordres de créations de listes de mesures, et les demandes 
+      d'abonnement correspondantes
+      (devrait s'assurer que les mesures arrivent en nombre suffisant)
+      renseigne les bases rrd avec les résultats
+
+    - qimeasure.cpp
+      contient le code des different types de mesures possibles à ce jour.
+
+    - qiconn.cpp
+      contient une classe de gestion de connections socket, écoute de 
+      connection, et plus généralement un squelette d'application qui 
+      surveille des file-descriptors via select.
+
+il reste le morceau de rendu à faire, il y a de gros choix qui ne sont pas 
+encore arrêtés : configuration en texte (comme actuellement) ou en base de 
+donée ou les deux ? php+mysql, ou jsp+mysql ? des bases rrd avec plusieurs 
+champs (ça induit finallement des contraintes de rendu, ce que la doc rrd 
+ne dit pas assez bien) ou un seul champs ? qd c'est multi-champ on a 
+l'enorme avantage d'avoir un seul time-stamp pour toutes les mesures, mais 
+est-ce bien nécessaire ?
+
+d'autre part certaine parties sont manquantes, il n'y a pas d'encryption le 
+protocole entre la sonde et la collecte, le protocole entre les deux n'est 
+pas super bon car il a d'abord été pensé pour être testé via telnet (ce 
+n'est pas forcément une mauvaise chose, mais ça n'a pas que des bons côtés 
+non plus). à part ces deux détails, le code de la sonde est désormais assez 
+stable.
+
+
+open-source (?)
+
+Je n'ai pas encore choisi si cela va être de l'open-source : cette appli 
+est le résultat d'un cahier des charges construit sur pas mal d'expérience 
+en exploitation, d'une pârt, et d'autre part c'est un des outil les plus 
+personnel que nekodune a développé pour son activité de télé-maintenance.
+En revanche, elle s'appuie sur rrd qui est gpl v2, ou lgpl v2. Un juste 
+retour de contribution impliquerait de rendre qigong free.
+Je suis tenté de faire en deux étapes ou trois :
+au plus tard à la cessation d'activité de nekodune, ce sera du free.
+ou encore, au plus tard 1 an et demin après écriture c'est releasé free.
+voire c'est releasé free sitôt que ça ne tue pas les machines des fous qui 
+l'essairait (ça peut faire une bonne pub pour nekodune).
+pour diverses raisons, je ne tient pas à faire de release publique avant 
+que ce ne soit un peu installé chez wikio, mon client principal. ils 
+pourraient estimer que j'aide leur concurence, même s'ils n'ont 
+normallement rien à dire.
+
+nb-lignes:
+     4 ./doxygen/smallcaroube.png
+     4 ./test/Makefile
+     5 ./doxygen/Makefile
+     6 ./doxygen/footer.html
+    10 ./doxygen/disjunkt-2x2-64.gif
+    11 ./doxygen/header.html
+    16 ./README
+    16 ./TODO
+    29 ./test/doit
+    31 ./Makefile-binonly
+    37 ./test.conf
+    48 ./installscript
+    49 ./doxygen/doxygen.css
+    50 ./doxygen/stylesheet.css
+    57 ./dodoc
+    85 ./qigong.rc.proto
+    95 ./qicollect.rc.proto
+    96 ./Makefile
+   126 ./qigong.h
+   186 ./documentation.dox
+   206 ./doxygen/background.png
+   234 ./qimeasure.h
+   260 ./qicollect.h
+   288 ./qiconn.h
+   442 ./qimeasure.cpp
+   514 ./qigong.cpp
+   801 ./qiconn.cpp
+  1103 ./qicollect.cpp
+  4809 total
+
+références:
+[1] :	http://oss.oetiker.ch/rrdtool/
+	http://www.abcdigitalfutures.net/?p=896
+
