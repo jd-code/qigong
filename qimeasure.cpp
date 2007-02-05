@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/statvfs.h>
 
 #include <fstream>
 #include <iomanip>
@@ -384,6 +385,47 @@ static char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
     }
     
 /*
+ *  ---- MPfreespace -----------------------------------------------------------------------------------------
+ */
+
+    MPfreespace::~MPfreespace (void) {
+    }
+    
+    MPfreespace::MPfreespace (const string & param) : MeasurePoint (param) {
+	name="freespace";
+	fname = param;
+	lasterr = 0;
+	lasttimeerr = 0;
+    }
+
+    bool MPfreespace::measure (string &result) {
+	stringstream s;
+	struct statvfs buf;
+
+	if (statvfs (fname.c_str(), &buf) == 0) {
+	    s << buf.f_frsize * buf.f_bfree ;
+	    result = s.str();
+	    if (lasterr != 0) {
+		lasterr = 0;
+		lasttimeerr = 0;
+	    }
+	} else {
+	    int e = errno;
+	    result = "U";
+	    if ((e != lasterr) || (time(NULL) - lasttimeerr > 600)) {
+		lasterr = e;
+		lasttimeerr = time(NULL);
+		cerr << "error : statvfs(" << fname << ") : " << strerror (e) << endl;
+	    }
+	}
+	return true;
+    }
+
+    MeasurePoint* MPfreespace_creator (const string & param) {
+	return new MPfreespace (param);
+    }
+
+/*
  *  ---- initialisation of MPs -----------------------------------------------------------------------------
  */
 
@@ -393,6 +435,7 @@ static char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	mmpcreators["filelen"]	    = MPfilelen_creator;
 	mmpcreators["loadavg"]	    = MPloadavg_creator;
 	mmpcreators["meminfo"]	    = MPmeminfo_creator;
+	mmpcreators["freespace"]    = MPfreespace_creator;
 	MPfilelen::pcp = pcp;
     }
 
