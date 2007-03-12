@@ -1,5 +1,7 @@
 #include <signal.h>
 #include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include <iomanip>
 
@@ -87,6 +89,7 @@ namespace qiconn
 
     int init_connect (const char *fqdn, int port, struct sockaddr_in *ps /* = NULL */ ) {
 	struct hostent * he;
+	if (debug_connect) cerr << "init_connect -> gethostbyname (" << fqdn << ")" << endl;
 	he = gethostbyname (fqdn);
 	if (he != NULL) {
 	    if (debug_resolver) cout << "gethostbyname(" << fqdn << ") = " << *he;
@@ -112,6 +115,7 @@ namespace qiconn
 	    return -1;
 	}
 
+	if (debug_connect) cerr << "init_connect -> socket (PF_INET, SOCK_STREAM, tcp)" << endl;
 	int s = socket(PF_INET, SOCK_STREAM, pe->p_proto);
 	if (s == -1) {
 	    int e = errno;
@@ -119,14 +123,86 @@ namespace qiconn
 	    return -1;
 	}
 
-	if (connect (s, (const struct sockaddr *)&sin, sizeof(sin)) < 0) {
+	long s_flags = 0;
+	if (fcntl (s, F_GETFL, s_flags) == -1) {
 	    int e = errno;
-	    cerr << "could not connect to " << fqdn << ":" << port << " : " << strerror (e) << endl ;
+	    cerr << "could not get socket flags (for connection to " << fqdn << ":" << port << ") : " << strerror (e) << endl ;
 	    close (s);
 	    return -1;
 	}
-	else 
-	    return s;
+
+	s_flags |= O_NONBLOCK;
+	if (fcntl (s, F_SETFL, s_flags)  == -1) {
+	    int e = errno;
+	    cerr << "could not set socket flags with O_NONBLOCK (for connection to " << fqdn << ":" << port << ") : " << strerror (e) << endl ;
+	    close (s);
+	    return -1;
+	}
+	
+	if (debug_connect) cerr << "init_connect -> socket (PF_INET, SOCK_STREAM, tcp)" << endl;
+	int r = connect (s, (const struct sockaddr *)&sin, sizeof(sin));
+	if (r < 0) {
+	    int e = errno;
+	    if (e == 115 /* EINPROGRESS */) {
+		time_t start = time (NULL);
+		bool connected =false;
+		do { 
+		    struct timeval tv;
+		    fd_set myset;
+		    tv.tv_sec = 0; 
+		    tv.tv_usec = 100;
+		    FD_ZERO(&myset); 
+		    FD_SET(s, &myset); 
+		    if (debug_connect) cerr << "init_connect -> select ()" << endl;
+		    int res = select(s+1, NULL, &myset, NULL, &tv); 
+		    if ((res<0) && (errno != EINTR)) { 
+			int e = errno;
+			cerr << "while selecting after connect attempt (for connection to "
+			     << fqdn << ":" << port << ") got : "
+			     << strerror (e) << " still attempting..." << endl ;
+		    } 
+		    else if (res > 0) { 
+			// Socket selected for write 
+			int valopt;
+			socklen_t lon = sizeof(valopt); 
+			if (debug_connect) cerr << "init_connect -> getsockopt (SOL_SOCKET, SO_ERROR)" << endl;
+			if (getsockopt(s, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon) < 0) { 
+			    int e = errno;
+			    cerr << "while selecting after connect attempt for (for connection to "
+				 << fqdn << ":" << port << ") getsockopt got "
+				 << strerror (e) << endl;
+			    close (s);
+			    return -1;
+			} 
+
+			// Check the value returned... 
+			if (valopt) { 
+			    cerr << "while selecting after connect attempt for (for connection to "
+				 << fqdn << ":" << port << ") getsockopt returned "
+				 << strerror(valopt) << endl;
+			    close (s);
+			    return -1;
+			} else {
+			    connected = true;
+			    break; 
+			}
+		    }
+		} while ((time(NULL) - start) < 2);	// JDJDJDJD ceci est une valeur arbitraire de 2 secondes !
+		if (connected)
+		    return s;
+		else {
+		    cerr << "selecting after connect attempt for (for connection to "
+			 << fqdn << ":" << port << ") timed out" << endl;
+		    close (s);
+		    return -1;
+		} 
+	    } else if (e != 0) {
+		cerr << "could not connect to " << fqdn << ":" << port << " : " << strerror (e) << " errno=" << e << endl ;
+		close (s);
+		return -1;
+	    }
+	}
+	return s;
     }
 
     /*

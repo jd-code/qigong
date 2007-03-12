@@ -25,12 +25,14 @@ namespace qiconn
 
 #ifdef QICONN_H_GLOBINST
     QICONN_H_SCOPE bool debug_resolver = false;	    // debug init_connect resolver
+    QICONN_H_SCOPE bool debug_connect = false;	    // debug init_connect steps
     QICONN_H_SCOPE bool debug_transmit = false;	    // debug all transmitions
     QICONN_H_SCOPE bool debug_dummyin = false;	    // debug input of dummyconn
     QICONN_H_SCOPE bool debug_lineread = false;	    // debug lineread of dummyconn
     QICONN_H_SCOPE bool debug_dummyout = false;	    // debug output of dummyconn
 #else
     QICONN_H_SCOPE bool debug_resolver;		    // debug init_connect resolver
+    QICONN_H_SCOPE bool debug_connect;		    // debug init_connect steps
     QICONN_H_SCOPE bool debug_transmit;		    // debug all transmitions
     QICONN_H_SCOPE bool debug_dummyin;		    // debug input of dummyconn
     QICONN_H_SCOPE bool debug_lineread;		    // debug lineread of dummyconn
