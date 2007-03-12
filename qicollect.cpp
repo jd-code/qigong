@@ -987,6 +987,7 @@ int main (int nb, char ** cmde) {
 		i++;
 	    }
 	    param_match (cmde[i], "-debugresolver",	debug_resolver);
+	    param_match (cmde[i], "-debugconnect",	debug_connect);
 	    param_match (cmde[i], "-debugtransmit",	debug_transmit);
 	    param_match (cmde[i], "-debugout",		debug_dummyout);
 	    param_match (cmde[i], "-debuginput",	debug_dummyin);
@@ -1003,7 +1004,7 @@ int main (int nb, char ** cmde) {
 	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
 		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [-pidfile=fname] [-logfile=fname] [--help]" << endl
-		     << "                         [-debugresolver] [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
+		     << "                         [-debugresolver] [-debugconnect] [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
 		     << "                         [-debugccstates] [-conffile=fname] [-rrdpath=pathname]" << endl;
 		return 0;
 	    }
