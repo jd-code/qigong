@@ -79,9 +79,10 @@ namespace qiconn {
 	    if (rrd_update_query.get_charpp() == NULL) {
 		cerr << "could not allocate mem for rrd_update_query" << endl;
 	    } else {
-		if (rrd_update (rrd_update_query.size(), rrd_update_query.get_charpp()) != 0) {
+		int r = rrd_update (rrd_update_query.size(), rrd_update_query.get_charpp());
+		if (r != 0) {
 		    int e = errno;
-		    cerr << "error in rdd_update" << ": " << e << " = " << strerror(e) << endl;
+		    cerr << "error in rrd_update(" << rrd_update_query << ") = " << r << " : " << e << " = " << strerror(e) << endl;
 		}
 	    }
 	}
