@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/statvfs.h>
+#include <dirent.h>
 
 #include <fstream>
 #include <iomanip>
@@ -19,6 +20,69 @@ namespace qiconn {
 	mp.dump(cout);
 	return cout;
     }
+
+/*
+ *  ---- get_most_recent -----------------------------------------------------------------------------------
+ */
+
+    int GetMostRecent::matchentry (const string &fname, struct stat const & fst) {
+	return S_ISREG (fst.st_mode);
+    }
+
+    GetMostRecent::GetMostRecent () {}
+
+    GetMostRecent::GetMostRecent (const string & dirname) {
+	GetMostRecent::dirname = dirname;
+    }
+
+    bool GetMostRecent::getlast (string & flast) {
+	DIR * dir;
+
+	dir = opendir (dirname.c_str());
+	if (dir == NULL) {
+	    int e = errno;
+	    cerr << "could not opendir (\"" << dirname << "\") : " << strerror (e) << endl;
+	    return 0;
+	}
+	
+	struct dirent * pde;
+	time_t tlast = 0;
+	bool found = false;
+	while ((pde = readdir (dir)) != NULL) {
+	    string fname = dirname;
+	    fname += "/";
+	    fname += pde->d_name;
+
+	    struct stat fst;
+	    if (lstat (fname.c_str(), &fst) != 0) {
+		int e = errno;
+		cerr << "could not stat (\"" << fname << "\") : " << strerror (e) << endl;
+		continue;
+	    }
+	    if (matchentry (pde->d_name, fst) && (fst.st_mtime >= tlast)) {
+		found = true;
+		flast = fname;
+		tlast = fst.st_mtime;
+	    }
+	}
+	
+	closedir (dir);
+	return found;
+    }
+
+    int MatchBeginEnd::matchentry (const string &fname, struct stat const & fst) {
+	if (!S_ISREG (fst.st_mode))
+	    return 0;
+	if (fname.find(fname_begin) == 0) {
+	    if (fname_end.empty())
+		return 1;
+	    size_t p = fname.rfind(fname_end);
+	    if ((p != string::npos) && (p == fname.size() - fname_end.size()))
+		return 1;
+	}
+	return 0;
+    }
+
 
 /*
  *  ---- MPdiskstats ---------------------------------------------------------------------------------------
@@ -135,7 +199,7 @@ namespace qiconn {
 
 
 /*
- *  ---- MPfilelen -----------------------------------------------------------------------------------------
+ *  ---- LogCountConn --------------------------------------------------------------------------------------
  */
 
     class LogCountConn : public Connection
@@ -187,6 +251,7 @@ namespace qiconn {
 	    }
 	friend class MPfilelen;
     };
+
 /*
  *  ---- MPfilelen -----------------------------------------------------------------------------------------
  */
@@ -195,7 +260,7 @@ namespace qiconn {
 	fd = open (fname.c_str(), O_RDONLY);
 	plcc = NULL;
 
-cerr << "MPfilelen::reopen (" << fname << ") = " << fd << endl;
+if (!fname.empty()) cerr << "MPfilelen::reopen (" << fname << ") = " << fd << endl;
 	
 	if (fd == -1)
 	    return;
@@ -204,6 +269,8 @@ cerr << "MPfilelen::reopen (" << fname << ") = " << fd << endl;
 cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	    return;
 	}
+
+	tlast_nonzero = time(NULL);
 
 	if (seekend)
 	    lseek (fd, 0, SEEK_END);
@@ -228,9 +295,11 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	plcc = NULL;
     }
     
-    MPfilelen::MPfilelen (const string & param) : MeasurePoint (param) {
+    MPfilelen::MPfilelen (const string & param, time_t zltimeout /* = 0 */) : MeasurePoint (param) {
 	oldnl = 0;
-	name="filelen";
+	MPfilelen::zltimeout = zltimeout;
+	tlast_nonzero = time(NULL);
+	name = "filelen";
 	fname = param;
 	reopen (true);
     }
@@ -242,13 +311,19 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	    if (plcc == NULL)
 		out << "U";
 	    else {
+		if (zltimeout != 0) {
+		    tlast_nonzero = time(NULL);
+		}
 		oldnl = plcc->nl;
 		out << oldnl;
 	    }
 	} else if (oldnl == plcc->nl) {
 	    struct stat newstat;
 	    lstat (fname.c_str(), &newstat);
-	    if ((newstat.st_dev != curstat.st_dev) || (newstat.st_ino != curstat.st_ino)) {
+	    if (    ((zltimeout != 0) && ((time(NULL)-tlast_nonzero) > zltimeout))
+		 || (newstat.st_dev != curstat.st_dev)
+		 || (newstat.st_ino != curstat.st_ino)
+	       ) {
 		if (plcc != NULL) delete (plcc);
 		reopen (false);
 		if (plcc == NULL)
@@ -262,6 +337,9 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 		lseek (fd, 0, SEEK_END);
 	    }
 	} else {
+	    if (zltimeout != 0) {
+		tlast_nonzero = time(NULL);
+	    }
 	    oldnl = plcc->nl;
 	    out << oldnl;
 	}
@@ -274,6 +352,53 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
     }
 
     ConnectionPool *MPfilelen::pcp = NULL;
+
+
+/*
+ *  ---- MPlastmatchfilelen --------------------------------------------------------------------------------
+ */
+
+    MPlastmatchfilelen::~MPlastmatchfilelen (void) {
+	if (plcc != NULL) delete (plcc);
+	plcc = NULL;
+    }
+    
+    MPlastmatchfilelen::MPlastmatchfilelen (const string & param) : MPfilelen ("", 30) {
+	name="matchflen";
+	oldnl = 0;
+	size_t p = param.find(',');
+	getmostrecent.dirname = param.substr(0,p);
+	if (p != string::npos) {
+	    size_t q = p + 1;
+	    p = param.find(',', q);
+	    if (p != string::npos)
+	    getmostrecent.fname_begin = param.substr(q, (p != string::npos) ? p-q: string::npos);
+	}
+	if (p != string::npos) {
+	    size_t q = p + 1;
+	    p = param.find(',', q);
+	    getmostrecent.fname_end = param.substr(q, (p != string::npos) ? p-q: string::npos);
+	}
+//	cerr << "dirname = \"" << getmostrecent.dirname
+//	     << "\", fname_begin = \"" << getmostrecent.fname_begin
+//	     << "\", fname_end = \"" << getmostrecent.fname_end << "\"" << endl;
+
+	reopen (true);
+    }
+
+    void MPlastmatchfilelen::reopen (bool seekend) {
+	if (!getmostrecent.getlast (fname)) {
+	    fname.erase();
+	    fd = -1;
+cerr << "MPlastmatchfilelen::reopen (" << getmostrecent.dirname << "/" << getmostrecent.fname_begin << "*" << getmostrecent.fname_end << ") = no match found" << endl;
+	    return;
+	}
+	MPfilelen::reopen (seekend);
+    }
+    
+    MeasurePoint* MPlastmatchfilelen_creator (const string & param) {
+	return new MPlastmatchfilelen (param);
+    }
 
 
 /*
@@ -433,6 +558,7 @@ static char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	mmpcreators["diskstats"]    = MPdiskstats_creator;
 	mmpcreators["netstats"]	    = MPnetstats_creator;
 	mmpcreators["filelen"]	    = MPfilelen_creator;
+	mmpcreators["matchflen"]    = MPlastmatchfilelen_creator;
 	mmpcreators["loadavg"]	    = MPloadavg_creator;
 	mmpcreators["meminfo"]	    = MPmeminfo_creator;
 	mmpcreators["freespace"]    = MPfreespace_creator;

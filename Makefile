@@ -41,7 +41,7 @@ bintar: allstrip
 
 vimtest: all
 	# ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
-#	./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
+	./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
 	./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log )
 
 testqigong: qigong
@@ -86,7 +86,7 @@ clean:
 	rm -f qiconn.o qigong.o qigong qicollect.o qicollect qimeasure.o
 	rm -f qigong.rc qicollect.rc prefix.sed
 	rm -f testqigong.log testqicoll.log
-	rm -f *_testfiles.rrd  *_testglobal.rrd  *_testnet.rrd *_testmem.rrd *_testload.rrd *_testfree.rrd
+	rm -f *_testlastfile.rrd *_testfiles.rrd  *_testglobal.rrd  *_testnet.rrd *_testmem.rrd *_testload.rrd *_testfree.rrd
 	rm -f qigong-*.tgz
 
 distclean: clean
