@@ -18,6 +18,11 @@ namespace qiconn {
 
     using namespace std;
 
+    typedef int (*PFNameMatchFunc) (const string &fname, struct stat const & fst);
+
+    int matchallfile (const string &fname, struct stat const & fst);
+    int get_most_recent (string dirname, string &flast, PFNameMatchFunc fnmatch = matchallfile);
+
     class MeasurePoint {
 	protected:
 	    string param;
@@ -138,16 +143,18 @@ namespace qiconn {
     class MPfilelen : public MeasurePoint {
 	protected:
 	    long long oldnl;
+	    time_t tlast_nonzero;
+	    time_t zltimeout;
 	    string fname;
 	    int fd;
 	    LogCountConn *plcc;
 	    static ConnectionPool *pcp;
 	    struct stat curstat;
-	    void reopen (bool seekend);
+	    virtual void reopen (bool seekend);
 	    
 	public:
 	    virtual ~MPfilelen (void);
-	    MPfilelen (const string & param);
+	    MPfilelen (const string & param, time_t zltimeout = 0);
 
 	    virtual bool measure (string &result);			// the measuring function itself
 	    virtual string get_source_type(void) { return "DERIVE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
@@ -155,6 +162,42 @@ namespace qiconn {
 	    virtual string get_max(void) { return "U"; }		// min or U for unknown
 	    virtual string get_first_rra (void) { return "LAST"; }	// consolidation function for first rra (AVERAGE MIN MAX or LMAST)
 	    virtual string get_next_rras (void) { return "AVERAGE"; }	// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
+
+	friend void init_mmpcreators (ConnectionPool *pcp);
+    };
+
+    /*
+     *  ----- MPlastmatchfilelen -------------------------------------------------------------------------------
+     */
+
+    class GetMostRecent {
+	protected:
+	    virtual int matchentry (const string &fname, struct stat const & fst);
+	public:
+	    string dirname;
+	    virtual ~GetMostRecent () {}
+	    GetMostRecent ();
+	    GetMostRecent (const string & dirname);
+	    bool getlast (string & flast);
+    };
+    class MatchBeginEnd : public GetMostRecent {
+	protected:
+	    virtual int matchentry (const string &fname, struct stat const & fst);
+	public:
+	    string fname_begin, fname_end;
+	    MatchBeginEnd () : GetMostRecent() {};
+    };
+
+
+    class MPlastmatchfilelen : public MPfilelen {
+	protected:
+	    virtual void reopen (bool seekend);
+	    int matchbeginendfile (const string &fname, struct stat const & fst);
+	    MatchBeginEnd getmostrecent;
+	    
+	public:
+	    virtual ~MPlastmatchfilelen (void);
+	    MPlastmatchfilelen (const string & param);
 
 	friend void init_mmpcreators (ConnectionPool *pcp);
     };

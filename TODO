@@ -14,3 +14,5 @@ qimeasure:
 	- average delay of query
 	- min delay - max delay - ecart-type
 
+
+quand une mesure sur un file a été créée puis qu'elle n'est plus souscrite, puis que le file disparait ?
