@@ -3,7 +3,7 @@
 DEBUG=
 PREFIX=/usr/local
 SHELL=/bin/sh
-VERSION="1.0.1"
+VERSION="1.5.0"
 
 default:
 	@echo "interesting targets : all , install , install_qigong ..."
