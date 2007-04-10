@@ -83,6 +83,14 @@ namespace qiconn {
 		if (r != 0) {
 		    int e = errno;
 		    cerr << "error in rrd_update(" << rrd_update_query << ") = " << r << " : " << e << " = " << strerror(e) << endl;
+
+		    if (e == 0) {
+static int nbweirderrors = 0;
+			nbweirderrors ++;
+			if (nbweirderrors == 15) {
+			    cerr << "error: too many weird errors encountered, attempting to restart myself" << endl;
+			}
+		    }
 		}
 	    }
 	}
@@ -1051,7 +1059,6 @@ int main (int nb, char ** cmde) {
 
 //     return 0;
 
-    
     cp.init_signal ();
     
     int s = server_pool (port);
@@ -1063,7 +1070,9 @@ int main (int nb, char ** cmde) {
     {
 	ListeningBinder *ls = new ListeningBinder (s);
 	if (ls != NULL) {
-	    ls->setname("*:3308");
+	    stringstream name;
+	    name << "*:" << port ;
+	    ls->setname(name.str());
 	    cp.push (ls);
 	}
     }
