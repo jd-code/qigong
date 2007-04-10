@@ -1,6 +1,7 @@
 
 all:
     switch to syslog for logging
+    dater les lignes de log
 
 rc.scripts:
     check for good start of daemons
@@ -13,6 +14,9 @@ qimeasure:
 	- hit/s
 	- average delay of query
 	- min delay - max delay - ecart-type
+
+qigong:
+    bug lorsque il y a plus d'une connexion cliente (sur deux IP différentes ?) et que les clients partent tous les deux
 
 
 quand une mesure sur un file a été créée puis qu'elle n'est plus souscrite, puis que le file disparait ?

@@ -311,12 +311,14 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 	return nbw;
     }
 
-    void CollectionSet::buildmissing_rrd (void) {
+    void CollectionSet::buildmissing_rrd (bool warnexist /* = false */) {
 	string fullname = rrd_path + '/' + key + ".rrd";
 	struct stat buf;
 	if (stat (fullname.c_str(), &buf) == 0) {
-	    cerr << "error: will not re-create already existing rrd \"" << fullname << "\"." << endl
-		 << "         change the collect name in configuration or remove/rename existing rrd" << endl;
+	    if (warnexist) {
+		cerr << "error: will not re-create already existing rrd \"" << fullname << "\"." << endl
+		     << "         change the collect name in configuration or remove/rename existing rrd" << endl;
+	    }
 // JDJDJDJD marquer inactive
 // creer un ficher .def avec chaque rrd ????
 	    return;
@@ -364,6 +366,8 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 	    int e = errno;
 	    cerr << "error in rdd_create" << ": " << e << " = " << strerror(e) << endl;
 	    cerr << "rrd_create (" << endl << rdd_create_query << ")" << endl ;
+	} else {
+	    cerr << "creation of rrd://" << fullname << " succeeded" << endl ;
 	}
     }
 

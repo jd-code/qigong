@@ -134,7 +134,7 @@ namespace qiconn {
 	    }
 
 	    int validate_freqs (void);
-	    void buildmissing_rrd (void);
+	    void buildmissing_rrd (bool warnexist = false);
 	    void bindcc (CollectingConn *pcc);
 	    int create_remote (void);
 	    int delete_remote (void);
