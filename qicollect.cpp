@@ -103,6 +103,7 @@ static int nbweirderrors = 0;
 			nbweirderrors ++;
 			if (nbweirderrors == 15) {
 			    cerr << "error: too many weird errors encountered, attempting to restart myself" << endl;
+			    kill (getpid(), SIGUSR1);
 			}
 		    }
 		}
