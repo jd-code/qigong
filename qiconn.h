@@ -139,11 +139,11 @@ namespace qiconn
      *  ---------------------------- select pooling : polls a pool of connection via select ------------------
      */
 
+    QICONN_H_SCOPE int pend_signals[256];
 
     class ConnectionPool
     {
 	private:
-	    bool exitselect;
 	    
 	    struct gtint
 	    {
@@ -172,7 +172,9 @@ namespace qiconn
 	     *  -------------------- rought signal treatments ------------------------------------------------
 	     */
 
-	    void treat_signal (void);
+	protected:
+	    bool exitselect;
+	    virtual void treat_signal (void);
 
 
 	public:

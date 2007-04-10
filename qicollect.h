@@ -186,10 +186,13 @@ namespace qiconn {
     class CollectPool : public ConnectionPool
     {
 	private:
+	protected:
+	    virtual void treat_signal (void);
 	public:
 	    CollectPool (void) : ConnectionPool () {}
 
 	    virtual int select_poll (struct timeval *timeout);
+
     };
 
     /*
