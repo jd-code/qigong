@@ -2,6 +2,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
+#include <signal.h>
 
 #include <fstream>
 #include <iomanip>
@@ -38,6 +39,19 @@ namespace qiconn {
 	return r;
     }
 
+    // do we have to relaunch ourselves ?
+    bool relaunch = false;
+    
+    void CollectPool::treat_signal (void) {
+	if (pend_signals [SIGUSR1] != 0) {
+	    pend_signals [SIGUSR1] =0;
+	    cerr << "signal USR1 caught, schedulling exit and restart" << endl;
+	    relaunch = true;
+	    exitselect = true;
+	}
+	ConnectionPool::treat_signal();
+    }
+    
 /*
  *  ------------------- the collecting connections -------------------------------------------------------
  */
@@ -1060,6 +1074,7 @@ int main (int nb, char ** cmde) {
 //     return 0;
 
     cp.init_signal ();
+    cp.add_signal_handler (SIGUSR1);
     
     int s = server_pool (port);
     // init_connect ("miso.local", 25);
@@ -1110,6 +1125,18 @@ int main (int nb, char ** cmde) {
 
 
     cp.select_loop (timeout);
+    
+    cerr << "closing all connections" << endl;
+    cp.closeall ();
+    
+    if (relaunch) {
+	sleep (5);
+	cerr << "relaunching ourselves" << endl;
+	if (execvp (cmde[0], cmde) != 0) {
+	    int e =errno;
+	    cerr << "error : attemp to relaunching ourseleves failed : " << strerror (e) << endl;
+	}
+    }
     
     cerr << "exiting qicollect" << endl;
     

@@ -279,7 +279,6 @@ namespace qiconn
      */
 
     int caught_signal;
-    int pend_signals[256];
 
     void signal_handler (int sig) {
 	printf ("got signal %d\n", sig);
@@ -383,15 +382,16 @@ namespace qiconn
 
 	if (caught_signal)
 	    treat_signal ();
-
-	int i;
-	for (i=0 ; i<biggest_fd ; i++) {
-	    if (FD_ISSET(i, &cr_fd))
-		connections[i]->read();
-	}
-	for (i=0 ; i<biggest_fd ; i++) {
-	    if (FD_ISSET(i, &cw_fd))
-		connections[i]->write();
+	else {
+	    int i;
+	    for (i=0 ; i<biggest_fd ; i++) {
+		if (FD_ISSET(i, &cr_fd))
+		    connections[i]->read();
+	    }
+	    for (i=0 ; i<biggest_fd ; i++) {
+		if (FD_ISSET(i, &cw_fd))
+		    connections[i]->write();
+	    }
 	}
 	if (exitselect)
 	    return 1;
