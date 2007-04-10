@@ -290,6 +290,19 @@ namespace qiconn
 	    pend_signals[255]++;
     }
 
+    int ConnectionPool::add_signal_handler (int sig) {
+	if (SIG_ERR == signal(sig, signal_handler)) {
+	    int e = errno;
+//	    if (e != 22) {
+		cerr << "could not set signal handler for sig=" << sig << " : [" << e << "]" << strerror (e) << endl;
+//	    }
+	    return 1;
+	} else {
+	    cerr << "signal [" << sig << "] handled." << endl;
+	    return 0;
+	}
+    }
+
     int ConnectionPool::init_signal (void) {
 	int i;
 	int err = 0;
@@ -299,15 +312,7 @@ namespace qiconn
 
 	for (i=0 ; i<255 ; i++) {
 	  if (i == 13)
-	    if (SIG_ERR == signal(i, signal_handler)) {
-		int e = errno;
-		if (e != 22) {
-		    cerr << "could not set signal handler for sig=" << i << " : [" << e << "]" << strerror (e) << endl;
-		    err ++;
-		}
-	    } else {
-		cerr << "signal [" << i << "] handled." << endl;
-	    }
+	      err += add_signal_handler (i);
 	}
 	return err;
     }
