@@ -394,7 +394,7 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 cerr << "MPlastmatchfilelen::reopen (" << getmostrecent.dirname << "/" << getmostrecent.fname_begin << "*" << getmostrecent.fname_end << ") = no match found" << endl;
 	    return;
 	}
-	MPfilelen::reopen (seekend);
+	MPfilelen::reopen (true);
     }
     
     MeasurePoint* MPlastmatchfilelen_creator (const string & param) {
