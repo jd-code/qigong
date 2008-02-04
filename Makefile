@@ -15,6 +15,7 @@ allstrip: all
 
 install: allstrip
 	./installscript "${PREFIX}"
+	# update-rc.d qigong start 20 2 3 4 5 . stop 20 0 1 6 .
 
 install_qigong: qigong qigong.rc
 	./installscript qigong
