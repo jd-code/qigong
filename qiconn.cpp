@@ -717,7 +717,7 @@ if (debug_dummyout) {
 	    return p;
 
 	while (p < l) {
-	    if (isalnum (s[p]) || (s[p]=='_')) {
+	    if (isalnum (s[p]) || (s[p]=='_') || (s[p]=='-')) {
 		ident += s[p];
 		p++;
 	    } else
