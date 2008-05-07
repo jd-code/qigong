@@ -432,6 +432,7 @@ int main (int nb, char ** cmde) {
 
     if (dofork) {    
 	// --------- let's start talking only on log file
+
 	if (close (0) != 0) {
 	    cerr << "could not close stdin" << strerror (errno) << endl;
 	    return -1;
@@ -485,6 +486,10 @@ int main (int nb, char ** cmde) {
 		pidf << child << endl;
 		return 0;
 	}
+	if (setsid () == -1) {
+	    cerr << "setsid failed, certainly not a big deal ! (ignored) " << strerror (errno) << endl;
+	}
+
     }
 
     MeasurePool cp;
