@@ -40,7 +40,25 @@ bintar: allstrip
 #	  rm -r "$${SRCDIR}" ;						\
 #	  ls -l "$${SRCDIR}".tgz )
 
-vimtest: all
+testdirproc.o: testdirproc.cpp
+	g++ -Wall -c testdirproc.cpp
+
+testdirproc: qiconn.o testdirproc.o
+	g++ -Wall -o testdirproc testdirproc.o qiconn.o
+
+watchconn.o: watchconn.cpp
+	g++ -Wall -c watchconn.cpp
+
+watchconn: qiconn.o watchconn.o
+	g++ -Wall -o watchconn qiconn.o watchconn.o
+
+vimtest: testdirproc watchconn all
+	# ./testdirproc :::80 ::ffff:c700:0001:80 127.0.0.1:80 192.168.132.182:80 127.0.0.1:3306 | tr ':' ';'
+	# ./testdirproc :::80 ::ffff:c700:0001:80 127.0.0.1:80 192.168.132.182:80 127.0.0.1:3306  0.0.0.0:1264
+	./watchconn -help
+
+
+oldvimtest: all
 	# ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
 	./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
 	./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log )

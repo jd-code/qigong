@@ -272,6 +272,27 @@ namespace qiconn {
 	friend void init_mmpcreators (ConnectionPool *pcp);
     };
 
+    /*
+     *  ----- MPconncount --------------------------------------------------------------------------------------
+     */
+
+    class MPconncount : public MeasurePoint {
+	protected:
+	    
+	public:
+	    virtual ~MPconncount (void);
+	    MPconncount (const string & param);
+
+	    virtual bool measure (string &result);			// the measuring function itself
+	    virtual string get_source_type(void) { return "GAUGE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
+	    virtual string get_min(void) { return "0"; }		// min or U for unknown
+	    virtual string get_max(void) { return "U"; }		// min or U for unknown
+	    virtual string get_first_rra (void) { return "LAST"; }	// consolidation function for first rra (AVERAGE MIN MAX or LMAST)
+	    virtual string get_next_rras (void) { return "AVERAGE"; }	// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
+
+	friend void init_mmpcreators (ConnectionPool *pcp);
+    };
+
 } // namespace qiconn
 
 #endif // QIMEASURE_H_INCLUDE
