@@ -84,9 +84,29 @@ namespace qiconn {
 	    stringstream upd;
 	    string rrd_name;
 	    size_t p = getidentifier (bufin, rrd_name, 3);
+	    long long tstampll;
+	    p = getinteger (bufin, tstampll, p+1);
+	    time_t trecord = (time_t) tstampll;
+	    time_t now = time (NULL);
+	    double dtime = difftime (trecord, now);
+
+	    if (dtime > 10.0) {
+		cerr << "received timestamps from the future from "
+		     << fqdn
+		     << " : diff=" << dtime << "s (corrected)"
+		     << endl;
+		trecord = now;
+	    } else if (dtime < 10.0) {
+		cerr << "received timestamps from the past from "
+		     << fqdn
+		     << " : diff=" << dtime << "s (corrected)"
+		     << endl;
+		trecord = now;
+	    }
 
 	    upd << "update" << eos()
 		<< rrd_path << "/" << rrd_name << ".rrd" << eos()
+		<< trecord << eos()
 		<< bufin.substr(p+1) << eos();
 
 	    CharPP rrd_update_query (upd.str());

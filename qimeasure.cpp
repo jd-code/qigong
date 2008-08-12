@@ -552,6 +552,37 @@ static char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
     }
 
 /*
+ *  ---- MPconncount -----------------------------------------------------------------------------------------
+ */
+
+    MPconncount::~MPconncount (void) {
+    }
+    
+    MPconncount::MPconncount (const string & param) : MeasurePoint (param) {
+    }
+
+    bool MPconncount::measure (string &result) {
+	string s;
+	ifstream loadavg ("/proc/loadavg");
+	if (!loadavg) {
+	    result = "U";
+	    return true;
+	}
+	getstring (loadavg, s);
+	size_t p = s.find(' ');
+	if (p == string::npos) {
+	    result = "U";
+	    return true;
+	}
+	result = s.substr(0, p);
+	return true;
+    }
+
+    MeasurePoint* MPconncount_creator (const string & param) {
+	return new MPconncount (param);
+    }
+
+/*
  *  ---- initialisation of MPs -----------------------------------------------------------------------------
  */
 
@@ -561,6 +592,7 @@ static char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	mmpcreators["filelen"]	    = MPfilelen_creator;
 	mmpcreators["matchflen"]    = MPlastmatchfilelen_creator;
 	mmpcreators["loadavg"]	    = MPloadavg_creator;
+	mmpcreators["conncount"]    = MPconncount_creator;
 	mmpcreators["meminfo"]	    = MPmeminfo_creator;
 	mmpcreators["freespace"]    = MPfreespace_creator;
 	MPfilelen::pcp = pcp;
