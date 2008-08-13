@@ -40,11 +40,11 @@ bintar: allstrip
 #	  rm -r "$${SRCDIR}" ;						\
 #	  ls -l "$${SRCDIR}".tgz )
 
-testdirproc.o: testdirproc.cpp
-	g++ -Wall -c testdirproc.cpp
+# testdirproc.o: testdirproc.cpp
+#	g++ -Wall -c testdirproc.cpp
 
-testdirproc: qiconn.o testdirproc.o
-	g++ -Wall -o testdirproc testdirproc.o qiconn.o
+# testdirproc: qiconn.o testdirproc.o
+#	g++ -Wall -o testdirproc testdirproc.o qiconn.o
 
 watchconn.o: watchconn.cpp
 	g++ -Wall -c watchconn.cpp
@@ -52,7 +52,7 @@ watchconn.o: watchconn.cpp
 watchconn: qiconn.o watchconn.o
 	g++ -Wall -o watchconn qiconn.o watchconn.o
 
-vimtest: testdirproc watchconn all
+vimtest: watchconn all
 	# ./testdirproc :::80 ::ffff:c700:0001:80 127.0.0.1:80 192.168.132.182:80 127.0.0.1:3306 | tr ':' ';'
 	# ./testdirproc :::80 ::ffff:c700:0001:80 127.0.0.1:80 192.168.132.182:80 127.0.0.1:3306  0.0.0.0:1264
 	./watchconn -help

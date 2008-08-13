@@ -105,9 +105,7 @@ namespace qiconn {
 	    }
 
 	    {	map <string,time_t>::iterator mi = rrdlastupdate.find (rrd_name);
-		if (mi == rrdlastupdate.end()) {
-		    rrdlastupdate[rrd_name] = trecord;
-		} else {
+		if (mi != rrdlastupdate.end()) {
 		    if ((trecord - mi->second) < 2) {
 			if ((trecord - mi->second) > 0) {
 			    cerr << "received timestamps very close from the previous recorded one at "
@@ -120,6 +118,7 @@ namespace qiconn {
 			}
 		    }
 		}
+		rrdlastupdate[rrd_name] = trecord;
 	    }
 
 	    upd << "update" << eos()
