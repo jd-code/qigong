@@ -225,6 +225,10 @@ namespace qiconn {
 	    CollectionSet * waiting_pcs;
 	    CSState waiting_pcs_nextstate;
 
+// JDJDJDJD
+// rough test
+map <string,time_t> rrdlastupdate;
+
 	public:
 	    virtual ~CollectingConn (void);
 	    CollectingConn (string const & fqdn, int port);
