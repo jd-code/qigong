@@ -3,7 +3,7 @@
 DEBUG=
 PREFIX=/usr/local
 SHELL=/bin/sh
-VERSION="1.6.1"
+VERSION="1.6.2"
 
 default:
 	@echo "interesting targets : all , install , install_qigong ..."
@@ -14,10 +14,12 @@ allstrip: all
 	strip qigong qicollect
 
 install: allstrip
+	chmod 700 ./installscript
 	./installscript "${PREFIX}"
 	# update-rc.d qigong start 20 2 3 4 5 . stop 20 0 1 6 .
 
 install_qigong: qigong qigong.rc
+	chmod 700 ./installscript
 	./installscript qigong
 
 bintar: allstrip
