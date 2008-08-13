@@ -96,7 +96,7 @@ namespace qiconn {
 		     << " : diff=" << dtime << "s (corrected)"
 		     << endl;
 		trecord = now;
-	    } else if (dtime < 10.0) {
+	    } else if (dtime < -10.0) {
 		cerr << "received timestamps from the past from "
 		     << fqdn
 		     << " : diff=" << dtime << "s (corrected)"
@@ -104,9 +104,27 @@ namespace qiconn {
 		trecord = now;
 	    }
 
+	    {	map <string,time_t>::iterator mi = rrdlastupdate.find (rrd_name);
+		if (mi == rrdlastupdate.end()) {
+		    rrdlastupdate[rrd_name] = trecord;
+		} else {
+		    if ((trecord - mi->second) < 2) {
+			if ((trecord - mi->second) > 0) {
+			    cerr << "received timestamps very close from the previous recorded one at "
+				 << rrd_name << " : diff = " << (trecord - mi->second) << endl;
+			} else if ((trecord - mi->second) == 0) {
+			    cerr << "received a timestanp equal to the last record for " << rrd_name << endl;
+			} else {
+			    cerr << "received timestamps anterior to the previous recorded one at "
+				 << rrd_name << " : diff = " << (trecord - mi->second) << endl;
+			}
+		    }
+		}
+	    }
+
 	    upd << "update" << eos()
 		<< rrd_path << "/" << rrd_name << ".rrd" << eos()
-		<< trecord << eos()
+		<< trecord << ":"
 		<< bufin.substr(p+1) << eos();
 
 	    CharPP rrd_update_query (upd.str());
@@ -116,7 +134,9 @@ namespace qiconn {
 		int r = rrd_update (rrd_update_query.size(), rrd_update_query.get_charpp());
 		if (r != 0) {
 		    int e = errno;
-		    cerr << "error in rrd_update(" << rrd_update_query << ") = " << r << " : " << e << " = " << strerror(e) << endl;
+		    cerr << "error in rrd_update(" << rrd_update_query << ") = " << r << " : " 
+			 << "difftime = " << dtime << " : "
+			 << e << " = " << strerror(e) << endl;
 
 		    if (e == 0) {
 static int nbweirderrors = 0;
