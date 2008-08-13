@@ -90,6 +90,8 @@ namespace qiconn {
 	    time_t now = time (NULL);
 	    double dtime = difftime (trecord, now);
 
+	    bool mustrecorddata = true;
+
 	    if (dtime > 10.0) {
 		cerr << "received timestamps from the future from "
 		     << fqdn
@@ -108,41 +110,45 @@ namespace qiconn {
 		if (mi != rrdlastupdate.end()) {
 		    if ((trecord - mi->second) < 2) {
 			if ((trecord - mi->second) > 0) {
-			    cerr << "received timestamps very close from the previous recorded one at "
+			    cerr << "received timestamp very close from the previous recorded one at "
 				 << rrd_name << " : diff = " << (trecord - mi->second) << endl;
 			} else if ((trecord - mi->second) == 0) {
-			    cerr << "received a timestanp equal to the last record for " << rrd_name << endl;
+			    cerr << "received a timestamp equal to the last record for " << rrd_name << endl;
+			    mustrecorddata = false; // we prevent a rrd feature/bug that completely put the librrd out of order ...
 			} else {
-			    cerr << "received timestamps anterior to the previous recorded one at "
+			    cerr << "received timestamp anterior to the previous recorded one at "
 				 << rrd_name << " : diff = " << (trecord - mi->second) << endl;
+			    mustrecorddata = false; // we prevent a rrd feature/bug that completely put the librrd out of order ...
 			}
 		    }
 		}
 		rrdlastupdate[rrd_name] = trecord;
 	    }
 
-	    upd << "update" << eos()
-		<< rrd_path << "/" << rrd_name << ".rrd" << eos()
-		<< trecord << ":"
-		<< bufin.substr(p+1) << eos();
+	    if (mustrecorddata) {
+		upd << "update" << eos()
+		    << rrd_path << "/" << rrd_name << ".rrd" << eos()
+		    << trecord << ":"
+		    << bufin.substr(p+1) << eos();
 
-	    CharPP rrd_update_query (upd.str());
-	    if (rrd_update_query.get_charpp() == NULL) {
-		cerr << "could not allocate mem for rrd_update_query" << endl;
-	    } else {
-		int r = rrd_update (rrd_update_query.size(), rrd_update_query.get_charpp());
-		if (r != 0) {
-		    int e = errno;
-		    cerr << "error in rrd_update(" << rrd_update_query << ") = " << r << " : " 
-			 << "difftime = " << dtime << " : "
-			 << e << " = " << strerror(e) << endl;
+		CharPP rrd_update_query (upd.str());
+		if (rrd_update_query.get_charpp() == NULL) {
+		    cerr << "could not allocate mem for rrd_update_query" << endl;
+		} else {
+		    int r = rrd_update (rrd_update_query.size(), rrd_update_query.get_charpp());
+		    if (r != 0) {
+			int e = errno;
+			cerr << "error in rrd_update(" << rrd_update_query << ") = " << r << " : " 
+			     << "difftime = " << dtime << " : "
+			     << e << " = " << strerror(e) << endl;
 
-		    if (e == 0) {
+			if (e == 0) {
 static int nbweirderrors = 0;
-			nbweirderrors ++;
-			if (nbweirderrors == 15) {
-			    cerr << "error: too many weird errors encountered, attempting to restart myself" << endl;
-			    kill (getpid(), SIGUSR1);
+			    nbweirderrors ++;
+			    if (nbweirderrors == 15) {
+				cerr << "error: too many weird errors encountered, attempting to restart myself" << endl;
+				kill (getpid(), SIGUSR1);
+			    }
 			}
 		    }
 		}
