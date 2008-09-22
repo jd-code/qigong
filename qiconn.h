@@ -11,6 +11,7 @@
 #include <netdb.h>	    // gethostbyname
 // #include <sys/types.h>
 // #include <sys/socket.h>	    // connect
+#include <syslog.h>
 
 #include <iostream>
 #include <sstream>
@@ -38,6 +39,67 @@ namespace qiconn
     QICONN_H_SCOPE bool debug_lineread;		    // debug lineread of dummyconn
     QICONN_H_SCOPE bool debug_dummyout;		    // debug output of dummyconn
 #endif
+
+    /*
+     *  ---------------------------- cerr hook to syslog -----------------------------------------------------
+     */
+
+    class SyslogCerrHook : public stringbuf {
+	private:
+            streambuf *p;
+	    ostream *os;
+	    int priority;
+	    int defpriority;
+	public:
+	    SyslogCerrHook () : stringbuf () {
+		p = NULL;
+		os = NULL;
+		defpriority = LOG_ERR;
+		priority = defpriority;
+	    }
+
+	    void hook (ostream &csys, const char *ident, int option, int facility, int defpriority) {
+		os = &csys;
+		p = os->rdbuf(this);
+		openlog (ident, option, facility);
+		SyslogCerrHook::defpriority = defpriority;
+		priority = defpriority;
+	    }
+	    void unhook () {
+		if ((p != NULL) && (os != NULL)) {
+		    os->rdbuf (p);
+		    os = NULL;
+		    p = NULL;
+		}
+	    }
+
+	    virtual int sync (void) {
+		char *p = stringbuf::pptr ();
+		if (p > stringbuf::pbase ()) {
+		    // cout << "          {" << (*(p-1)) << "}" << endl;
+		    if (*(p-1) == '\n') {
+			syslog (priority, "%s", stringbuf::str().c_str());
+			priority = defpriority;
+                        cout << "      faudrait flusher : [[" << stringbuf::str()  << "]]" << endl;
+			string s;
+			stringbuf::str (s);
+		    }
+		}
+
+		return stringbuf::sync();
+	    }
+
+	    virtual ~SyslogCerrHook () {
+		// wwhenever we're destroyed (end of execution)
+		// the stream needs us until the end, which we cannot
+		// provide : bring the stream back it's original streambuf
+		unhook ();
+		closelog ();
+	    }
+    };
+
+
+
 
     /*
      *  ---------------------------- simple ostream operators for hostent and sockaddr_in --------------------
