@@ -1118,9 +1118,9 @@ int main (int nb, char ** cmde) {
 	cerr << "there were errors reading fonf file \"" << conffile << "\"" << endl;
 	return -1;
     }
-    cerr << "running config :" << endl << runconfig << endl;
 
-//     return 0;
+    // jd - 20080922 - commented this one that is very verbose on real production sets
+    // cerr << "running config :" << endl << runconfig << endl;
 
     cp.init_signal ();
     cp.add_signal_handler (SIGUSR1);
