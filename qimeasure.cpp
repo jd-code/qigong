@@ -326,6 +326,7 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 		 || (newstat.st_ino != curstat.st_ino)
 	       ) {
 		if (plcc != NULL) delete (plcc);
+		plcc = NULL;
 		reopen (false);
 		if (plcc == NULL)
 		    out << "U";

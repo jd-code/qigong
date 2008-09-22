@@ -1,9 +1,9 @@
 
-#DEBUG=-g
-DEBUG=
+#DEBUG=
+DEBUG=-g
 PREFIX=/usr/local
 SHELL=/bin/sh
-VERSION="1.7.0"
+VERSION="1.7.1"
 
 default:
 	@echo "interesting targets : all , install , install_qigong ..."
@@ -26,6 +26,19 @@ bintar: allstrip
 	@( ARCH=`arch` ;						\
 	   SRCDIR="qigong-${VERSION}-$${ARCH}" ;			\
 	   mkdir "$${SRCDIR}" ;						\
+	   chmod 700 installscript ;					\
+	   cp -a qigong qicollect qigong.rc qicollect.rc installscript "$${SRCDIR}" ; \
+	   cp -a Makefile-binonly "$${SRCDIR}"/Makefile ;		\
+	  tar -zcpvf "$${SRCDIR}".tgz "$${SRCDIR}" ;			\
+	  ls -l "$${SRCDIR}"/qigong "$${SRCDIR}"/qicollect ;		\
+	  rm -r "$${SRCDIR}" ;						\
+	  ls -l "$${SRCDIR}".tgz )
+
+bintardebug: all
+	@( ARCH=`arch` ;						\
+	   SRCDIR="qigong-${VERSION}-$${ARCH}-debug" ;			\
+	   mkdir "$${SRCDIR}" ;						\
+	   chmod 700 installscript ;					\
 	   cp -a qigong qicollect qigong.rc qicollect.rc installscript "$${SRCDIR}" ; \
 	   cp -a Makefile-binonly "$${SRCDIR}"/Makefile ;		\
 	  tar -zcpvf "$${SRCDIR}".tgz "$${SRCDIR}" ;			\
@@ -43,16 +56,16 @@ bintar: allstrip
 #	  ls -l "$${SRCDIR}".tgz )
 
 # testdirproc.o: testdirproc.cpp
-#	g++ -Wall -c testdirproc.cpp
+#	g++  ${DEBUG} -Wall -c testdirproc.cpp
 
 # testdirproc: qiconn.o testdirproc.o
-#	g++ -Wall -o testdirproc testdirproc.o qiconn.o
+#	g++  ${DEBUG} -Wall -o testdirproc testdirproc.o qiconn.o
 
 watchconn.o: watchconn.cpp
-	g++ -Wall -c watchconn.cpp
+	g++  ${DEBUG} -Wall -c watchconn.cpp
 
 watchconn: qiconn.o watchconn.o
-	g++ -Wall -o watchconn qiconn.o watchconn.o
+	g++  ${DEBUG} -Wall -o watchconn qiconn.o watchconn.o
 
 vimtest: watchconn all
 	# ./testdirproc :::80 ::ffff:c700:0001:80 127.0.0.1:80 192.168.132.182:80 127.0.0.1:3306 | tr ':' ';'
