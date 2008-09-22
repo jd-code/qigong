@@ -1044,6 +1044,8 @@ void param_match (string param, string match, string &s) {
 	s = param.substr (match.size());
 }
 
+static SyslogCerrHook cerr_hook;
+
 int main (int nb, char ** cmde) {
 
     int port = QICONNPORT + 1;
@@ -1085,6 +1087,7 @@ int main (int nb, char ** cmde) {
     }
 
     if (dofork) {
+	cerr_hook.hook (cerr, "qicollect", LOG_NDELAY|LOG_NOWAIT|LOG_PID, LOG_DAEMON, LOG_ERR);
 	// --------- let's start talking only on log file
 	if (close (0) != 0) {
 	    cerr << "could not close stdin" << strerror (errno) << endl;
