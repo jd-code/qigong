@@ -1050,6 +1050,7 @@ int main (int nb, char ** cmde) {
 
     int port = QICONNPORT + 1;
     bool dofork = true;
+    bool checkconfonly = false;
     
     string logfile ("/var/log/qicollect.log"),
 	   pidfile ("/var/run/qicollect.pid"),
@@ -1070,6 +1071,8 @@ int main (int nb, char ** cmde) {
 	    param_match (cmde[i], "-pidfile",		pidfile);
 	    param_match (cmde[i], "-logfile",		logfile);
 
+	    param_match (cmde[i], "-checkconf",		checkconfonly);
+
 	    param_match (cmde[i], "-debugccstates",	debug_ccstates);
 	    param_match (cmde[i], "-conffile",		conffile);
 	    param_match (cmde[i], "-rrdpath",		rrd_path);
@@ -1079,7 +1082,7 @@ int main (int nb, char ** cmde) {
 	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
 		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [-pidfile=fname] [-logfile=fname] [--help]" << endl
-		     << "                         [-debugresolver] [-debugconnect] [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
+		     << "                         [-debugresolver] [-debugconnect] [-debugtransmit] [-checkconf] [-debugout] [-debuginput] [-debuglineread]" << endl
 		     << "                         [-debugccstates] [-conffile=fname] [-rrdpath=pathname]" << endl;
 		return 0;
 	    }
@@ -1119,8 +1122,11 @@ int main (int nb, char ** cmde) {
 	return -1;
     }
 
-    // jd - 20080922 - commented this one that is very verbose on real production sets
-    // cerr << "running config :" << endl << runconfig << endl;
+    // jd - 20080922 - tuned that one  (that is very verbose on real production sets)
+    if (checkconfonly) {
+	cerr << "running config :" << endl << runconfig << endl;
+	return 0;
+    }
 
     cp.init_signal ();
     cp.add_signal_handler (SIGUSR1);
