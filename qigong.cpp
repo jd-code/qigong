@@ -396,6 +396,8 @@ void param_match (string param, string match, string &s) {
 	s = param.substr (match.size());
 }
 
+static SyslogCerrHook cerr_hook;
+
 int main (int nb, char ** cmde) {
 
     int port = QICONNPORT;
@@ -430,7 +432,9 @@ int main (int nb, char ** cmde) {
 	}
     }
 
-    if (dofork) {    
+    if (dofork) {
+	cerr_hook.hook (cerr, "qigong", LOG_NDELAY|LOG_NOWAIT|LOG_PID, LOG_DAEMON, LOG_ERR);
+
 	// --------- let's start talking only on log file
 
 	if (close (0) != 0) {
