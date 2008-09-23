@@ -95,15 +95,17 @@ namespace qiconn {
 	    if (dtime > 10.0) {
 		cerr << "received timestamps from the future from "
 		     << fqdn
-		     << " : diff=" << dtime << "s (corrected)"
-		     << endl;
-		trecord = now;
+		     << " : diff=" << dtime << "s";
+		if (dtime > 30.0) {
+		    cerr << "(corrected)" << endl;
+		    trecord = now;
+		}
 	    } else if (dtime < -10.0) {
 		cerr << "received timestamps from the past from "
 		     << fqdn
-		     << " : diff=" << dtime << "s (corrected)"
+		     << " : diff=" << dtime << "s (NOT corrected)"
 		     << endl;
-		trecord = now;
+		// trecord = now;
 	    }
 
 	    {	map <string,time_t>::iterator mi = rrdlastupdate.find (rrd_name);
