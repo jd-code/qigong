@@ -1,6 +1,6 @@
 
-#DEBUG=
-DEBUG=-g
+DEBUG=
+#DEBUG=-g
 PREFIX=/usr/local
 SHELL=/bin/sh
 VERSION="1.7.1"
