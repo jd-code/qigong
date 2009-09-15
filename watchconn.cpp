@@ -165,7 +165,10 @@ namespace std {
 	    b << setbase(16)
 	      << setw(8)
 	      << setfill('0')
-	      << ((long)(a.in6_u.u6_addr32[i]));
+	      // JDJDJDJD j'ai converti ca a toute vitesse sans verifier
+	      // on avait ca avant :
+	      // << ((long)(a.in6_u.u6_addr32[i]));
+	      << ((long)(a.__in6_u.__u6_addr32[i]));
 	}
 	return b.str();
     }

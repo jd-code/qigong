@@ -2,6 +2,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <string.h> // strerror ??
+#include <stdlib.h> // atoi ??
 #include <sys/statvfs.h>
 #include <dirent.h>
 
@@ -108,10 +110,17 @@ namespace qiconn {
 	ifstream ds("/proc/diskstats");
 	size_t l = diskname.size();
 	while (getstring (ds, s)) {
-	    if (s.substr (10, l) == diskname) {
+	    size_t p = 0, max = s.size();
+	    {	int i;	// we must skip two digits fields prepended with spaces (which width changed upon time)
+		for (i=0 ; i<2 ; i++) {
+		    while ((p<max) && (isspace(s[p]))) p++;
+		    while ((p<max) && (isdigit(s[p]))) p++;
+		}
+		p++;
+	    }
+	    if (s.substr (p, l) == diskname) {
 // cerr << s << endl ;
 		size_t i;
-		size_t p=10;
 		for (i=0 ; i<field ; i++) {
 		    p = s.find (' ', p);
 		    if (p == string::npos)
@@ -495,7 +504,7 @@ cerr << "MPlastmatchfilelen::reopen (" << getmostrecent.dirname << "/" << getmos
     }
 
     string MPmeminfo::get_tagsub (int i) {
-static char *s[] = {"free", "buffers", "cached", "used", "sw_used", "sw_free"};
+static const char *s[] = {"free", "buffers", "cached", "used", "sw_used", "sw_free"};
 	if ((i>=0) && (i<6))
 	    return s[i];
 	else
@@ -504,7 +513,7 @@ static char *s[] = {"free", "buffers", "cached", "used", "sw_used", "sw_free"};
     
     string MPmeminfo::get_next_rras (int i) {
 // static char *s[] = {"free", "buffers", "used", "sw_used", "sw_free"};
-static char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
+static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	if ((i>=0) && (i<6))
 	    return s[i];
 	else

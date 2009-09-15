@@ -19,10 +19,10 @@ namespace qiconn {
     using namespace std;
 
 #ifdef QICOLLECT_H_GLOBINST
-    char * version = "Qicollect v0.5 - $Id$";
+    const char * version = "Qicollect v0.5 - $Id$";
     bool debug_ccstates = false;
 #else
-    QICOLLECT_H_SCOPE char * version;
+    QICOLLECT_H_SCOPE const char * version;
     QICOLLECT_H_SCOPE bool debug_ccstates;
 #endif
 
