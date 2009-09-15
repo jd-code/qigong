@@ -19,9 +19,9 @@ namespace qiconn {
     using namespace std;
 
 #ifdef QIGONG_H_GLOBINST
-    char * version = "Qigong v0.5 - $Id$";
+    const char * version = "Qigong v0.5 - $Id$";
 #else
-    extern char * version;
+    extern const char * version;
 #endif
 
 
