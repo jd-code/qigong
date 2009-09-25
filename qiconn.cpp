@@ -387,11 +387,14 @@ namespace qiconn
 	else {
 	    int i;
 	    for (i=0 ; i<biggest_fd ; i++) {
-		if (FD_ISSET(i, &cr_fd))
+		// we test both, because there is a suspicion of
+		// erased connexions between cr_fd build and now !
+		if ((FD_ISSET(i, &r_fd)) && (FD_ISSET(i, &cr_fd)))
 		    connections[i]->read();
 	    }
 	    for (i=0 ; i<biggest_fd ; i++) {
-		if (FD_ISSET(i, &cw_fd))
+		// same here
+		if ((FD_ISSET(i, &w_fd)) && (FD_ISSET(i, &cw_fd)))
 		    connections[i]->write();
 	    }
 	}

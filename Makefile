@@ -1,9 +1,9 @@
 
-DEBUG=
+#DEBUG=
 #DEBUG=-g
 PREFIX=/usr/local
 SHELL=/bin/sh
-VERSION="1.8.0"
+VERSION="1.8.2"
 
 default:
 	@echo "interesting targets : all , install , install_qigong ..."
@@ -23,7 +23,7 @@ install_qigong: qigong qigong.rc
 	./installscript qigong
 
 bintar: allstrip
-	@( ARCH=`arch` ;						\
+	@( ARCH=`uname -m` ;						\
 	   SRCDIR="qigong-${VERSION}-$${ARCH}" ;			\
 	   mkdir "$${SRCDIR}" ;						\
 	   chmod 700 installscript ;					\
@@ -35,7 +35,7 @@ bintar: allstrip
 	  ls -l "$${SRCDIR}".tgz )
 
 bintardebug: all
-	@( ARCH=`arch` ;						\
+	@( ARCH=`uname -m` ;						\
 	   SRCDIR="qigong-${VERSION}-$${ARCH}-debug" ;			\
 	   mkdir "$${SRCDIR}" ;						\
 	   chmod 700 installscript ;					\
@@ -46,7 +46,7 @@ bintardebug: all
 	  rm -r "$${SRCDIR}" ;						\
 	  ls -l "$${SRCDIR}".tgz )
 
-#	@( ARCH=`arch` ;						\
+#	@( ARCH=`uname -m` ;						\
 #	  SRCDIR="qigong-${VERSION}-$${ARCH}" ;				\
 #	  svn export . "$${SRCDIR}" ;					\
 #	  ( cd "$${SRCDIR}" ; make allstrip ) ;				\
@@ -81,16 +81,11 @@ oldvimtest: all
 testqigong: qigong
 	./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
 
-prefix.sed:
-	@echo creating prefix.sed
-	@( echo ': reboucle' ; echo 's/\//_slash_/' ; echo 't reboucle' ; \
-	  echo ': boucle2' ; echo 's/_slash_/\\\//' ; echo 't boucle2' ) > prefix.sed
-
-qigong.rc: qigong.rc.proto prefix.sed
-	( PREFIXSUB=`echo "${PREFIX}" | sed -f prefix.sed` ; sed "s/@@PREFIX@@/$${PREFIXSUB}/" < qigong.rc.proto > qigong.rc )
+qigong.rc: qigong.rc.proto
+	sed "s=@@PREFIX@@=${PREFIX}=g" < qigong.rc.proto > qigong.rc
 
 qicollect.rc: qicollect.rc.proto
-	( PREFIXSUB=`echo "${PREFIX}" | sed -f prefix.sed` ; sed "s/@@PREFIX@@/$${PREFIXSUB}/" < qicollect.rc.proto > qicollect.rc )
+	sed "s=@@PREFIX@@=${PREFIX}=g" < qicollect.rc.proto > qicollect.rc
 
 qicollect: qicollect.o qiconn.o qimeasure.o
 	g++ ${DEBUG} -Wall -o qicollect  -L /usr/local/lib -lrrd   qicollect.o qiconn.o qimeasure.o
@@ -118,7 +113,7 @@ qimeasure.o: qimeasure.cpp qimeasure.h
 
 clean:
 	rm -f qiconn.o qigong.o qigong qicollect.o qicollect qimeasure.o watchconn.o watchconn
-	rm -f qigong.rc qicollect.rc prefix.sed
+	rm -f qigong.rc qicollect.rc
 	rm -f testqigong.log testqicoll.log
 	rm -f *_testlastfile.rrd *_testfiles.rrd  *_testglobal.rrd  *_testnet.rrd *_testmem.rrd *_testload.rrd *_testfree.rrd
 	rm -f qigong-*.tgz
