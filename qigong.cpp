@@ -16,6 +16,12 @@ namespace qiconn {
 	channels[pcc]=1;
     }
     void RecordSet::remove_channel (CollectedConn * pcc) {
+	map <CollectedConn *, int>::iterator mi = channels.find(pcc);
+	if (mi == channels.end()) {
+	    cerr << "RecordSet::remove_channel ("<<name<<"): could not find matching CollectedConn ??" << endl;
+	    return;
+	}
+cerr << "RecordSet::remove_channel ("<<name<<"): ok" << endl;
 	channels.erase(channels.find(pcc));
     }
     
