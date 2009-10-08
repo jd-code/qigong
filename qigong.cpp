@@ -21,7 +21,6 @@ namespace qiconn {
 	    cerr << "RecordSet::remove_channel ("<<name<<"): could not find matching CollectedConn ??" << endl;
 	    return;
 	}
-cerr << "RecordSet::remove_channel ("<<name<<"): ok" << endl;
 	channels.erase(channels.find(pcc));
     }
     

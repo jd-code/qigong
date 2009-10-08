@@ -1,9 +1,9 @@
 
-#DEBUG=
+DEBUG=
 #DEBUG=-g
 PREFIX=/usr/local
 SHELL=/bin/sh
-VERSION="1.8.2"
+VERSION="1.9.0"
 
 default:
 	@echo "interesting targets : all , install , install_qigong ..."
@@ -67,15 +67,16 @@ watchconn.o: watchconn.cpp
 watchconn: qiconn.o watchconn.o
 	g++  ${DEBUG} -Wall -o watchconn qiconn.o watchconn.o
 
-vimtest: watchconn all
+WATCHCONNvimtest: watchconn all
 	# ./testdirproc :::80 ::ffff:c700:0001:80 127.0.0.1:80 192.168.132.182:80 127.0.0.1:3306 | tr ':' ';'
 	# ./testdirproc :::80 ::ffff:c700:0001:80 127.0.0.1:80 192.168.132.182:80 127.0.0.1:3306  0.0.0.0:1264
 	./watchconn -help
 
 
-oldvimtest: all
-	# ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
-	./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
+vimtest: all
+	### ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
+	 ./qigong           -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
+	rm *.rrd
 	./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log )
 
 testqigong: qigong
@@ -88,10 +89,10 @@ qicollect.rc: qicollect.rc.proto
 	sed "s=@@PREFIX@@=${PREFIX}=g" < qicollect.rc.proto > qicollect.rc
 
 qicollect: qicollect.o qiconn.o qimeasure.o
-	g++ ${DEBUG} -Wall -o qicollect  -L /usr/local/lib -lrrd   qicollect.o qiconn.o qimeasure.o
+	g++ ${DEBUG} -Wall -o qicollect  -L /usr/local/lib -lrrd -lmemcached  qicollect.o qiconn.o qimeasure.o
 
 qigong: qigong.o qiconn.o qimeasure.o
-	g++ ${DEBUG} -Wall -o qigong qigong.o qiconn.o qimeasure.o
+	g++ ${DEBUG} -Wall -o qigong qigong.o qiconn.o qimeasure.o -lmemcached
 
 
 

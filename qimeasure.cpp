@@ -6,6 +6,7 @@
 #include <stdlib.h> // atoi ??
 #include <sys/statvfs.h>
 #include <dirent.h>
+#include <libmemcached/memcached.h>
 
 #include <fstream>
 #include <iomanip>
@@ -521,6 +522,141 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
     }
     
 /*
+ *  ---- MMemcached ----------------------------------------------------------------------------------------
+ */
+
+    MMemcached::~MMemcached (void) {
+	if (mc != NULL)
+	    memcached_free (mc);
+    }
+    
+    MMemcached::MMemcached (const string & param) : MeasureMultiPoint (param) {
+	name = "memcached";
+
+	size_t p;
+	bool foundport = false;
+	p = param.find(':');
+	if (p != string::npos) {
+	    foundport = true;
+	} else {
+	    foundport = false;
+	    p = param.find(',');
+	}
+	servername = param.substr (0, p);
+	if (foundport) {
+	    p++;
+	    port = atoi (param.substr(p).c_str());
+	    p = param.find(',');
+	} else
+	    port = 11211;
+	
+	if (p != string::npos) {
+	    p++;
+	    size_t q = param.find(',');
+	    if (q != string::npos)
+		source_type = param.substr(p, q-p);
+	    else
+		source_type = param.substr(p);
+	} else
+	    source_type = "DERIVE";
+
+	mss ["curr_items"]            = "curr_items";
+	mss ["total_items"]           = "total_items";
+	mss ["bytes"]                 = "bytes";
+	mss ["curr_connections"]      = "curr_cxs";
+	mss ["total_connections"]     = "total_cxs";
+	mss ["connection_structures"] = "cx_structures";
+	mss ["cmd_get"]               = "cmd_get";
+	mss ["cmd_set"]               = "cmd_set";
+	mss ["get_hits"]              = "get_hits";
+	mss ["get_misses"]            = "get_misses";
+	mss ["evictions"]             = "evictions";
+	mss ["bytes_read"]            = "bytes_read";
+	mss ["bytes_written"]         = "bytes_written";
+	mss ["threads"]               = "threads";
+
+	mc = memcached_create(NULL);
+	if (mc == NULL) {
+	    cerr << "could not create memcached_st ... don't know what to do ..." << endl;
+	    return;
+	}
+
+	rc = memcached_server_add (mc, servername.c_str(), port);
+	if (rc != MEMCACHED_SUCCESS) {
+	    cerr << "memcached_server_add (" << servername << ":" << port << ") failed :"
+		 << memcached_strerror(mc, rc)
+		 << endl;
+	}
+    }
+
+    bool MMemcached::measure (string &result) {
+	memcached_stat_st *memc_stat = NULL;
+	memc_stat = memcached_stat(mc, NULL, &rc);
+	map<string, string>::iterator li;
+	int i;
+
+	if ((memc_stat == NULL) || ((rc != MEMCACHED_SUCCESS) && (rc != MEMCACHED_SOME_ERRORS))) {
+	    cerr << "Failure to communicate with servers : "
+		 << memcached_strerror(mc, rc)
+		 << endl;
+	    if (memc_stat != NULL) {
+		memcached_stat_free (mc, memc_stat);
+	    }
+	    for (li=mss.begin(),i=0 ; li!=mss.end() ; li++,i++) {
+		if (i != 0) result += ':';
+		result += 'U';
+	    }
+	    return true;
+	}
+
+	for (li=mss.begin(),i=0 ; li!=mss.end() ; li++,i++) {
+	    if (i != 0) result += ':';
+
+	    char *value= memcached_stat_get_value(mc, &memc_stat[0], li->first.c_str(), &rc);
+	    if ((value == NULL) || (rc != MEMCACHED_SUCCESS)) {
+		cerr << "stating memcached " << servername << ":" << port << "(" << li->first << ") failed : "
+		     << memcached_strerror(mc, rc)
+		     << endl;
+		result += 'U';
+	    } else {
+		result += value;
+		free (value);
+	    }
+	}
+
+	return true;
+    }
+
+    MeasurePoint* MMemcached_creator (const string & param) {
+	return new MMemcached (param);
+    }
+
+    int MMemcached::get_nbpoints (void) {
+	return mss.size();
+    }
+
+    string MMemcached::get_tagsub (int n) {
+	if ((n>=0) && (n<(int)mss.size())) {
+	    map<string, string>::iterator li;
+	    int i;
+	    for (li=mss.begin(),i=0 ; (li!=mss.end()) && (i<n) ; li++,i++);
+	    if (li!=mss.end()) {
+		return li->second;
+	    }
+	}
+	return "";
+    }
+    
+    string MMemcached::get_next_rras (int i) {
+// static char *s[] = {"free", "buffers", "used", "sw_used", "sw_free"};
+static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
+	if ((i>=0) && (i<6))
+	    return s[i];
+	else
+	    return "";
+    }
+    
+/*
  *  ---- MPfreespace -----------------------------------------------------------------------------------------
  */
 
@@ -605,6 +741,7 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	mmpcreators["conncount"]    = MPconncount_creator;
 	mmpcreators["meminfo"]	    = MPmeminfo_creator;
 	mmpcreators["freespace"]    = MPfreespace_creator;
+	mmpcreators["memcached"]    = MMemcached_creator;
 	MPfilelen::pcp = pcp;
     }
 
