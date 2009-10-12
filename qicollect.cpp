@@ -71,7 +71,7 @@ namespace qiconn {
     }
 
     bool CollectingConn::assign (CollectionSet * pcc) {
-	mpcs[pcc->getkey()] = pcc;
+	mpcs[pcc->getfullkey()] = pcc;
 	pcc->state = del_remote_for_create;
 	pending = true;
 	return true;
@@ -448,8 +448,8 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
     }
     
     int CollectionSet::create_remote (void) {
-if (debug_ccstates) cerr << "                                                       key=" << key << endl;
-	pcc->get_out() << "create " << key << ' ' << (long)base_interval ;
+if (debug_ccstates) cerr << "                                                       fullkey=" << fullkey << endl;
+	pcc->get_out() << "create " << fullkey << ' ' << (long)base_interval ;
 	list<TaggedMeasuredPoint*>::iterator li;
 	for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++) {
 	    pcc->get_out() << " " << (*li)->getremote_def();
@@ -459,22 +459,22 @@ if (debug_ccstates) cerr << "                                                   
 	return 0;
     }
     int CollectionSet::delete_remote (void) {
-	pcc->get_out() << "delete " << key << eos();
+	pcc->get_out() << "delete " << fullkey << eos();
 	pcc->flush();
 	return 0;
     }
     int CollectionSet::sub_remote (void) {
-	pcc->get_out() << "sub " << key << eos();
+	pcc->get_out() << "sub " << fullkey << eos();
 	pcc->flush();
 	return 0;
     }
     int CollectionSet::activate_remote (void) {
-	pcc->get_out() << "activate " << key << eos();
+	pcc->get_out() << "activate " << fullkey << eos();
 	pcc->flush();
 	return 0;
     }
     int CollectionSet::unsub_remote (void) {
-	pcc->get_out() << "unsub " << key << eos();
+	pcc->get_out() << "unsub " << fullkey << eos();
 	pcc->flush();
 	return 0;
     }
@@ -491,10 +491,10 @@ if (debug_ccstates) cerr << "                                                   
     bool CollectionsConf::push_back (CollectionSet * pcs) {
 	if (pcs==NULL)
 	    return false;
-	MpCS::iterator mi = mpcs.find(pcs->getkey());
+	MpCS::iterator mi = mpcs.find(pcs->getfullkey());
 	if (mi != mpcs.end())
 	    return false;
-	mpcs[pcs->getkey()] = pcs;
+	mpcs[pcs->getfullkey()] = pcs;
 	return true;
     }
     bool CollectionsConf::add_host (string name) {
@@ -533,6 +533,7 @@ if (debug_ccstates) cerr << "                                                   
 	    typedef enum {			// we're waiting for :
 				seekdeclare,	// 'host' or 'service'
 				seekhostname,	// hostname
+				seekserverkey,	// serverkey
 				seekhostbegin,	// '{'
 				seekcollect,	// 'collect'
 				seekcollectname,// collect-name
@@ -551,6 +552,9 @@ if (debug_ccstates) cerr << "                                                   
 	    
 	    size_t line;
 	    RCState state;
+
+	    // the current serverkey (prepended on qigongs at deletion/creation)
+	    string serverkey;
 
 	    // the current metaname
 	    string metaname;
@@ -572,14 +576,14 @@ if (debug_ccstates) cerr << "                                                   
 	    ReadConf (void) {}
 	    int readconf (istream& cin, CollectionsConf &conf);
     };
-    
+
     void ReadConf::safeclose (void) {
 	if (pcurcs != NULL) {
 	    cerr << "(deleting one temporary CollectionSet)" << endl;
 	    delete (pcurcs);
 	}
     }
-    
+
     int ReadConf::readconf (istream& cin, CollectionsConf &conf) {
 	line = 0;
 	state = seekdeclare;
@@ -855,7 +859,7 @@ if (debug_ccstates) cerr << "                                                   
 				cerr << "line: " << line << " : no host or service currently declared cannot create CollectionSet" << endl;
 				safeclose() ; return -1;
 			    }
-			    pcurcs = new CollectionSet (curcs_name, metaname, curcs_fqdn, curcs_port);
+			    pcurcs = new CollectionSet (serverkey, curcs_name, metaname, curcs_fqdn, curcs_port);
 			    if (pcurcs == NULL) {
 				cerr << "line: " << line << " : could not allocate CollectionSet(" << curcs_name << ") : "
 				     << strerror(errno) << endl;
@@ -868,7 +872,7 @@ if (debug_ccstates) cerr << "                                                   
 				cerr << "line: " << line << " : no host or service currently declared cannot create CollectionSet" << endl;
 				safeclose() ; return -1;
 			    }
-			    pcurcs = new CollectionSet (curcs_name, metaname, curcs_fqdn);
+			    pcurcs = new CollectionSet (serverkey, curcs_name, metaname, curcs_fqdn);
 			    if (pcurcs == NULL) {
 				cerr << "line: " << line << " : could not allocate CollectionSet(" << curcs_name << ") : "
 				     << strerror(errno) << endl;
@@ -914,11 +918,14 @@ if (debug_ccstates) cerr << "                                                   
 			}
 			else if (ident == "host") {
 			    state = seekhostname;
+			} else if (ident == "serverkey") {
+			    state = seekserverkey;
 			} else {
 			    cerr << "line: " << line << " : unknown keyword \"" << ident << "\"" << endl ;
 			    safeclose() ; return -1;
 			}
 			break;
+
 		    case seekhostname:
 			p = getidentifier (s, ident, p);
 			if (ident.size() == 0) {
@@ -932,7 +939,18 @@ if (debug_ccstates) cerr << "                                                   
 			state = seekhostbegin;
 			break;
 
-		    case seekhostbegin:
+   		    case seekserverkey:
+			p = getidentifier (s, ident, p);
+			if (ident.size() == 0) {
+			    if (p==string::npos) continue;
+			    cerr << "line: " << line << " : seeking for identifiername could not find any suitable ident" << endl;
+			    safeclose() ; return -1;
+			}
+			serverkey = ident;
+			state = seekdeclare;
+			break;
+
+ 		    case seekhostbegin:
 			p = seekspace (s, p);
 			if (p==string::npos) continue;
 			if (s[p] != '{') {
