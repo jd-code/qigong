@@ -130,6 +130,9 @@ namespace qiconn {
 		lfreq.push_back (freq);
 	    }
 	    ostream& dump (ostream& cout) const;
+	    inline const string & getkey (void) const {
+		return key;
+	    }
 	    inline const string & getfullkey (void) const {
 		return fullkey;
 	    }
