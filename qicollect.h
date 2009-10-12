@@ -93,7 +93,7 @@ namespace qiconn {
 		   metaname;	// host or service meta-name (not connection)
 	    int port;		// port for connection
 	    FQDNPort fp;	// fqdn name and port for connection
-	    string key;
+	    string key, fullkey;
 	    list<TaggedMeasuredPoint*> lptagmp;
 	    list<CollectFreqDuration> lfreq;
 	    CollectingConn *pcc;
@@ -102,13 +102,17 @@ namespace qiconn {
 	public:
 	    CSState state;
 
-	    inline CollectionSet (string name, string metaname, string fqdn, int port=1264) {
+	    inline CollectionSet (string serverkey, string name, string metaname, string fqdn, int port=1264) {
 		CollectionSet::name = name;
 		CollectionSet::metaname = metaname;
 		fp = FQDNPort(fqdn, port);
 		// CollectionSet::fqdn = fqdn;
 		// CollectionSet::port = port;
 		key = metaname + '_' + name;
+		if (serverkey.size() != 0)
+		    fullkey = serverkey + '_' + key;
+		else
+		    fullkey = key;
 		// cerr << "new CollectionSet(" << name << ", " << fqdn << ":" << port << ")" << endl;
 		pcc = NULL;
 		base_interval = 0;
@@ -126,8 +130,8 @@ namespace qiconn {
 		lfreq.push_back (freq);
 	    }
 	    ostream& dump (ostream& cout) const;
-	    inline const string & getkey (void) const {
-		return key;
+	    inline const string & getfullkey (void) const {
+		return fullkey;
 	    }
 	    inline FQDNPort const& get_fqdnport (void) const {
 		return fp;
