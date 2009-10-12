@@ -3,7 +3,7 @@ DEBUG=
 #DEBUG=-g
 PREFIX=/usr/local
 SHELL=/bin/sh
-VERSION="1.9.0"
+VERSION="1.9.1"
 
 default:
 	@echo "interesting targets : all , install , install_qigong ..."
