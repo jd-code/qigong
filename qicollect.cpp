@@ -86,6 +86,13 @@ namespace qiconn {
 	    stringstream upd;
 	    string rrd_name;
 	    size_t p = getidentifier (bufin, rrd_name, 3);
+	
+	    {	MpCS::iterator mi = mpcs.find(rrd_name);
+		if (mi!=mpcs.end()) {
+		    rrd_name = mi->second->getkey();
+		}
+	    }
+	    
 	    long long tstampll;
 	    p = getinteger (bufin, tstampll, p+1);
 	    time_t trecord = (time_t) tstampll;
