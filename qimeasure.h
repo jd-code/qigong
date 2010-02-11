@@ -11,6 +11,7 @@
 #include <sys/stat.h>	// struct stat
 #include <unistd.h>	// struct stat
 #include <libmemcached/memcached.h>
+#include <mysql.h>
 
 #include <string>
 #include <map>
@@ -275,6 +276,36 @@ namespace qiconn {
 	    virtual string get_max (int i) { return "U"; }		// min or U for unknown
 	    virtual string get_first_rra (int i) { return "LAST"; }	// consolidation function for first rra (AVERAGE MIN MAX or LMAST)
 	    virtual string get_next_rras (int i);			// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
+
+	friend void init_mmpcreators (ConnectionPool *pcp);
+    };
+
+    /*
+     *  ----- MMySQLGStatus ------------------------------------------------------------------------------------
+     */
+
+    class MMySQLGStatus : public MeasureMultiPoint {
+	protected:
+	    MYSQL *conn;
+	    string dbuser, dbpass, dbserver;
+	    map<string,string> gvar;
+	    map<string,string> source_type;
+	    
+	public:
+	    virtual ~MMySQLGStatus (void);
+	    MMySQLGStatus (const string & param);
+
+	    virtual bool measure (string &result);			// the measuring function itself
+	    virtual int get_nbpoints (void);
+
+	    virtual string get_tagsub (int i);				// gives the suffix for appending to the tagname
+	    virtual string get_source_type (int i);			// GAUGE COUNTER DERIVE ABSOLUTE
+	    virtual string get_min (int i) { return "0"; }		// min or U for unknown
+	    virtual string get_max (int i) { return "U"; }		// min or U for unknown
+	    virtual string get_first_rra (int i) { return "LAST"; }	// consolidation function for first rra (AVERAGE MIN MAX or LMAST)
+	    virtual string get_next_rras (int i);			// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
+
+	    string maigreconsomne (const string &s);
 
 	friend void init_mmpcreators (ConnectionPool *pcp);
     };

@@ -75,8 +75,9 @@ WATCHCONNvimtest: watchconn all
 
 vimtest: all
 	### ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
+	killall qigong || true
 	 ./qigong           -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
-	rm *.rrd
+	rm -f *.rrd
 	./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log )
 
 testqigong: qigong
@@ -89,18 +90,18 @@ qicollect.rc: qicollect.rc.proto
 	sed "s=@@PREFIX@@=${PREFIX}=g" < qicollect.rc.proto > qicollect.rc
 
 qicollect: qicollect.o qiconn.o qimeasure.o
-	g++ ${DEBUG} -Wall -o qicollect  -L /usr/local/lib -lrrd -lmemcached  qicollect.o qiconn.o qimeasure.o
+	g++ ${DEBUG} `mysql_config --cflags` -Wall -o qicollect  -L /usr/local/lib -lrrd -lmemcached  qicollect.o qiconn.o qimeasure.o `mysql_config --libs`
 
 qigong: qigong.o qiconn.o qimeasure.o
-	g++ ${DEBUG} -Wall -o qigong qigong.o qiconn.o qimeasure.o -lmemcached
+	g++ ${DEBUG} `mysql_config --cflags` -Wall -o qigong qigong.o qiconn.o qimeasure.o -lmemcached `mysql_config --libs`
 
 
 
 qigong.o: qigong.cpp qiconn.h qigong.h qimeasure.h
-	g++ ${DEBUG} -Wall -c qigong.cpp
+	g++ ${DEBUG} `mysql_config --cflags` -Wall -c qigong.cpp
 
 qicollect.o: qicollect.cpp qiconn.h qicollect.h qimeasure.h
-	g++ ${DEBUG} -Wall -c qicollect.cpp
+	g++ ${DEBUG} `mysql_config --cflags` -Wall -c qicollect.cpp
 
 
 
@@ -108,7 +109,7 @@ qiconn.o: qiconn.cpp qiconn.h
 	g++ ${DEBUG} -Wall -c qiconn.cpp
 
 qimeasure.o: qimeasure.cpp qimeasure.h
-	g++ ${DEBUG} -Wall -c qimeasure.cpp
+	g++ ${DEBUG} `mysql_config --cflags` -Wall -c qimeasure.cpp
 
 
 
