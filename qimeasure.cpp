@@ -657,6 +657,311 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
     }
     
 /*
+ *  ---- MMySQLGStatus -------------------------------------------------------------------------------------
+ */
+
+    MMySQLGStatus::~MMySQLGStatus (void) {
+	if (conn != NULL) {
+	    mysql_close (conn);
+	}
+    }
+    
+    string MMySQLGStatus::maigreconsomne (const string & s) {
+	string tosupress = "_-aeiouAEIOU";
+//	if (s.size() < 12)
+//	    return s;
+
+	string r, rr;
+	int i = s.size() - 1, 
+	       nbsup = 0,
+	       sup = s.size() - 12; // nb chars to supress
+
+	while (i>=0) {
+	    if (nbsup < sup) {
+		if ((i>0) && (tosupress.find(s[i]) != string::npos)) {
+		    nbsup++;
+		} else
+		    r += s[i];
+	    } else
+		r += s[i];
+	    i--;
+	}
+cerr << " r_revsup = " << r << endl;
+	char t;
+	for (i=0 ; ((size_t)i)<r.size()/2 ; i++) {
+	    t = r[i];
+	    r[i] = r[r.size()-1-i];
+	    r[r.size()-1-i] = t;
+	}
+cerr << " r_sup = " << r << endl;
+
+	rr = r.substr (0, 12);
+cerr << " rr = " << rr << endl;
+	if (gvar.find(rr) != gvar.end()) {
+	    for (i=0 ; i<10 ; i++) {
+		if (gvar.find(rr+(char)('0'+i)) == gvar.end()) {
+		    rr += (char)('0'+i);
+		    break;
+		}
+	    }
+	}
+cerr << " rr = " << rr << endl;
+	return rr;
+    }
+
+    MMySQLGStatus::MMySQLGStatus (const string & param) : MeasureMultiPoint (param) {
+	map<string,int> stypes;
+	stypes["GAUGE"] = 0;
+	stypes["COUNTER"] = 0;
+	stypes["DERIVE"] = 0;
+	stypes["ABSOLUTE"] = 0;
+	string cur_source_type = "DERIVE";
+
+	name = "mysqlgstatus";
+
+	// some default (silly) values
+	dbuser = "root";
+	dbpass = "";
+	dbserver = "localhost";
+
+	size_t p, q;
+	q = param.find(',');
+	if (q != string::npos) {
+	    string connect = param.substr (0,q);
+
+	    p = connect.find(':');
+	    if (p != string::npos) {
+		if (p > 0) // empty means default
+		    dbuser = connect.substr(0, p);
+		p++;
+	    } else
+		p = 0;
+
+	    size_t pp = connect.find ('@', p);
+	    if (pp != string::npos) {
+		if (pp-p > 0)
+		    dbpass = connect.substr(p, pp-p);
+		p = pp+1;
+	    }
+
+	    string s = connect.substr (p);
+	    if (s.size() != 0)
+		dbserver = s;
+
+	    q++;
+	} else
+	    q = 0;
+
+cerr << "dbuser = " << dbuser << endl
+     << "dbpass = " << dbpass << endl
+     << "dbserver = " << dbserver << endl;
+
+	do {
+	    string ident;
+	    p = param.find (',', q);
+	    if (p != string::npos) {
+		ident = param.substr (q, p-q);
+		q = p+1;
+	    } else {
+		ident = param.substr (q);
+	    }
+	    
+	    if (stypes.find(ident) != stypes.end())
+		cur_source_type = ident;
+	    else {
+		gvar[ident] = maigreconsomne (ident);
+		source_type[ident] = cur_source_type;
+	    }
+	} while (p != string::npos);
+
+{   map<string,string>::iterator li;
+    int i = 0;
+    for (li=gvar.begin() ; li!=gvar.end() ; li++, i++)
+	cerr << "gvar [" << li->first << "] = " << li->second << " (" << source_type[li->first] << ")" << endl;
+}
+cerr << "======" << endl;
+
+
+	conn = mysql_init(NULL);
+	if (conn == NULL) {
+	    cerr << "MMySQLGStatus " << name << ":" << dbuser << "@" << dbserver
+		 << " could not mysql_init" << endl;
+	    return;
+	}
+
+	my_bool reconnect = 1;
+	if (mysql_options (conn, MYSQL_OPT_RECONNECT, (char *)(&reconnect))) {
+	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		 << " mysql_options(MYSQL_OPT_RECONNECT) failed. " << mysql_error(conn) << endl;
+	}
+
+	if (mysql_real_connect (conn, dbserver.c_str(), dbuser.c_str(), dbpass.c_str(), "", 0, NULL, 0) == NULL) {
+	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		 << " mysql_real_connect failed. " << mysql_error(conn) << endl;
+	}
+
+	// some bug before v5.0.16 clears the reconnect flag ...
+	reconnect = 1;
+	if (mysql_options (conn, MYSQL_OPT_RECONNECT, (char *)(&reconnect))) {
+	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		 << " mysql_options(MYSQL_OPT_RECONNECT) failed. " << mysql_error(conn) << endl;
+	}
+    }
+
+    bool MMySQLGStatus::measure (string &result) {
+	int i = 0;
+	MYSQL_RES *res = NULL;
+	MYSQL_ROW row = NULL;
+	if (mysql_query(conn, "show global status")) {
+	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		 << " mysql_query(\"show global status\") failed. " << mysql_error(conn) << endl;
+	} else {
+	    res = mysql_store_result(conn);
+	}
+
+	if (res == NULL) {
+	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		 << " mysql_store_result(\"show global status\") failed. " << mysql_error(conn) << endl;
+	    map<string,string>::iterator li;
+	    for (li=gvar.begin(),i=0 ; li!=gvar.end() ; li++,i++) {
+		if (i != 0) result += ':';
+		result += 'U';
+	    }
+	    return true;
+	}
+
+	map<string,string>::iterator mi;
+	for (mi=gvar.begin() ; mi!=gvar.end() ; mi++)
+	    mi->second = "U";
+
+	int nbrow = 0;
+	if (mysql_num_fields(res)<2) {
+	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		 << "not enough columns in result set !" << endl;
+	} else {
+	    while ((row = mysql_fetch_row(res)) != NULL) {
+		nbrow ++;
+		if ((mi = gvar.find (row[0])) != gvar.end()) {
+		    mi->second = row[1];
+		}
+	    }
+	}
+
+	if (nbrow == 0) {
+	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		 << " mysql_fetch_row(\"show global status\") failed. " << mysql_error(conn) << endl;
+	}
+
+	for (mi=gvar.begin(),i=0 ; mi!=gvar.end() ; mi++,i++) {
+	    if (i != 0) result += ':';
+	    result += mi->second;
+if ("U" == mi->second) {
+    cerr << "MMySQLGStatus " << name << ":" << dbuser << "@" << dbserver 
+	 << " : variable \"" << mi->first << "\" could not be found in resultset !?" << endl;
+}
+	}
+	return true;
+    }
+
+/*
+    bool vieille_measure_a_reutiliser (string &result) {
+	int i = 0;
+	MYSQL_RES *res = NULL;
+	MYSQL_ROW row = NULL;
+	if (mysql_query(conn, "show global status")) {
+	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		 << " mysql_query(\"show global status\") failed. " << mysql_error(conn) << endl;
+	} else {
+	    res = mysql_store_result(conn);
+	}
+
+	if (res == NULL) {
+	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		 << " mysql_store_result(\"show global status\") failed. " << mysql_error(conn) << endl;
+	} else {
+	    row = mysql_fetch_row(res);
+	    if (row == NULL) {
+		cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		     << " mysql_fetch_row(\"show global status\") failed. " << mysql_error(conn) << endl;
+	    }
+	}
+
+	if (row == NULL) {
+	    map<string,string>::iterator li;
+	    for (li=gvar.begin(),i=0 ; li!=gvar.end() ; li++,i++) {
+		if (i != 0) result += ':';
+		result += 'U';
+	    }
+	    return true;
+	}
+
+	map<string,string>::iterator mi;
+	MYSQL_FIELD *field;
+	for (mi=gvar.begin() ; mi!=gvar.end() ; mi++)
+	    mi->second = "U";
+	i = 0;
+	while ((field = mysql_fetch_field(res)) != NULL) {
+cerr << "  field->name = " << field->name << endl;
+	    if ((mi = gvar.find (field->name)) != gvar.end()) {
+		mi->second = row[i];
+	    }
+	    i++;
+	}
+
+	for (mi=gvar.begin(),i=0 ; mi!=gvar.end() ; mi++,i++) {
+	    if (i != 0) result += ':';
+	    result += mi->second;
+if ("U" == mi->second) {
+    cerr << "MMySQLGStatus " << name << ":" << dbuser << "@" << dbserver 
+	 << " : variable " << mi->first << "could not be found in resultset !?" << endl;
+}
+	}
+	return true;
+    }
+*/
+
+    MeasurePoint* MMySQLGStatus_creator (const string & param) {
+	return new MMySQLGStatus (param);
+    }
+
+    int MMySQLGStatus::get_nbpoints (void) {
+	return gvar.size();
+    }
+
+    string MMySQLGStatus::get_tagsub (int n) {
+	if ((n>=0) && (n<(int)gvar.size())) {
+	    map<string, string>::iterator li;
+	    int i;
+	    for (li=gvar.begin(),i=0 ; (li!=gvar.end()) && (i<n) ; li++,i++);
+	    if (li!=gvar.end()) {
+		return li->second;
+	    }
+	}
+	return "";
+    }
+    
+    string MMySQLGStatus::get_source_type (int n) {
+	if ((n>=0) && (n<(int)source_type.size())) {
+	    map<string, string>::iterator li;
+	    int i;
+	    for (li=source_type.begin(),i=0 ; (li!=source_type.end()) && (i<n) ; li++,i++);
+	    if (li!=source_type.end()) {
+		return li->second;
+	    }
+	}
+	return "";
+    }
+    
+    string MMySQLGStatus::get_next_rras (int i) {
+// static char *s[] = {"free", "buffers", "used", "sw_used", "sw_free"};
+static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
+	if ((i>=0) && (i<6))
+	    return s[i];
+	else
+	    return "";
+    }
+    
+/*
  *  ---- MPfreespace -----------------------------------------------------------------------------------------
  */
 
@@ -742,6 +1047,7 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	mmpcreators["meminfo"]	    = MPmeminfo_creator;
 	mmpcreators["freespace"]    = MPfreespace_creator;
 	mmpcreators["memcached"]    = MMemcached_creator;
+	mmpcreators["mysqlgstatus"] = MMySQLGStatus_creator;
 	MPfilelen::pcp = pcp;
     }
 
