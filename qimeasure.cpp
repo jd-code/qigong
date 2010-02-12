@@ -624,6 +624,7 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	    }
 	}
 
+	memcached_stat_free (mc, memc_stat);
 	return true;
     }
 
@@ -668,8 +669,6 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
     
     string MMySQLGStatus::maigreconsomne (const string & s) {
 	string tosupress = "_-aeiouAEIOU";
-//	if (s.size() < 12)
-//	    return s;
 
 	string r, rr;
 	int i = s.size() - 1, 
@@ -686,17 +685,14 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 		r += s[i];
 	    i--;
 	}
-cerr << " r_revsup = " << r << endl;
 	char t;
 	for (i=0 ; ((size_t)i)<r.size()/2 ; i++) {
 	    t = r[i];
 	    r[i] = r[r.size()-1-i];
 	    r[r.size()-1-i] = t;
 	}
-cerr << " r_sup = " << r << endl;
 
 	rr = r.substr (0, 12);
-cerr << " rr = " << rr << endl;
 	if (gvar.find(rr) != gvar.end()) {
 	    for (i=0 ; i<10 ; i++) {
 		if (gvar.find(rr+(char)('0'+i)) == gvar.end()) {
@@ -705,7 +701,6 @@ cerr << " rr = " << rr << endl;
 		}
 	    }
 	}
-cerr << " rr = " << rr << endl;
 	return rr;
     }
 
@@ -752,9 +747,9 @@ cerr << " rr = " << rr << endl;
 	} else
 	    q = 0;
 
-cerr << "dbuser = " << dbuser << endl
-     << "dbpass = " << dbpass << endl
-     << "dbserver = " << dbserver << endl;
+	//  cerr << "dbuser = " << dbuser << endl
+	//       << "dbpass = " << dbpass << endl
+	//       << "dbserver = " << dbserver << endl;
 
 	do {
 	    string ident;
@@ -846,6 +841,8 @@ cerr << "======" << endl;
 		}
 	    }
 	}
+
+	mysql_free_result(res);
 
 	if (nbrow == 0) {
 	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
