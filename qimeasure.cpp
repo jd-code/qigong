@@ -705,6 +705,7 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
     }
 
     MMySQLGStatus::MMySQLGStatus (const string & param) : MeasureMultiPoint (param) {
+	fetch_slave_state = false;
 	map<string,int> stypes;
 	stypes["GAUGE"] = 0;
 	stypes["COUNTER"] = 0;
@@ -766,6 +767,8 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	    else {
 		gvar[ident] = maigreconsomne (ident);
 		source_type[ident] = cur_source_type;
+		if (ident == "Seconds_Behind_Master")
+		    fetch_slave_state = true;
 	    }
 	} while (p != string::npos);
 
@@ -806,7 +809,34 @@ cerr << "======" << endl;
     bool MMySQLGStatus::measure (string &result) {
 	int i = 0;
 	MYSQL_RES *res = NULL;
+	MYSQL_RES *resslave = NULL;
+	string slavestatus;
 	MYSQL_ROW row = NULL;
+
+	if (fetch_slave_state) {
+	    if (mysql_query(conn, "show slave status")) {
+		cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		     << " mysql_query(\"show slave status\") failed. " << mysql_error(conn) << endl;
+	    } else {
+		resslave = mysql_store_result(conn);
+	    }
+
+	    if (resslave == NULL) {
+		cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
+		     << " mysql_store_result(\"show slave status\") failed. " << mysql_error(conn) << endl;
+		map<string,string>::iterator li;
+		slavestatus = "U";
+	    } else {
+		while ((row = mysql_fetch_row(res)) != NULL) {
+		    if (strncmp (row[0], "Seconds_Behind_Master", 21) == 0) {
+			slavestatus = row[1];
+			break;
+		    }
+		}
+		mysql_free_result(resslave);
+	    }
+	}
+
 	if (mysql_query(conn, "show global status")) {
 	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
 		 << " mysql_query(\"show global status\") failed. " << mysql_error(conn) << endl;
@@ -820,6 +850,8 @@ cerr << "======" << endl;
 	    map<string,string>::iterator li;
 	    for (li=gvar.begin(),i=0 ; li!=gvar.end() ; li++,i++) {
 		if (i != 0) result += ':';
+		if (fetch_slave_state && (li->first == "Seconds_Behind_Master"))
+		    result += slavestatus;
 		result += 'U';
 	    }
 	    return true;
@@ -848,6 +880,9 @@ cerr << "======" << endl;
 	    cerr << "MMySQLGStatus" << name << ":" << dbuser << "@" << dbserver
 		 << " mysql_fetch_row(\"show global status\") failed. " << mysql_error(conn) << endl;
 	}
+
+	if (fetch_slave_state)
+	    gvar ["Seconds_Behind_Master"] = slavestatus;
 
 	for (mi=gvar.begin(),i=0 ; mi!=gvar.end() ; mi++,i++) {
 	    if (i != 0) result += ':';

@@ -290,6 +290,7 @@ namespace qiconn {
 	    string dbuser, dbpass, dbserver;
 	    map<string,string> gvar;
 	    map<string,string> source_type;
+	    bool fetch_slave_state;
 	    
 	public:
 	    virtual ~MMySQLGStatus (void);

@@ -439,7 +439,7 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 	    return;
 	}
 
-// cout << "rrd_create (" << endl << rdd_create_query << ")" << endl ;
+ cout << "rrd_create (" << endl << rdd_create_query << ")" << endl ;
 	
 	if (rrd_create (rdd_create_query.size(), rdd_create_query.get_charpp()) != 0) {
 	    int e = errno;
