@@ -6,7 +6,9 @@
 #include <stdlib.h> // atoi ??
 #include <sys/statvfs.h>
 #include <dirent.h>
+#ifdef USEMEMCACHED
 #include <libmemcached/memcached.h>
+#endif
 
 #include <fstream>
 #include <iomanip>
@@ -318,7 +320,7 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
     bool MPfilelen::measure (string &result) {
 	stringstream out;
 	if (plcc == NULL) {
-	    reopen (false);
+	    reopen (true);
 	    if (plcc == NULL)
 		out << "U";
 	    else {
@@ -337,7 +339,7 @@ cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	       ) {
 		if (plcc != NULL) delete (plcc);
 		plcc = NULL;
-		reopen (false);
+		reopen (true);
 		if (plcc == NULL)
 		    out << "U";
 		else {
@@ -425,12 +427,12 @@ cerr << "MPlastmatchfilelen::reopen (" << getmostrecent.dirname << "/" << getmos
 
     bool MPloadavg::measure (string &result) {
 	string s;
-	ifstream loadavg ("/proc/loadavg");
-	if (!loadavg) {
+	ifstream filevalue ("/proc/loadavg");
+	if (!filevalue) {
 	    result = "U";
 	    return true;
 	}
-	getstring (loadavg, s);
+	getstring (filevalue, s);
 	size_t p = s.find(' ');
 	if (p == string::npos) {
 	    result = "U";
@@ -442,6 +444,41 @@ cerr << "MPlastmatchfilelen::reopen (" << getmostrecent.dirname << "/" << getmos
 
     MeasurePoint* MPloadavg_creator (const string & param) {
 	return new MPloadavg (param);
+    }
+
+/*
+ *  ---- MPfilevalue -----------------------------------------------------------------------------------------
+ */
+
+    MPfilevalue::~MPfilevalue (void) {
+    }
+    
+    MPfilevalue::MPfilevalue (const string & param) : MeasurePoint (param) {
+	filemeasure = param;
+    }
+
+    bool MPfilevalue::measure (string &result) {
+	string s;
+	ifstream fmez (filemeasure.c_str());
+	if (!fmez) {
+	    result = "U";
+	    return true;
+	}
+	getstring (fmez, s);
+	size_t p = 0;
+	while (isdigit (s[p])) p++;
+	
+	if (p == 0) {
+	    result = "U";
+	    return true;
+	}
+
+	result = s.substr(0, p);
+	return true;
+    }
+
+    MeasurePoint* MPfilevalue_creator (const string & param) {
+	return new MPfilevalue (param);
     }
 
 /*
@@ -520,7 +557,8 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	else
 	    return "";
     }
-    
+   
+#ifdef USEMEMCACHED
 /*
  *  ---- MMemcached ----------------------------------------------------------------------------------------
  */
@@ -656,7 +694,8 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	else
 	    return "";
     }
-    
+#endif    
+#ifdef USEMYSQL
 /*
  *  ---- MMySQLGStatus -------------------------------------------------------------------------------------
  */
@@ -992,6 +1031,7 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	else
 	    return "";
     }
+#endif
     
 /*
  *  ---- MPfreespace -----------------------------------------------------------------------------------------
@@ -1078,8 +1118,13 @@ static const char *s[] =    {"MIN", "MAX", "MAX", "MAX", "MAX", "MIN"};
 	mmpcreators["conncount"]    = MPconncount_creator;
 	mmpcreators["meminfo"]	    = MPmeminfo_creator;
 	mmpcreators["freespace"]    = MPfreespace_creator;
+#ifdef USEMEMCACHED
 	mmpcreators["memcached"]    = MMemcached_creator;
+#endif
+#ifdef USEMYSQL
 	mmpcreators["mysqlgstatus"] = MMySQLGStatus_creator;
+#endif
+	mmpcreators["filevalue"]	    = MPfilevalue_creator;
 	MPfilelen::pcp = pcp;
     }
 

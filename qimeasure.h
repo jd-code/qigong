@@ -10,8 +10,12 @@
 #include <sys/types.h>	// struct stat
 #include <sys/stat.h>	// struct stat
 #include <unistd.h>	// struct stat
+#ifdef USEMEMCACHED
 #include <libmemcached/memcached.h>
+#endif
+#ifdef USEMYSQL
 #include <mysql.h>
+#endif
 
 #include <string>
 #include <map>
@@ -226,6 +230,28 @@ namespace qiconn {
     };
 
     /*
+     *  ----- MPfilevalue --------------------------------------------------------------------------------------
+     */
+
+    class MPfilevalue : public MeasurePoint {
+	protected:
+	    string filemeasure;
+	    
+	public:
+	    virtual ~MPfilevalue (void);
+	    MPfilevalue (const string & param);
+
+	    virtual bool measure (string &result);			// the measuring function itself
+	    virtual string get_source_type(void) { return "GAUGE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
+	    virtual string get_min(void) { return "U"; }		// min or U for unknown
+	    virtual string get_max(void) { return "U"; }		// min or U for unknown
+	    virtual string get_first_rra (void) { return "LAST"; }	// consolidation function for first rra (AVERAGE MIN MAX or LMAST)
+	    virtual string get_next_rras (void) { return "AVERAGE"; }	// consolidation function for subsequent rras (AVERAGE MIN MAX or LMAST)
+
+	friend void init_mmpcreators (ConnectionPool *pcp);
+    };
+
+    /*
      *  ----- MPmeminfo ----------------------------------------------------------------------------------------
      */
 
@@ -250,6 +276,7 @@ namespace qiconn {
 	friend void init_mmpcreators (ConnectionPool *pcp);
     };
 
+#ifdef USEMEMCACHED
     /*
      *  ----- MMemcached ---------------------------------------------------------------------------------------
      */
@@ -279,7 +306,8 @@ namespace qiconn {
 
 	friend void init_mmpcreators (ConnectionPool *pcp);
     };
-
+#endif
+#ifdef USEMYSQL
     /*
      *  ----- MMySQLGStatus ------------------------------------------------------------------------------------
      */
@@ -310,7 +338,7 @@ namespace qiconn {
 
 	friend void init_mmpcreators (ConnectionPool *pcp);
     };
-
+#endif
     /*
      *  ----- MPfreespace --------------------------------------------------------------------------------------
      */

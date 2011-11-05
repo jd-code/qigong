@@ -8,10 +8,10 @@ VERSION="1.9.3"
 default:
 	@echo "interesting targets : all , install , install_qigong ..."
 
-all: qigong qicollect qigong.rc qicollect.rc
+all: qigong qicollect qigong.rc qicollect.rc qigong-nomc
 
 allstrip: all
-	strip qigong qicollect
+	strip qigong qicollect qigong-nomc
 
 install: allstrip
 	chmod 700 ./installscript
@@ -39,7 +39,7 @@ bintardebug: all
 	   SRCDIR="qigong-${VERSION}-$${ARCH}-debug" ;			\
 	   mkdir "$${SRCDIR}" ;						\
 	   chmod 700 installscript ;					\
-	   cp -a qigong qicollect qigong.rc qicollect.rc installscript "$${SRCDIR}" ; \
+	   cp -a qigong qicollect qigong-nomc qigong.rc qicollect.rc installscript "$${SRCDIR}" ; \
 	   cp -a Makefile-binonly "$${SRCDIR}"/Makefile ;		\
 	  tar -zcpvf "$${SRCDIR}".tgz "$${SRCDIR}" ;			\
 	  ls -l "$${SRCDIR}"/qigong "$${SRCDIR}"/qicollect ;		\
@@ -96,6 +96,10 @@ qigong: qigong.o qiconn.o qimeasure.o
 	g++ ${DEBUG} `mysql_config --cflags` -Wall -o qigong qigong.o qiconn.o qimeasure.o -lmemcached `mysql_config --libs`
 
 
+qigong-nomc: qigong.o qiconn.o qimeasure-nomc.o
+	g++ ${DEBUG} `mysql_config --cflags` -Wall -o qigong-nomc qigong.o qiconn.o qimeasure-nomc.o
+
+
 
 qigong.o: qigong.cpp qiconn.h qigong.h qimeasure.h
 	g++ ${DEBUG} `mysql_config --cflags` -Wall -c qigong.cpp
@@ -108,13 +112,15 @@ qicollect.o: qicollect.cpp qiconn.h qicollect.h qimeasure.h
 qiconn.o: qiconn.cpp qiconn.h
 	g++ ${DEBUG} -Wall -c qiconn.cpp
 
-qimeasure.o: qimeasure.cpp qimeasure.h
-	g++ ${DEBUG} `mysql_config --cflags` -Wall -c qimeasure.cpp
+qimeasure-nomc.o: qimeasure.cpp qimeasure.h
+	g++ ${DEBUG} `mysql_config --cflags` -Wall -c qimeasure.cpp -o qimeasure-nomc.o
 
+qimeasure.o: qimeasure.cpp qimeasure.h
+	g++ ${DEBUG} -DUSEMEMCACHED -DUSEMYSQL `mysql_config --cflags` -Wall -c qimeasure.cpp
 
 
 clean:
-	rm -f qiconn.o qigong.o qigong qicollect.o qicollect qimeasure.o watchconn.o watchconn
+	rm -f qiconn.o qigong.o qigong qicollect.o qicollect qimeasure.o watchconn.o watchconn qimeasure-nomc.o qigong-nomc
 	rm -f qigong.rc qicollect.rc
 	rm -f testqigong.log testqicoll.log
 	rm -f *_testlastfile.rrd *_testfiles.rrd  *_testglobal.rrd  *_testnet.rrd *_testmem.rrd *_testload.rrd *_testfree.rrd
