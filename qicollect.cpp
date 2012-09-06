@@ -1147,7 +1147,7 @@ int main (int nb, char ** cmde) {
     int nberr;
     ReadConf rc;
     if ((nberr = rc.readconf (fconf, runconfig)) != 0) {
-	cerr << "there were errors reading fonf file \"" << conffile << "\"" << endl;
+	cerr << "there were errors reading conf file \"" << conffile << "\"" << endl;
 	return -1;
     }
 

@@ -31,6 +31,7 @@ namespace qiconn
     QICONN_H_SCOPE bool debug_dummyin = false;	    // debug input of dummyconn
     QICONN_H_SCOPE bool debug_lineread = false;	    // debug lineread of dummyconn
     QICONN_H_SCOPE bool debug_dummyout = false;	    // debug output of dummyconn
+    QICONN_H_SCOPE bool debug_syncflush = false;    // debug flushing at sync
 #else
     QICONN_H_SCOPE bool debug_resolver;		    // debug init_connect resolver
     QICONN_H_SCOPE bool debug_connect;		    // debug init_connect steps
@@ -38,6 +39,7 @@ namespace qiconn
     QICONN_H_SCOPE bool debug_dummyin;		    // debug input of dummyconn
     QICONN_H_SCOPE bool debug_lineread;		    // debug lineread of dummyconn
     QICONN_H_SCOPE bool debug_dummyout;		    // debug output of dummyconn
+    QICONN_H_SCOPE bool debug_syncflush;	    // debug flushing at sync
 #endif
 
     /*
@@ -80,7 +82,7 @@ namespace qiconn
 		    if (*(p-1) == '\n') {
 			syslog (priority, "%s", stringbuf::str().c_str());
 			priority = defpriority;
-                        cout << "      faudrait flusher : [[" << stringbuf::str()  << "]]" << endl;
+                        if (debug_syncflush) cout << "      faudrait flusher : [[" << stringbuf::str()  << "]]" << endl;
 			string s;
 			stringbuf::str (s);
 		    }
