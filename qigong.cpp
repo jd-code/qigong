@@ -519,7 +519,7 @@ if (false) {
 
     struct timeval timeout;
     timeout.tv_sec = 0;
-    timeout.tv_usec = 100;
+    timeout.tv_usec = 500;  // JDJDJDJD was 100 until 20120910 ...
 
     cp.select_loop (timeout);
 
