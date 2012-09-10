@@ -18,28 +18,38 @@
 #include <list>
 #include <map>
 
-#define QICONNPORT 1264
+#define QICONNPORT 1264	    // JDJDJDJD this one should be moved elsewhere
 
+//! Maintaining a pool of closely watched tcp connections
+/*! The idea is to register as many object [JDJDJDJD be more precise here]
+ *  as there are concurent connections to deal with.
+ *
+ *  each connection should be a state machine able to deal with events
+ *  without blocking things ...
+ *  oh yeah.
+ */
 namespace qiconn
 {
     using namespace std;
 
 #ifdef QICONN_H_GLOBINST
-    QICONN_H_SCOPE bool debug_resolver = false;	    // debug init_connect resolver
-    QICONN_H_SCOPE bool debug_connect = false;	    // debug init_connect steps
-    QICONN_H_SCOPE bool debug_transmit = false;	    // debug all transmitions
-    QICONN_H_SCOPE bool debug_dummyin = false;	    // debug input of dummyconn
-    QICONN_H_SCOPE bool debug_lineread = false;	    // debug lineread of dummyconn
-    QICONN_H_SCOPE bool debug_dummyout = false;	    // debug output of dummyconn
-    QICONN_H_SCOPE bool debug_syncflush = false;    // debug flushing at sync
-#else
-    QICONN_H_SCOPE bool debug_resolver;		    // debug init_connect resolver
-    QICONN_H_SCOPE bool debug_connect;		    // debug init_connect steps
-    QICONN_H_SCOPE bool debug_transmit;		    // debug all transmitions
-    QICONN_H_SCOPE bool debug_dummyin;		    // debug input of dummyconn
-    QICONN_H_SCOPE bool debug_lineread;		    // debug lineread of dummyconn
-    QICONN_H_SCOPE bool debug_dummyout;		    // debug output of dummyconn
-    QICONN_H_SCOPE bool debug_syncflush;	    // debug flushing at sync
+    QICONN_H_SCOPE bool debug_resolver = false;	    //!< debug init_connect resolver
+    QICONN_H_SCOPE bool debug_connect = false;	    //!< debug init_connect steps
+    QICONN_H_SCOPE bool debug_transmit = false;	    //!< debug all transmitions
+    QICONN_H_SCOPE bool debug_dummyin = false;	    //!< debug input of dummyconn
+    QICONN_H_SCOPE bool debug_lineread = false;	    //!< debug lineread of dummyconn
+    QICONN_H_SCOPE bool debug_dummyout = false;	    //!< debug output of dummyconn
+    QICONN_H_SCOPE bool debug_syncflush = false;    //!< debug flushing at sync
+    QICONN_H_SCOPE bool debug_fddestr = false;	    //!< debug connection (fd) destructions
+#else                                                  
+    QICONN_H_SCOPE bool debug_resolver;		    //!< debug init_connect resolver
+    QICONN_H_SCOPE bool debug_connect;		    //!< debug init_connect steps
+    QICONN_H_SCOPE bool debug_transmit;		    //!< debug all transmitions
+    QICONN_H_SCOPE bool debug_dummyin;		    //!< debug input of dummyconn
+    QICONN_H_SCOPE bool debug_lineread;		    //!< debug lineread of dummyconn
+    QICONN_H_SCOPE bool debug_dummyout;		    //!< debug output of dummyconn
+    QICONN_H_SCOPE bool debug_syncflush;	    //!< debug flushing at sync
+    QICONN_H_SCOPE bool debug_fddestr;		    //!< debug connection (fd) destructions
 #endif
 
     /*
@@ -191,7 +201,7 @@ namespace qiconn
 	                           struct sockaddr_in client_addr;
 	                           string name;
 	public:
-	        virtual ~SocketConnection (void) { cerr << "destruction of fd[" << fd << ", " << name << "]" << endl; }
+	        virtual ~SocketConnection (void) { if (debug_fddestr) cerr << "destruction of fd[" << fd << ", " << name << "]" << endl; }
 	                 SocketConnection (int fd, struct sockaddr_in const &client_addr);
 	             virtual void setname (struct sockaddr_in const &client_addr);
 	    inline virtual string getname (void) {

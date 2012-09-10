@@ -24,6 +24,13 @@ namespace qiconn {
 
     using namespace std;
 
+#ifdef QIMEASURE_H_GLOBINST
+    QIMEASURE_H_SCOPE bool debug_mpfilelen_reopen = false;	//!< debug reopening filelen
+#else
+    QIMEASURE_H_SCOPE bool debug_mpfilelen_reopen;		//!< debug reopening filelen
+#endif
+
+
     typedef int (*PFNameMatchFunc) (const string &fname, struct stat const & fst);
 
     int matchallfile (const string &fname, struct stat const & fst);

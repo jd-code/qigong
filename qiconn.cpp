@@ -247,7 +247,7 @@ namespace qiconn
     }
 
     Connection::~Connection (void) {
-	cerr << "destruction of fd[" << fd << "]" << endl ;
+	if (debug_fddestr) cerr << "destruction of fd[" << fd << "] (deregistering)" << endl ;
 	deregister_from_pool ();
 	close ();
     }
