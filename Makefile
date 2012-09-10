@@ -125,8 +125,12 @@ clean:
 	rm -f testqigong.log testqicoll.log
 	rm -f *_testlastfile.rrd *_testfiles.rrd  *_testglobal.rrd  *_testnet.rrd *_testmem.rrd *_testload.rrd *_testfree.rrd
 	rm -f qigong-*.tgz
+	rm -r chikung-doc/*
 
 distclean: clean
+
+doc: *.h *.cpp chikung.dox
+	doxygen chikung.dox
 
 .PHONY: clean
 
