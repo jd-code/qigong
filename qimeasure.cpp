@@ -273,12 +273,14 @@ namespace qiconn {
 	fd = open (fname.c_str(), O_RDONLY);
 	plcc = NULL;
 
+if (debug_mpfilelen_reopen)
 if (!fname.empty()) cerr << "MPfilelen::reopen (" << fname << ") = " << fd << endl;
 	
 	if (fd == -1)
 	    return;
 
 	if (fstat (fd, &curstat) == -1) {
+if (debug_mpfilelen_reopen)
 cerr << "MPfilelen::reopen fstat(" << fd << ") = -1" << endl;
 	    return;
 	}
