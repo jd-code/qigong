@@ -14,6 +14,12 @@ all:
 rc.scripts:
     check for good start of daemons
 
+qicollect:
+    create a default random serverkey (instead of empty ??)
+    put some collection on hold/release via CLI (for safe copying purpose) ???
+    try not to log too much for late collections from the past ?
+	check for previous log messages ?
+
 qiconn:
     handle connections time-outs at large
 
