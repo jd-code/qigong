@@ -1,4 +1,12 @@
 
+a tester !!!:
+    transmission de pidfile lors du su de l'initrc
+    restart par kill via initrc
+
+man:
+    rajouter prise en compte de signal USR1 pour qicollect dans manuel
+    et dans script init ...
+
 all:
     switch to syslog for logging
     dater les lignes de log

@@ -13,7 +13,7 @@ USER=qicollect
 d_start() {
 	: > "${PIDFILE}"
 	chown "${USER}" "${PIDFILE}"
-	su - "${USER}" -c "${DAEMON}" 
+	su - "${USER}" -c "${DAEMON}" -- -pidfile "${PIDFILE}"
 }
 
 d_stop() {
@@ -30,6 +30,7 @@ d_stop() {
 	    kill "${PID}"
 	    if [ -e "${PIDFILE}" ]
 	    then
+		echo "cleaning ${PIDFILE}"
 		rm "${PIDFILE}"
 	    fi
 	else
@@ -37,6 +38,26 @@ d_stop() {
 	    echo " pid file doesn't match daemon"
 	    exit 1
 	fi
+}
+
+d_gracefulrestart() {
+	if [ ! -e "${PIDFILE}" ]
+	then
+	    echo
+	    echo " no pid file found (${PIDFILE})"
+	    exit 1
+	fi
+	PID=`cat "${PIDFILE}"`
+	EXENAME=`ps -p "${PID}" | grep "${PID}" | cut -b25-`
+	if [ E"${EXENAME}" = E"${NAME}" ]
+	then
+	    kill -s USR1 "${PID}"
+	else
+	    echo
+	    echo " pid file doesn't match daemon"
+	    exit 1
+	fi
+	
 }
 
 # Gracefully exit if the package has been removed.
@@ -59,25 +80,12 @@ case "$1" in
 	d_stop
 	echo "."
 	;;
-  #reload)
-	#
-	#	If the daemon can reload its configuration without
-	#	restarting (for example, when it is sent a SIGHUP),
-	#	then implement that here.
-	#
-	#	If the daemon responds to changes in its config file
-	#	directly anyway, make this an "exit 0".
-	#
-	# echo -n "Reloading $DESC configuration..."
-	# d_reload
-	# echo "done."
-  #;;
-  restart|force-reload)
-	#
-	#	If the "reload" option is implemented, move the "force-reload"
-	#	option to the "reload" entry above. If not, "force-reload" is
-	#	just the same as "restart".
-	#
+  reload|force-reload)
+	echo -n "Reloading $DESC configuration via signal sent"
+	d_gracefulrestart
+	echo "done."
+  	;;
+  restart)
 	echo -n "Restarting $DESC: $NAME"
 	d_stop
 	sleep 1
@@ -85,8 +93,7 @@ case "$1" in
 	echo "."
 	;;
   *)
-	# echo "Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}" >&2
-	echo "Usage: $SCRIPTNAME {start|stop|restart|force-reload}" >&2
+	echo "Usage: $SCRIPTNAME {reload|start|stop|restart|force-reload}" >&2
 	exit 1
 	;;
 esac
