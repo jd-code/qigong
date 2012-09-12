@@ -1,5 +1,15 @@
 #!/bin/sh
 
+### BEGIN INIT INFO
+# Provides:          qigong
+# Required-Start:    $syslog $time $network $local_fs
+# Required-Stop:     $syslog $time $network $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: local status collecting daemon
+# Description:       manages the local status collecting daemon that spread infos for qicollect(s)
+### END INIT INFO
+
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DESC="status reporting daemon"
@@ -36,6 +46,24 @@ d_stop() {
 	fi
 }
 
+d_status() {
+	if [ ! -e "${PIDFILE}" ]
+	then
+	    echo "${NAME} is not running"
+	    exit 3
+	fi
+	PID=`cat "${PIDFILE}"`
+	EXENAME=`ps -p "${PID}" | grep "${PID}" | cut -b25-`
+	if [ E"${EXENAME}" = E"${NAME}" ]
+	then
+	    echo "${NAME} is running"
+	    exit 0
+	else
+	    echo "${NAME} is not and pidfile ${PIDFILE} exists"
+	    exit 1
+	fi
+}
+
 # Gracefully exit if the package has been removed.
 test -x "${DAEMON}" || exit 0
 
@@ -67,9 +95,11 @@ case "$1" in
 	d_start
 	echo "."
 	;;
+  status)
+	d_status && exit 0 || exit $?
+	;;
   *)
-	# echo "Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}" >&2
-	echo "Usage: $SCRIPTNAME {start|stop|restart|force-reload}" >&2
+	echo "Usage: $SCRIPTNAME {start|stop|restart|force-reload|status}" >&2
 	exit 1
 	;;
 esac
