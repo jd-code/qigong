@@ -9,7 +9,7 @@ PIDFILE="/var/run/${NAME}.pid"
 SCRIPTNAME="/etc/init.d/${NAME}"
 
 d_start() {
-	"${DAEMON}"
+	"${DAEMON}" -pidfile "${PIDFILE}"
 }
 
 d_stop() {
@@ -26,6 +26,7 @@ d_stop() {
 	    kill "${PID}"
 	    if [ -e "${PIDFILE}" ]
 	    then
+		echo " cleaning ${PIDFILE} "
 		rm "${PIDFILE}"
 	    fi
 	else
@@ -49,19 +50,11 @@ case "$1" in
 	d_stop
 	echo "."
 	;;
-  #reload)
-	#
-	#	If the daemon can reload its configuration without
-	#	restarting (for example, when it is sent a SIGHUP),
-	#	then implement that here.
-	#
-	#	If the daemon responds to changes in its config file
-	#	directly anyway, make this an "exit 0".
-	#
-	# echo -n "Reloading $DESC configuration..."
-	# d_reload
-	# echo "done."
-  #;;
+    #	  reload)
+    #		echo -n "Reloading $DESC configuration via signal sent"
+    #		d_gracefulrestart
+    #		echo "done."
+    #	  	;;
   restart|force-reload)
 	#
 	#	If the "reload" option is implemented, move the "force-reload"

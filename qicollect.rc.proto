@@ -13,7 +13,7 @@ USER=qicollect
 d_start() {
 	: > "${PIDFILE}"
 	chown "${USER}" "${PIDFILE}"
-	su - "${USER}" -c "${DAEMON}" -- -pidfile "${PIDFILE}"
+	su - "${USER}" -c "${DAEMON} -pidfile \"${PIDFILE}\""
 }
 
 d_stop() {
@@ -30,7 +30,7 @@ d_stop() {
 	    kill "${PID}"
 	    if [ -e "${PIDFILE}" ]
 	    then
-		echo "cleaning ${PIDFILE}"
+		echo " cleaning ${PIDFILE} "
 		rm "${PIDFILE}"
 	    fi
 	else
