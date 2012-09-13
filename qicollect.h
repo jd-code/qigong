@@ -235,6 +235,7 @@ namespace qiconn {
 // JDJDJDJD
 // rough test
 map <string,time_t> rrdlastupdate;
+map <string,time_t> lastlatency;
 
 	public:
 	    virtual ~CollectingConn (void);
