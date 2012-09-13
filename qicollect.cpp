@@ -1121,10 +1121,14 @@ int main (int nb, char ** cmde) {
 	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
 		dofork = false;
 	    }
+	    if (strncmp (cmde[i], "--version", 9) == 0) {
+		cout << cmde[0] << " " << QIVERSION << endl;
+		return 0;
+	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
 		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [-pidfile=fname] [-logfile=fname] [--help]" << endl
 		     << "                         [-debugresolver] [-debugconnect] [-debugtransmit] [-checkconf] [-debugout] [-debuginput] [-debuglineread]" << endl
-		     << "                         [-debugccstates] [-conffile=fname] [-rrdpath=pathname]" << endl;
+		     << "                         [-debugccstates] [-conffile=fname] [-rrdpath=pathname] [--version]" << endl;
 		return 0;
 	    }
 	}
