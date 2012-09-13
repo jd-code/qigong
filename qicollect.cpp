@@ -101,6 +101,7 @@ namespace qiconn {
 
 	    bool mustrecorddata = true;
 
+
 	    if (dtime > 10.0) {
 		cerr << "received timestamps from the future from "
 		     << fqdn
@@ -110,11 +111,22 @@ namespace qiconn {
 		    trecord = now;
 		}
 	    } else if (dtime < -10.0) {
-		cerr << "received timestamps from the past from "
-		     << fqdn
-		     << " : diff=" << dtime << "s (NOT corrected)"
-		     << endl;
-		// trecord = now;
+		double lastltncy = lastlatency [fqdn];
+		if ((lastltncy >= -10) || (abs(lastltncy - dtime)) > 30) {
+		    lastlatency [fqdn] = dtime;
+		    cerr << "received timestamps from the past from "
+			 << fqdn
+			 << " : diff=" << dtime << "s (NOT corrected)"
+			 << endl;
+		    // trecord = now;
+		}
+	    } else {
+		if (lastlatency [fqdn] < -10) {
+		    cerr << "timestamp from " << fqdn << " back to normal range : "
+			 << " : diff=" << dtime
+			 << endl;
+		}
+		lastlatency [fqdn] = dtime;
 	    }
 
 	    {	map <string,time_t>::iterator mi = rrdlastupdate.find (rrd_name);
