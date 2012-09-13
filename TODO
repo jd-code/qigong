@@ -4,7 +4,6 @@ man:
     rajouter prise en compte de signal USR1 pour qicollect dans manuel
 
 all:
-    switch to syslog for logging
     dater les lignes de log
 
 rc.scripts:
@@ -17,7 +16,9 @@ qicollect:
 	check for previous log messages ?
 
 qiconn:
-    handle connections time-outs at large
+     [ handle connections time-outs at large  -  correction via expandables delays + jitter ]
+    handle connections time-outs at large : should add an intermediate connection state for
+    second connect attempt
 
 qimeasure:
     dedicated filelen for apache logs
