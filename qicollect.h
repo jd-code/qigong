@@ -216,6 +216,7 @@ namespace qiconn {
 	    string fqdn;
 	    int port;
 	    time_t lastattempt;
+	    time_t delay_reconnect;
 	    typedef enum {
 		needtoconnect,
 		welcome,
