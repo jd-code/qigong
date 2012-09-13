@@ -22,6 +22,15 @@ install_qigong: qigong qigong.rc
 	chmod 700 ./installscript
 	./installscript qigong
 
+archive:
+	SRCDIR="qigong-${VERSION}" ;					\
+	mkdir "qigong-${VERSION}" &&					\
+	git archive master | tar -C "qigong-${VERSION}" -xpf - &&	\
+	tar -zcpvf "qigong-${VERSION}.tgz" "qigong-${VERSION}"  &&	\
+	rm -r "qigong-${VERSION}" &&					\
+	echo done : ;							\
+	ls -l "qigong-${VERSION}.tgz"
+
 bintar: allstrip
 	@( ARCH=`uname -m` ;						\
 	   SRCDIR="qigong-${VERSION}-$${ARCH}" ;			\
