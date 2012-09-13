@@ -14,12 +14,16 @@
 #include "qiconn.h"
 #include "qimeasure.h"
 
+#ifndef QIVERSION
+#define QIVERSION "__unversionned at compile time__"
+#endif
+
 namespace qiconn {
 
     using namespace std;
 
 #ifdef QICOLLECT_H_GLOBINST
-    const char * version = "Qicollect v0.5 - $Id$";
+    const char * version = "Qicollect "QIVERSION;
     bool debug_ccstates = false;
 #else
     QICOLLECT_H_SCOPE const char * version;

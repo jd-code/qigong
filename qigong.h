@@ -14,12 +14,16 @@
 #include "qiconn.h"
 #include "qimeasure.h"
 
+#ifndef QIVERSION
+#define QIVERSION "__unversionned at compile time__"
+#endif
+
 namespace qiconn {
 
     using namespace std;
 
 #ifdef QIGONG_H_GLOBINST
-    const char * version = "Qigong v0.5 - $Id$";
+    const char * version = "Qigong "QIVERSION;
 #else
     extern const char * version;
 #endif
