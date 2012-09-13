@@ -63,6 +63,7 @@ namespace qiconn {
 	CollectingConn::fqdn = fqdn;
 	CollectingConn::port = port;
 	lastattempt = 0;
+	delay_reconnect = 1;
 	state = needtoconnect;
 	pending = false,
 	is_collecting = false;
@@ -239,6 +240,7 @@ if (debug_ccstates) cerr <<  "[" << getname() << "] waiting for \"" << wait_stri
 	fd = -1;
 	cp->push (this);
 	state = needtoconnect;
+	delay_reconnect = 1;
 if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state needtoconnect" << endl;
     }
 
@@ -303,10 +305,10 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 	    case needtoconnect:
 		{   
 static int gromp = 0;
-		    if (time(NULL) - lastattempt > 1) {
+		    if (time(NULL) - lastattempt > delay_reconnect) {
 			struct sockaddr_in sin;
 			int newfd = init_connect (fqdn.c_str(), port, &sin);
-			if (newfd != -1) {
+			if (newfd >= 0) {
 gromp = 0;
 			    setname (sin);
 			    cp->pull (this);
@@ -320,6 +322,26 @@ gromp = 0;
 if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state welcome" << endl;
 			} else {
 			    lastattempt = time(NULL);
+			    if (newfd == -2) {
+				if (delay_reconnect < 10) {
+				    delay_reconnect = 10;
+				} else if (delay_reconnect < 3600) {
+				    delay_reconnect *= 2;
+				    delay_reconnect += (rand() % 10);
+				} else {
+				    delay_reconnect = 3600 + (rand() % 100);
+				}
+			    } else {
+				if (delay_reconnect < 2) {
+				    delay_reconnect = 2;
+				} else if (delay_reconnect < 120) {
+				    delay_reconnect *= 2;
+				    delay_reconnect += (rand() % 2);
+				} else {
+				    delay_reconnect = 120 + (rand() % 10);
+				}
+			    }
+			    cerr << "connection to " << fqdn << ":" << port << " failed, next attempt in " << delay_reconnect << "s" << endl;
 gromp ++;
 if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->attempt to connect failed " << gromp << endl;
 			}
@@ -1193,7 +1215,7 @@ int main (int nb, char ** cmde) {
     }
     struct timeval timeout;
     timeout.tv_sec = 0;
-    timeout.tv_usec = 100;
+    timeout.tv_usec = 25000;
 
     runconfig.buildmissing_rrd ();
     runconfig.startnpoll (cp);
