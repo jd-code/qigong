@@ -3,7 +3,7 @@ DEBUG=
 #DEBUG=-g
 PREFIX=/usr/local
 SHELL=/bin/sh
-VERSION="1.9.5"
+VERSION=1.9.6
 
 default:
 	@echo "interesting targets : all , install , install_qigong ..."
@@ -111,10 +111,10 @@ qigong-nomc: qigong.o qiconn.o qimeasure-nomc.o
 
 
 qigong.o: qigong.cpp qiconn.h qigong.h qimeasure.h
-	g++ ${DEBUG} `mysql_config --cflags` -Wall -c qigong.cpp
+	g++ ${DEBUG} -DQIVERSION="\"${VERSION}\"" `mysql_config --cflags` -Wall -c qigong.cpp
 
 qicollect.o: qicollect.cpp qiconn.h qicollect.h qimeasure.h
-	g++ ${DEBUG} `mysql_config --cflags` -Wall -c qicollect.cpp
+	g++ ${DEBUG} -DQIVERSION="\"${VERSION}\"" `mysql_config --cflags` -Wall -c qicollect.cpp
 
 
 

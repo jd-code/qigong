@@ -429,8 +429,12 @@ int main (int nb, char ** cmde) {
 	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
 		dofork = false;
 	    }
+	    if (strncmp (cmde[i], "--version", 9) == 0) {
+		cout << cmde[0] << " " << QIVERSION << endl;
+		return 0;
+	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
-		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [-pidfile=fname] [-logfile=fname] [--help]" << endl
+		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [-pidfile=fname] [-logfile=fname] [--help] [--version]" << endl
 		     << "                         [-debugresolver] [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
 		;
 		return 0;
