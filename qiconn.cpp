@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <fcntl.h>
 
+#include <sys/time.h> /* clok times */
+
 #include <iomanip>
 
 #include "qiconn.h"
@@ -90,6 +92,16 @@ namespace qiconn
      *  ---------------------------- init_connect : makes a telnet over socket, yes yes ----------------------
      */
 
+    // JDJDJDJD a better thing should be to create an intermediate state after needtoconnect
+    // like needtoconnectconfirm in order to wait for writable state (?) and poll for connection establishment
+
+    // init_connect open a tcp session from fqdn and port
+    // return a connected socket
+    // may fail with -1 on a straightforward fail   (connection refused)
+    // may fail with -2 on a slow timed-out failure (port filtered, packet dropped, unreachable machine)
+    
+
+
     int init_connect (const char *fqdn, int port, struct sockaddr_in *ps /* = NULL */ ) {
 	struct hostent * he;
 	if (debug_connect) cerr << "init_connect -> gethostbyname (" << fqdn << ")" << endl;
@@ -143,8 +155,16 @@ namespace qiconn
 	}
 	
 	if (debug_connect) cerr << "init_connect -> socket (PF_INET, SOCK_STREAM, tcp)" << endl;
+
+//PROFILECONNECT    timeval startc, clok;
+//PROFILECONNECT    gettimeofday (&startc, NULL);
+
 	int r = connect (s, (const struct sockaddr *)&sin, sizeof(sin));
+
+//PROFILECONNECT    gettimeofday (&clok, NULL);
 	if (r < 0) {
+//PROFILECONNECT    cerr << "first connect fail connect=" << r
+//PROFILECONNECT         << " took[" << ((clok.tv_sec - startc.tv_sec) * 10000 + (clok.tv_usec - startc.tv_usec)/100) << "]" << endl;
 	    int e = errno;
 	    if (e == 115 /* EINPROGRESS */) {
 		time_t start = time (NULL);
@@ -153,11 +173,13 @@ namespace qiconn
 		    struct timeval tv;
 		    fd_set myset;
 		    tv.tv_sec = 0; 
-		    tv.tv_usec = 100;
+		    tv.tv_usec = 10000;
 		    FD_ZERO(&myset); 
 		    FD_SET(s, &myset); 
 		    if (debug_connect) cerr << "init_connect -> select ()" << endl;
 		    int res = select(s+1, NULL, &myset, NULL, &tv); 
+//PROFILECONNECT    gettimeofday (&clok, NULL);
+//PROFILECONNECT    cerr << "select took[" << ((clok.tv_sec - startc.tv_sec) * 10000 + (clok.tv_usec - startc.tv_usec)/100) << "]" << endl;
 		    if ((res<0) && (errno != EINTR)) { 
 			int e = errno;
 			cerr << "while selecting after connect attempt (for connection to "
@@ -174,10 +196,14 @@ namespace qiconn
 			    cerr << "while selecting after connect attempt for (for connection to "
 				 << fqdn << ":" << port << ") getsockopt got "
 				 << strerror (e) << endl;
+//PROFILECONNECT    gettimeofday (&clok, NULL);
+//PROFILECONNECT    cerr << "getsockopt (SOL_SOCKET, SO_ERROR) took[" << ((clok.tv_sec - startc.tv_sec) * 10000 + (clok.tv_usec - startc.tv_usec)/100) << "]" << endl;
 			    close (s);
 			    return -1;
 			} 
 
+//PROFILECONNECT    gettimeofday (&clok, NULL);
+//PROFILECONNECT    cerr << "getsockopt (SOL_SOCKET, SO_ERROR) took[" << ((clok.tv_sec - startc.tv_sec) * 10000 + (clok.tv_usec - startc.tv_usec)/100) << "]" << endl;
 			// Check the value returned... 
 			if (valopt) { 
 			    cerr << "while selecting after connect attempt for (for connection to "
@@ -191,15 +217,21 @@ namespace qiconn
 			}
 		    }
 		} while ((time(NULL) - start) < 2);	// JDJDJDJD ceci est une valeur arbitraire de 2 secondes !
-		if (connected)
+		if (connected) {
+//PROFILECONNECT    gettimeofday (&clok, NULL);
+//PROFILECONNECT    cerr << "connected finally took[" << ((clok.tv_sec - startc.tv_sec) * 10000 + (clok.tv_usec - startc.tv_usec)/100) << "]" << endl;
 		    return s;
-		else {
+		} else {
+//PROFILECONNECT    gettimeofday (&clok, NULL);
+//PROFILECONNECT    cerr << "not connected timeout took[" << ((clok.tv_sec - startc.tv_sec) * 10000 + (clok.tv_usec - startc.tv_usec)/100) << "]" << endl;
 		    cerr << "selecting after connect attempt for (for connection to "
 			 << fqdn << ":" << port << ") timed out" << endl;
 		    close (s);
-		    return -1;
+		    return -2;
 		} 
 	    } else if (e != 0) {
+//PROFILECONNECT    gettimeofday (&clok, NULL);
+//PROFILECONNECT    cerr << "not connected straigh error took[" << ((clok.tv_sec - startc.tv_sec) * 10000 + (clok.tv_usec - startc.tv_usec)/100) << "]" << endl;
 		cerr << "could not connect to " << fqdn << ":" << port << " : " << strerror (e) << " errno=" << e << endl ;
 		close (s);
 		return -1;
