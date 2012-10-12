@@ -11,7 +11,7 @@
 #include <fstream>
 #include <iomanip>
 
-#include "qiconn.h"
+#include <qiconn/qiconn.h>
 #include "qimeasure.h"
 
 #ifndef QIVERSION
@@ -210,7 +210,7 @@ namespace qiconn {
      *  ------------------- the collecting connections -------------------------------------------------------
      */
 
-    class CollectingConn : public DummyConnection
+    class CollectingConn : public SocketConnection
     {
 	private:
 	    string fqdn;
@@ -259,7 +259,7 @@ map <string,time_t> lastlatency;
 	public:
 	    virtual ~ListeningBinder (void) {}
 	    ListeningBinder (int fd) : ListeningSocket (fd, "socketbinder") {}
-	    virtual DummyConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
+	    virtual SocketConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
 		// return new CollectingConn (fd, client_addr);
 		// JDJD WTF was the above ??? never used ?
 		return NULL;

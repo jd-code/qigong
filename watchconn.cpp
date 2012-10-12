@@ -21,7 +21,7 @@
 #include <map>
 
 #define QICONN_H_GLOBINST
-#include "qiconn.h"
+#include <qiconn/qiconn.h>
 
 using namespace std;
 using namespace qiconn;

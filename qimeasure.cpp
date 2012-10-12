@@ -16,7 +16,7 @@
 //#define QICONN_H_GLOBINST
 //#define QIGONG_H_GLOBINST
 //#include "qigong.h"
-#include "qiconn.h"
+#include <qiconn/qiconn.h>
 #include "qimeasure.h"
 
 namespace qiconn {
