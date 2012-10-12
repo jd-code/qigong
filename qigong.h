@@ -11,7 +11,7 @@
 #include <fstream>
 #include <iomanip>
 
-#include "qiconn.h"
+#include <qiconn/qiconn.h>
 #include "qimeasure.h"
 
 #ifndef QIVERSION
@@ -81,7 +81,7 @@ namespace qiconn {
     extern string prompt;
 #endif
 
-    class CollectedConn : public DummyConnection
+    class CollectedConn : public SocketConnection
     {
 	    int nbp;
 	public:
@@ -99,7 +99,7 @@ namespace qiconn {
 	public:
 	    virtual ~SocketBinder (void) {}
 	    SocketBinder (int fd) : ListeningSocket (fd, "socketbinder") {}
-	    virtual DummyConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
+	    virtual SocketConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
 		return new CollectedConn (fd, client_addr);
 	    }
 	    virtual void poll (void) {}
