@@ -59,7 +59,7 @@ namespace qiconn {
  */
     struct sockaddr_in empty_addr;
     
-    CollectingConn::CollectingConn (string const & fqdn, int port) : DummyConnection(-1, empty_addr) {
+    CollectingConn::CollectingConn (string const & fqdn, int port) : SocketConnection(-1, empty_addr) {
 	CollectingConn::fqdn = fqdn;
 	CollectingConn::port = port;
 	lastattempt = 0;

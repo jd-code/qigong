@@ -197,7 +197,7 @@ namespace qiconn {
  */
 
 
-    CollectedConn::CollectedConn (int fd, struct sockaddr_in const &client_addr) : DummyConnection(fd, client_addr) {
+    CollectedConn::CollectedConn (int fd, struct sockaddr_in const &client_addr) : SocketConnection(fd, client_addr) {
 	nbp = 0;
 	char buf[256];
 	if (gethostname (buf, 256) != 0)
@@ -462,7 +462,7 @@ int main (int nb, char ** cmde) {
     }
 
     int s = server_pool (port);
-    // init_connect ("miso.local", 25);
+
     if (s < 0) {
 	cerr << "could not instanciate connection pool, bailing out !" << endl;
 	return -1;

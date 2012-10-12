@@ -3,7 +3,8 @@ DEBUG=
 #DEBUG=-g
 PREFIX=/usr/local
 SHELL=/bin/sh
-VERSION=1.9.7
+VERSION=1.9.9
+INCLUDE=-Iqiconn/include
 
 default:
 	@echo "interesting targets : all , install , install_qigong ..."
@@ -71,10 +72,10 @@ bintardebug: all
 #	g++  ${DEBUG} -Wall -o testdirproc testdirproc.o qiconn.o
 
 watchconn.o: watchconn.cpp
-	g++  ${DEBUG} -Wall -c watchconn.cpp
+	g++  ${DEBUG} ${INCLUDE} -Wall -c watchconn.cpp
 
-watchconn: qiconn.o watchconn.o
-	g++  ${DEBUG} -Wall -o watchconn qiconn.o watchconn.o
+watchconn: qiconn/qiconn.o watchconn.o
+	g++  ${DEBUG} ${INCLUDE} -Wall -o watchconn qiconn/qiconn.o watchconn.o
 
 WATCHCONNvimtest: watchconn all
 	# ./testdirproc :::80 ::ffff:c700:0001:80 127.0.0.1:80 192.168.132.182:80 127.0.0.1:3306 | tr ':' ';'
@@ -98,43 +99,44 @@ qigong.rc: qigong.rc.proto
 qicollect.rc: qicollect.rc.proto
 	sed "s=@@PREFIX@@=${PREFIX}=g" < qicollect.rc.proto > qicollect.rc
 
-qicollect: qicollect.o qiconn.o qimeasure.o
-	g++ ${DEBUG} `mysql_config --cflags` -Wall -o qicollect  -L /usr/local/lib -lrrd -lmemcached  qicollect.o qiconn.o qimeasure.o `mysql_config --libs`
+qicollect: qicollect.o qiconn/qiconn.o qimeasure.o
+	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qicollect  -L /usr/local/lib -lrrd -lmemcached  qicollect.o qiconn/qiconn.o qimeasure.o `mysql_config --libs`
 
-qigong: qigong.o qiconn.o qimeasure.o
-	g++ ${DEBUG} `mysql_config --cflags` -Wall -o qigong qigong.o qiconn.o qimeasure.o -lmemcached `mysql_config --libs`
-
-
-qigong-nomc: qigong.o qiconn.o qimeasure-nomc.o
-	g++ ${DEBUG} `mysql_config --cflags` -Wall -o qigong-nomc qigong.o qiconn.o qimeasure-nomc.o
+qigong: qigong.o qiconn/qiconn.o qimeasure.o
+	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qigong qigong.o qiconn/qiconn.o qimeasure.o -lmemcached `mysql_config --libs`
 
 
-
-qigong.o: qigong.cpp qiconn.h qigong.h qimeasure.h
-	g++ ${DEBUG} -DQIVERSION="\"${VERSION}\"" `mysql_config --cflags` -Wall -c qigong.cpp
-
-qicollect.o: qicollect.cpp qiconn.h qicollect.h qimeasure.h
-	g++ ${DEBUG} -DQIVERSION="\"${VERSION}\"" `mysql_config --cflags` -Wall -c qicollect.cpp
+qigong-nomc: qigong.o qiconn/qiconn.o qimeasure-nomc.o
+	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qigong-nomc qigong.o qiconn/qiconn.o qimeasure-nomc.o
 
 
 
-qiconn.o: qiconn.cpp qiconn.h
-	g++ ${DEBUG} -Wall -c qiconn.cpp
+qigong.o: qigong.cpp qiconn/qiconn.o qigong.h qimeasure.h
+	g++ ${DEBUG} ${INCLUDE} -DQIVERSION="\"${VERSION}\"" `mysql_config --cflags` -Wall -c qigong.cpp
+
+qicollect.o: qicollect.cpp qiconn/include/qiconn/qiconn.h qicollect.h qimeasure.h
+	g++ ${DEBUG} ${INCLUDE} -DQIVERSION="\"${VERSION}\"" `mysql_config --cflags` -Wall -c qicollect.cpp
+
+
+
+qiconn/qiconn.o: qiconn/qiconn.cpp qiconn/include/qiconn/qiconn.h
+	cd qiconn ; make qiconn.o
 
 qimeasure-nomc.o: qimeasure.cpp qimeasure.h
-	g++ ${DEBUG} `mysql_config --cflags` -Wall -c qimeasure.cpp -o qimeasure-nomc.o
+	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -c qimeasure.cpp -o qimeasure-nomc.o
 
 qimeasure.o: qimeasure.cpp qimeasure.h
-	g++ ${DEBUG} -DUSEMEMCACHED -DUSEMYSQL `mysql_config --cflags` -Wall -c qimeasure.cpp
+	g++ ${DEBUG} ${INCLUDE} -DUSEMEMCACHED -DUSEMYSQL `mysql_config --cflags` -Wall -c qimeasure.cpp
 
 
 clean:
-	rm -f qiconn.o qigong.o qigong qicollect.o qicollect qimeasure.o watchconn.o watchconn qimeasure-nomc.o qigong-nomc
+	rm -f qigong.o qigong qicollect.o qicollect qimeasure.o watchconn.o watchconn qimeasure-nomc.o qigong-nomc
 	rm -f qigong.rc qicollect.rc
 	rm -f testqigong.log testqicoll.log
 	rm -f *_testlastfile.rrd *_testfiles.rrd  *_testglobal.rrd  *_testnet.rrd *_testmem.rrd *_testload.rrd *_testfree.rrd
 	rm -f qigong-*.tgz
 	rm -rf chikung-doc/*
+	cd qiconn ; make clean
 
 distclean: clean
 
