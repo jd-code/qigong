@@ -3,7 +3,7 @@ DEBUG=
 #DEBUG=-g
 PREFIX=/usr/local
 SHELL=/bin/sh
-VERSION=1.9.9
+VERSION=1.9.10
 INCLUDE=-Iqiconn/include
 
 default:
@@ -128,6 +128,12 @@ qimeasure-nomc.o: qimeasure.cpp qimeasure.h
 qimeasure.o: qimeasure.cpp qimeasure.h
 	g++ ${DEBUG} ${INCLUDE} -DUSEMEMCACHED -DUSEMYSQL `mysql_config --cflags` -Wall -c qimeasure.cpp
 
+
+qigong.h: qicommon.h
+
+qicollect.h: qicommon.h
+
+qimeasure.h: qicommon.h
 
 clean:
 	rm -f qigong.o qigong qicollect.o qicollect qimeasure.o watchconn.o watchconn qimeasure-nomc.o qigong-nomc

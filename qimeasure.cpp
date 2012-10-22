@@ -229,12 +229,14 @@ namespace qiconn {
 		nl = 0;
 		prevsize = 0;
 	    }
-	    virtual void read (void) {
+	    virtual size_t read (void) {
 		char s[LCC_BUFLEN];
-		ssize_t n = LCC_BUFLEN;
+		ssize_t n = LCC_BUFLEN, bread = 0;
 		int i;
 		    while (n == LCC_BUFLEN) {
 			n = ::read (fd, (void *)s, LCC_BUFLEN);
+			// JDJDJDJD not much error control there ...
+			if (n>0) bread += n;
 //    if (n==0) cerr << "read 0 b" << ((long) time(NULL)) << endl;
 			for (i=0 ; i<n ; i++) {
 			    if ((s[i]==10) || (s[i]==13) || s[i]==0) {
@@ -248,8 +250,9 @@ namespace qiconn {
 		    }
 		    if (cp != NULL)
 			cp->reqnor(fd);
+		return bread;
 	    }
-	    virtual void write (void) {}
+	    virtual size_t write (void) { return 0; }
 	    virtual string getname (void) {
 		return (fname);
 	    }

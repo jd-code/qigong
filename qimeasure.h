@@ -20,6 +20,8 @@
 #include <string>
 #include <map>
 
+#include "qicommon.h"
+
 namespace qiconn {
 
     using namespace std;

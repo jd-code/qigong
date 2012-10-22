@@ -12,6 +12,7 @@
 #include <iomanip>
 
 #include <qiconn/qiconn.h>
+#include "qicommon.h"
 #include "qimeasure.h"
 
 #ifndef QIVERSION
