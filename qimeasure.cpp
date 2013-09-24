@@ -224,6 +224,7 @@ namespace qiconn {
 	    off_t prevsize;
 	public:
 	    virtual ~LogCountConn (void) {}
+	    virtual const char * gettype (void) { return "LogCountConn"; }
 	    LogCountConn (const string &fname, int fd) : Connection (fd) {
 		LogCountConn::fname = fname;
 		nl = 0;

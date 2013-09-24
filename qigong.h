@@ -86,6 +86,7 @@ namespace qiconn {
     {
 	    int nbp;
 	public:
+	    virtual const char * gettype (void) { return "CollectedConn"; }
 	    void add_subs (RecordSet * prs, bool completereg = true);
 	    void remove_subs (RecordSet * prs, bool completereg = true);
 	    virtual ~CollectedConn (void);
@@ -99,6 +100,7 @@ namespace qiconn {
     {
 	public:
 	    virtual ~SocketBinder (void) {}
+	    virtual const char * gettype (void) { return "SocketBinder"; }
 	    SocketBinder (int fd) : ListeningSocket (fd, "socketbinder") {}
 	    virtual SocketConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
 		return new CollectedConn (fd, client_addr);
