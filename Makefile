@@ -6,6 +6,10 @@ SHELL=/bin/sh
 VERSION=1.9.12
 INCLUDE=-Iqiconn/include
 
+# mysql lib dev package : libmysqlclient-dev
+# libmemcached (with a D !) dev package : libmemcached-dev
+# librrd dev package : librrd-dev
+
 default:
 	@echo "interesting targets : all , install , install_qigong ..."
 
