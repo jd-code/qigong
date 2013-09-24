@@ -245,6 +245,7 @@ map <string,time_t> lastlatency;
 
 	public:
 	    virtual ~CollectingConn (void);
+	    virtual const char * gettype (void) { return "CollectingConn"; }
 	    CollectingConn (string const & fqdn, int port);
 	    // CollectingConn (int fd, struct sockaddr_in const &client_addr);
 	    virtual void lineread (void);
@@ -259,6 +260,7 @@ map <string,time_t> lastlatency;
     {
 	public:
 	    virtual ~ListeningBinder (void) {}
+	    virtual const char * gettype (void) { return "ListeningBinder"; }
 	    ListeningBinder (int fd) : ListeningSocket (fd, "socketbinder") {}
 	    virtual SocketConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
 		// return new CollectingConn (fd, client_addr);
