@@ -319,6 +319,9 @@ gromp = 0;
 				mi->second->state = del_remote_for_create;
 			    pending = true;
 			    state = welcome;
+			    /* JDJDJDJD let's start the handshake straight away (helps against defferred connections) */
+			    (*out) << "qiging ?" << eos();
+			    flush();
 if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state welcome" << endl;
 			} else {
 			    lastattempt = time(NULL);
@@ -1198,7 +1201,7 @@ int main (int nb, char ** cmde) {
     cp.init_signal ();
     cp.add_signal_handler (SIGUSR1);
     
-    int s = server_pool (port);
+    int s = server_pool_nodefer (port);
     // init_connect ("miso.local", 25);
     if (s < 0) {
 	cerr << "could not instanciate connection pool, bailing out !" << endl;
