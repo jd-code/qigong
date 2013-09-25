@@ -461,7 +461,7 @@ int main (int nb, char ** cmde) {
 	}
     }
 
-    int s = server_pool (port);
+    int s = server_pool_nodefer (port);
 
     if (s < 0) {
 	cerr << "could not instanciate connection pool, bailing out !" << endl;
