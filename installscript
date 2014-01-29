@@ -6,10 +6,12 @@ case "${2}" in
     "qigong")
 	SBINTARGET="qigong"
 	INITTARGET="qigong"
+	MANTARGET="qigong.8"
 	;;
     "qicollect")
 	SBINTARGET="qicollect"
 	INITTARGET="qicollect"
+	MANTARGET="qicollect.8"
 	;;
     *)
 	SBINTARGET="qigong qicollect"
@@ -17,17 +19,35 @@ case "${2}" in
 	;;
 esac
 
+if [ "$3" ]
+then
+    ABSOLUTE="$3"
+else
+    ABSOLUTE=YES
+fi
+
+checkcreatedestdir () {
+    DEST="$1"
+    DESTDIR=`echo "$DEST" | rev | cut -d/ -f2- | rev`
+    if [ ! -d "${DESTDIR}" ]
+    then
+	echo ici mkdir -m755 -p "$DESTDIR"
+	mkdir -m755 -p "$DESTDIR"
+    fi
+}
+
 BACKUP_TAG=`date +"%Y%m%d"`
 
 if [ ! -d "${PREFIX}" ]
 then
-    echo "${0} error : ${PREFIX} isn't a directory ?"
-    exit 1
+    echo mkdir -m755 -p "${PREFIX}"
+    mkdir -m755 -p "${PREFIX}"
 fi
 
 for NOM in ${SBINTARGET}
 do
     DEST="${PREFIX}/sbin/${NOM}"
+    checkcreatedestdir "${DEST}"
     if [ -e "${DEST}" ]
     then
 	mv "${DEST}" "${DEST}-${BACKUP_TAG}"
@@ -38,7 +58,14 @@ done
 
 for NOM in ${INITTARGET}
 do
-    DEST="/etc/init.d/${NOM}"
+    if [ "$ABSOLUTE" = YES ]
+    then
+	DEST="/etc/init.d/${NOM}"
+    else
+	DEST="${ABSOLUTE}/etc/init.d/${NOM}"
+    fi
+
+    checkcreatedestdir "${DEST}"
     if [ -e "${DEST}" ]
     then
 	mv "${DEST}" "${DEST}-${BACKUP_TAG}"
@@ -46,3 +73,12 @@ do
     cp "${NOM}".rc "${DEST}"
     chmod 755 "${DEST}"
 done
+
+for NOM in ${MANTARGET}
+do
+    DEST="${PREFIX}/share/man/man"`echo "$NOM" | rev | cut -d. -f1 | rev`"/$NOM"
+    checkcreatedestdir "${DEST}"
+    cp "$NOM" "${DEST}"
+    chmod 644 "$DEST"
+done
+

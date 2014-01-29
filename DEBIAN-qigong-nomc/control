@@ -1,0 +1,19 @@
+Package: qigong-nomc
+Version: 1.9.15
+Homepage: http://qigong.nekodune.com/
+Section: admin
+Priority: optional
+Architecture: amd64
+Depends: bash (>=3.1), libc6
+Pre-Depends: debconf
+Provides: qigong
+Conflicts: qigong-full
+Installed-Size: 1024
+Maintainer: Pauget Jean-Daniel <debmaint@nekodune.com>
+Description: system's and applications' metrics collection-daemon
+ This package provides binaries without memcache lib dependency.
+ "qigong" establish timed metrics in a single ultra-light nifty
+ running daemon and export them to it's paired (and eventually
+ remote) aggregating daemon : "qicollect".
+ Apart from a single security keyfile, all configurations are set
+ from the collecting point.
