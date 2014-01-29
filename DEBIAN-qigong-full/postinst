@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+
+update-rc.d qigong defaults
+
+if which invoke-rc.d >/dev/null 2>&1; then
+    invoke-rc.d qigong restart
+else
+    /etc/init.d/qigong restart
+fi

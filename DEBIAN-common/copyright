@@ -1,0 +1,20 @@
+This is Debian's prepackaged version of "qigong:, the locally daemon
+establishing timed metrics for further collection and aggregation via
+"qicollect"
+The upstream author is the current maintainer for this package :
+Jean-Daniel Pauget <qigong@nekodune.com>
+
+The upstream source is available at 'http://qigong.nekodune.com/'
+
+Upstream Maintainer: Jean-Daniel Pauget <qigong@nekodune.com>
+
+
+  See the header of each file for the copyright information, most are
+    Copyright (c) 2003-2014 Jean-Daniel Pauget
+  and are covered by the GPL-2
+
+
+On Debian systems, the complete text of the GNU GENERAL PUBLIC LICENSE Version 2
+can be found in /usr/share/common-licenses/GPL-2
+
+

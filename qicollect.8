@@ -1,0 +1,63 @@
+.TH "qicollect" "8" "2003" "jd" "nekodune"
+.SH NAME
+qicollect \- collects and agregates metrics from qigong daemons
+.br
+.SH SYNOPSIS
+.B ./qicollect
+.RI "[" "-port N" "] [" "-nofork" "] [" "-pidfile=fname" "] [" "-logfile=fname" "] [" "--help" "] [" "-debugresolver" "] [" "-debugconnect" "] [" "-debugtransmit" "] [" "-checkconf" "] [" "-debugout" "] [" "-debuginput" "] [" "-debuglineread" "] [" "-debugccstates" "] [" "-conffile=fname" "] [" "-rrdpath=pathname" "] [" "--version" "]"
+.SH DESCRIPTION
+.B qicollect
+is tipically invoked at system init via rc-scripts. It reads its config file and
+then starts connecting to the
+.B qigong
+daemons, sends them the list of needed metrics, and wait for timed metrics to
+come back for dued aggregation into rrd databases.
+
+.SH OPTIONS
+.SS 
+.RI "--port " "N"
+open port
+.I N
+for listening incoming connections from
+.B qicollect
+daemons.
+.SS
+.RI "-nofork" ""
+do not fork and detach to background.
+.SS
+.RI "-pidfile=" "fname"
+uses
+.I fname
+for storing current running pid of the daemon.
+.SS
+.RI "-logfile=" "fname"
+uses
+.I fname
+for logging warnings and errors.
+.SS
+.RI "--help" ""
+displays basic usage reminder.
+.SS
+.RI "--version" ""
+reports current version.
+.SS
+.RI "-debugresolver" ""
+logs every resolver usage steps.
+.SS
+.RI "-debugtransmit"
+logs transmission to qicollect daemon for debugging purpose.
+.SS
+.RI "-debugout" "" "-debuginput"
+logs any output or input.
+.SH FILES
+qicollect might watch changes on a wholeset of files according to the metrics list transmitted by qicollect.
+.SH SEE ALSO
+.RB "(8)" "qigong" ""
+.SH BUGS
+There are probably plenty. Please report them to
+.B qigong@nekodune.com
+.SH AUTHOR
+Jean-Daniel Pauget (qigong@nekodune.com)
+.SH MANPAGE VERSION
+
+

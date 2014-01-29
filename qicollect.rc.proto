@@ -3,8 +3,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          qicollect
-# Required-Start:    $syslog $time $network $local_fs
-# Required-Stop:     $syslog $time $network $local_fs
+# Required-Start:    $syslog $time $network $local_fs $remote_fs
+# Required-Stop:     $syslog $time $network $local_fs $remote_fs
 # Should-Start:	     qigong
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
@@ -33,7 +33,7 @@ d_stop() {
 	then
 	    echo
 	    echo " no pid file found (${PIDFILE})"
-	    exit 1
+	    return 1
 	fi
 	PID=`cat "${PIDFILE}"`
 	EXENAME=`ps -p "${PID}" | grep "${PID}" | cut -b25-`
@@ -48,7 +48,7 @@ d_stop() {
 	else
 	    echo
 	    echo " pid file doesn't match daemon"
-	    exit 1
+	    return 1
 	fi
 }
 
@@ -57,7 +57,7 @@ d_gracefulrestart() {
 	then
 	    echo
 	    echo " no pid file found (${PIDFILE})"
-	    exit 1
+	    return 1
 	fi
 	PID=`cat "${PIDFILE}"`
 	EXENAME=`ps -p "${PID}" | grep "${PID}" | cut -b25-`
@@ -67,7 +67,7 @@ d_gracefulrestart() {
 	else
 	    echo
 	    echo " pid file doesn't match daemon"
-	    exit 1
+	    return 1
 	fi
 	
 }
@@ -76,17 +76,17 @@ d_status() {
 	if [ ! -e "${PIDFILE}" ]
 	then
 	    echo "${NAME} is not running"
-	    exit 3
+	    return 3
 	fi
 	PID=`cat "${PIDFILE}"`
 	EXENAME=`ps -p "${PID}" | grep "${PID}" | cut -b25-`
 	if [ E"${EXENAME}" = E"${NAME}" ]
 	then
 	    echo "${NAME} is running"
-	    exit 0
+	    return 0
 	else
 	    echo "${NAME} is not and pidfile ${PIDFILE} exists"
-	    exit 1
+	    return 1
 	fi
 }
 
