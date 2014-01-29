@@ -1,0 +1,5 @@
+bozomake (1.2.15-0) squeeze; urgency=low
+
+  * initial debianisation
+
+ -- Jean-Daniel PAUGET <qigong@nekodune.com>  Mon, 27 Jan 2014 22:07:00 +0200

@@ -1,0 +1,77 @@
+.TH "qigong" "8" "2003" "jd" "nekodune"
+.SH NAME
+qigong \- calculates timed metrics based send them back to qicollect
+.br
+.SH SYNOPSIS
+.B ./qigong
+.RI "[" "-port N" "] [" "-nofork" "] [" "-pidfile=fname" "] [" "-logfile=fname" "] [" "--help" "] [" "--version" "] [" "-debugresolver" "] [" "-debugtransmit" "] [" "-debugout" "] [" "-debuginput" "] [" "-debuglineread" "]"
+.SH DESCRIPTION
+.B qigong
+is tipically invoked at system init without any special parameter, all tunings beeing
+made from a remote centralized
+.B qicollect
+daemon.
+
+.B qigong
+timely calculates metrics for the local system and sends them back to it's master
+.BR qicollect "."
+The list of metrics is also retrieived from it's
+master
+.BR qicollect ","
+thus, no local configuration file is needed for the
+.B qigong
+daemon.
+
+.B qigong
+is intended to be as light and robust as possible, all dull work being performed,
+usually remotelly, by the
+.B qicollect
+daemon.
+.SH OPTIONS
+.SS 
+.RI "--port " "N"
+open port
+.I N
+for listening incoming connections from
+.B qicollect
+daemons.
+.SS
+.RI "-nofork" ""
+do not fork and detach to background.
+.SS
+.RI "-pidfile=" "fname"
+uses
+.I fname
+for storing current running pid of the daemon.
+.SS
+.RI "-logfile=" "fname"
+uses
+.I fname
+for logging warnings and errors.
+.SS
+.RI "--help" ""
+displays basic usage reminder.
+.SS
+.RI "--version" ""
+reports current version.
+.SS
+.RI "-debugresolver" ""
+logs every resolver usage steps.
+.SS
+.RI "-debugtransmit"
+logs transmission to qicollect daemon for debugging purpose.
+.SS
+.RI "-debugout" "" "-debuginput"
+logs any output or input.
+.SH FILES
+qigong might watch changes on a wholeset of files according to the metrics list transmitted by qicollect.
+.SH SEE ALSO
+.RB "(8)" "qicollect" ""
+.SH BUGS
+There are probably plenty. Please report them to
+.B qigong@nekodune.com
+.SH AUTHOR
+Jean-Daniel Pauget (qigong@nekodune.com)
+.SH MANPAGE VERSION
+
+
