@@ -124,7 +124,7 @@ qicollect.rc: qicollect.rc.proto
 	sed "s=@@PREFIX@@=${prefix}=g" < qicollect.rc.proto > qicollect.rc
 
 qicollect: qicollect.o qiconn/qiconn.o qimeasure.o
-	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qicollect  -L /usr/local/lib -lrrd -lmemcached  qicollect.o qiconn/qiconn.o qimeasure.o `mysql_config --libs`
+	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qicollect  qicollect.o qiconn/qiconn.o qimeasure.o  -L /usr/local/lib -lrrd -lmemcached `mysql_config --libs`
 
 qigong: qigong.o qiconn/qiconn.o qimeasure.o
 	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qigong qigong.o qiconn/qiconn.o qimeasure.o -lmemcached `mysql_config --libs`
