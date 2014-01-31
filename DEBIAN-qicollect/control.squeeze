@@ -4,7 +4,7 @@ Homepage: http://qigong.nekodune.com/
 Section: admin
 Priority: optional
 Architecture: amd64
-Depends: bash (>=3.1), libc6, libmemcached2, libmysqlclient16
+Depends: bash (>=3.1), libc6, libmemcached2, libmysqlclient16, librrd
 Pre-Depends: debconf
 Suggests: qigong
 Installed-Size: 1024
