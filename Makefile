@@ -5,7 +5,7 @@ prefix=/usr/local
 rcprefix=/
 SHELL=/bin/sh
 VERSION=1.9.14
-DEBSUBV=000
+DEBSUBV=001
 INCLUDE=-Iqiconn/include
 
 # be careful with one : it is destroyed at cleaning !!!
