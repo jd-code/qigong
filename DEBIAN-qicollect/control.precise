@@ -1,0 +1,15 @@
+Package: qicollect
+Version: @@VERSION@@
+Homepage: http://qigong.nekodune.com/
+Section: admin
+Priority: optional
+Architecture: amd64
+Depends: bash (>=3.1), libc6, libmemcached6, libmysqlclient18
+Pre-Depends: debconf
+Suggests: qigong
+Installed-Size: 1024
+Maintainer: Pauget Jean-Daniel <debmaint@nekodune.com>
+Description: qigong's metrics collection and aggregation daemon
+ "qicollect" read it's config file, connects to its swarm of
+ "qigong" daemons, send them the list of metrics to establish
+ and then collects and aggregates them into rrd databases.
