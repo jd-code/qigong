@@ -9,7 +9,7 @@ INCLUDE=-Iqiconn/include
 
 # be careful with one : it is destroyed at cleaning !!!
 # it is needed only to build debian packages
-workplace=/tmp/chikung-build
+workplace=/tmp/chikung-build-$$USER
 
 
 # mysql lib dev package : libmysqlclient-dev
