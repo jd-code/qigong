@@ -5,6 +5,7 @@ prefix=/usr/local
 rcprefix=/
 SHELL=/bin/sh
 VERSION=1.9.14
+DEBSUBV=000
 INCLUDE=-Iqiconn/include
 
 # be careful with one : it is destroyed at cleaning !!!
@@ -180,9 +181,9 @@ doc: *.h *.cpp chikung.dox
 debian-qigong-nomc: 
 	make clean
 	make prefix=/usr qigong.rc
-	rm -rf ${workplace}/qigong-nomc-${VERSION}_"amd64"-`lsb_release -c -s`
-	make debpackage=qigong-nomc systarget=`lsb_release -c -s` prefix=${workplace}/qigong-nomc-${VERSION}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-nomc-${VERSION}_"amd64"-`lsb_release -c -s`/ install_qigong-nomc
-	make debpackage=qigong-nomc systarget=`lsb_release -c -s` prefix=${workplace}/qigong-nomc-${VERSION}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-nomc-${VERSION}_"amd64"-`lsb_release -c -s`/ install-deb-qigong-nomc
+	rm -rf ${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`
+	make debpackage=qigong-nomc systarget=`lsb_release -c -s` prefix=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install_qigong-nomc
+	make debpackage=qigong-nomc systarget=`lsb_release -c -s` prefix=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install-deb-qigong-nomc
 
 install-deb-qigong-nomc:
 	echo ${prefix}
@@ -201,7 +202,7 @@ install-deb-qigong-nomc:
 	    fi ;				    \
 	    SHORTNAME=`echo "$$NOM" | rev | cut -d/ -f1 | rev` ; \
 	    cp -a "$$SOURCE" ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
-	    sed 's/@@VERSION@@/${VERSION}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
+	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
 	done
 	find ${prefix}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
 	mkdir -m755 -p ${prefix}/share/doc/${debpackage}
@@ -215,9 +216,9 @@ install-deb-qigong-nomc:
 debian-qigong-full: 
 	make clean
 	make prefix=/usr qigong.rc
-	rm -rf ${workplace}/qigong-full-${VERSION}_"amd64"-`lsb_release -c -s`
-	make debpackage=qigong-full systarget=`lsb_release -c -s` prefix=${workplace}/qigong-full-${VERSION}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-full-${VERSION}_"amd64"-`lsb_release -c -s`/ install_qigong
-	make debpackage=qigong-full systarget=`lsb_release -c -s` prefix=${workplace}/qigong-full-${VERSION}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-full-${VERSION}_"amd64"-`lsb_release -c -s`/ install-deb-qigong-full
+	rm -rf ${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`
+	make debpackage=qigong-full systarget=`lsb_release -c -s` prefix=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install_qigong
+	make debpackage=qigong-full systarget=`lsb_release -c -s` prefix=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install-deb-qigong-full
 
 install-deb-qigong-full:
 	echo ${prefix}
@@ -236,7 +237,7 @@ install-deb-qigong-full:
 	    fi ;				    \
 	    SHORTNAME=`echo "$$NOM" | rev | cut -d/ -f1 | rev` ; \
 	    cp -a "$$SOURCE" ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
-	    sed 's/@@VERSION@@/${VERSION}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
+	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
 	done
 	find ${prefix}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
 	mkdir -m755 -p ${prefix}/share/doc/${debpackage}
@@ -251,9 +252,9 @@ debian-qigong: debian-qigong-full debian-qigong-nomc
 debian-qicollect: 
 	make clean
 	make prefix=/usr qicollect.rc
-	rm -rf ${workplace}/qicollect-${VERSION}_"amd64"-`lsb_release -c -s`
-	make debpackage=qicollect systarget=`lsb_release -c -s` prefix=${workplace}/qicollect-${VERSION}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qicollect-${VERSION}_"amd64"-`lsb_release -c -s`/ install_qicollect
-	make debpackage=qicollect systarget=`lsb_release -c -s` prefix=${workplace}/qicollect-${VERSION}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qicollect-${VERSION}_"amd64"-`lsb_release -c -s`/ install-deb-qicollect
+	rm -rf ${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`
+	make debpackage=qicollect systarget=`lsb_release -c -s` prefix=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install_qicollect
+	make debpackage=qicollect systarget=`lsb_release -c -s` prefix=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install-deb-qicollect
 
 install-deb-qicollect:
 	echo ${prefix}
@@ -272,7 +273,7 @@ install-deb-qicollect:
 	    fi ;				    \
 	    SHORTNAME=`echo "$$NOM" | rev | cut -d/ -f1 | rev` ; \
 	    cp -a "$$SOURCE" ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
-	    sed 's/@@VERSION@@/${VERSION}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
+	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
 	done
 	find ${prefix}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
 	mkdir -m755 -p ${prefix}/share/doc/${debpackage}
