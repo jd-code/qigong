@@ -197,18 +197,24 @@ namespace qiconn {
  */
 
 
-    CollectedConn::CollectedConn (int fd, struct sockaddr_in const &client_addr) : SocketConnection(fd, client_addr) {
+    CollectedConn::CollectedConn (int fd, struct sockaddr_in const &client_addr, const string &key) : CryptConnection(fd, client_addr, key) {
 	nbp = 0;
 	char buf[256];
 	if (gethostname (buf, 256) != 0)
 	    cerr << "could not get hostname : " << strerror (errno) << endl;
 	else
 	    hostname = buf;
+
+	setmaxpendsize (4096);
+    }
+
+    void CollectedConn::firstprompt (void) {
 	(*out) << version << " - host:" << hostname << endl << endl;
 	prompt = "qigong[" + hostname + "] : ";
 	(*out) << prompt << nbp++ << " : " << eos();
 	flush();
     }
+
     CollectedConn::~CollectedConn (void) {
 	map <RecordSet *, int>::iterator mi;
 	for (mi=subs.begin() ; mi!=subs.end() ; mi++)
@@ -226,6 +232,7 @@ namespace qiconn {
     }
     
     void CollectedConn::lineread (void) {
+// cerr << "[" << gettype() << "::" << getname() << "] got[" << bufin << "]" << endl;
 	string command;
 	size_t p;
 	//(*out) << "{" << bufin << "}" << endl;

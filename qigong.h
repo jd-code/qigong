@@ -12,6 +12,7 @@
 #include <iomanip>
 
 #include <qiconn/qiconn.h>
+#include "qicrypt.h"
 #include "qicommon.h"
 #include "qimeasure.h"
 
@@ -82,7 +83,7 @@ namespace qiconn {
     extern string prompt;
 #endif
 
-    class CollectedConn : public SocketConnection
+    class CollectedConn : public CryptConnection
     {
 	    int nbp;
 	public:
@@ -90,11 +91,18 @@ namespace qiconn {
 	    void add_subs (RecordSet * prs, bool completereg = true);
 	    void remove_subs (RecordSet * prs, bool completereg = true);
 	    virtual ~CollectedConn (void);
-	    CollectedConn (int fd, struct sockaddr_in const &client_addr);
+	    CollectedConn (int fd, struct sockaddr_in const &client_addr, const string &key);
+	    virtual void firstprompt (void);
 	    virtual void lineread (void);
 	    map <RecordSet *, int> subs;
 	    virtual void poll (void) {};
     };
+
+#ifdef QIGONG_H_GLOBINST
+string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3NDzWw==");
+#else
+extern string theKEY;
+#endif
 
     class SocketBinder : public ListeningSocket
     {
@@ -103,7 +111,7 @@ namespace qiconn {
 	    virtual const char * gettype (void) { return "SocketBinder"; }
 	    SocketBinder (int fd) : ListeningSocket (fd, "socketbinder") {}
 	    virtual SocketConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
-		return new CollectedConn (fd, client_addr);
+		return new CollectedConn (fd, client_addr, theKEY);
 	    }
 	    virtual void poll (void) {}
     };

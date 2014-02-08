@@ -59,7 +59,7 @@ namespace qiconn {
  */
     struct sockaddr_in empty_addr;
     
-    CollectingConn::CollectingConn (string const & fqdn, int port) : SocketConnection(-1, empty_addr) {
+    CollectingConn::CollectingConn (string const & fqdn, int port, const string &key) : CryptConnection(-1, empty_addr, key) {
 	CollectingConn::fqdn = fqdn;
 	CollectingConn::port = port;
 	lastattempt = 0;
@@ -69,6 +69,8 @@ namespace qiconn {
 	is_collecting = false;
 	waiting_pcs = NULL;
 	waiting_pcs_nextstate = collect;
+	
+	setmaxpendsize (4096);
     }
 
     bool CollectingConn::assign (CollectionSet * pcc) {
@@ -237,7 +239,10 @@ if (debug_ccstates) cerr <<  "[" << getname() << "] waiting for \"" << wait_stri
 		cerr << "error closing fd[" << fd << "] : " << strerror(e) << endl ;
 	    }
 	}
+	closecrypt();
 	fd = -1;
+schedule_for_destruction();
+return;
 	cp->push (this);
 	state = needtoconnect;
 	delay_reconnect = 1;
@@ -314,15 +319,14 @@ gromp = 0;
 			    cp->pull (this);
 			    fd = newfd;
 			    cp->push (this);
+			    opencrypt();
+
 			    MpCS::iterator mi;
 			    for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++)
 				mi->second->state = del_remote_for_create;
 			    pending = true;
-			    state = welcome;
-			    /* JDJDJDJD let's start the handshake straight away (helps against defferred connections) */
-			    (*out) << "qiging ?" << eos();
-			    flush();
-if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state welcome" << endl;
+			    state = challenging;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state challenging" << endl;
 			} else {
 			    lastattempt = time(NULL);
 			    if (newfd == -2) {
@@ -339,7 +343,7 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 				    delay_reconnect = 2;
 				} else if (delay_reconnect < 120) {
 				    delay_reconnect *= 2;
-				    delay_reconnect += (rand() % 2);
+				    delay_reconnect += (rand() % 5);
 				} else {
 				    delay_reconnect = 120 + (rand() % 10);
 				}
@@ -356,6 +360,14 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 	}
     }
     
+    void CollectingConn::firstprompt (void) {
+	/* JDJDJDJD let's start the handshake straight away (helps against defferred connections) */
+	(*out) << "qiging ?" << eos();
+	flush();
+	state = welcome;
+if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state welcome" << endl;
+    }
+
     CollectingConn::~CollectingConn (void) {
     }
     
@@ -1064,6 +1076,8 @@ if (debug_ccstates) cerr << "                                                   
      *  ------------------- Configuration : CollectionsConfEngine --------------------------------------------
      */
 
+string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3NDzWw==");
+
     void CollectionsConfEngine::startnpoll (ConnectionPool & cp) {
 	MpCS::iterator mi;
 	map<FQDNPort, CollectingConn *>::iterator mj;
@@ -1072,7 +1086,8 @@ if (debug_ccstates) cerr << "                                                   
 	    mj = mpcc.find(mi->second->get_fqdnport());	// do we already have a connection for that fqdn ?
 	    if (mj == mpcc.end()) {			// no we don't, lets create one
 		CollectingConn *pcc = new CollectingConn (  mi->second->get_fqdnport().fqdn.c_str(),
-							    mi->second->get_fqdnport().port
+							    mi->second->get_fqdnport().port,
+							    theKEY
 							 );
 		mpcc[mi->second->get_fqdnport()] = pcc;
 		cp.push(pcc);
