@@ -12,6 +12,7 @@
 #include <iomanip>
 
 #include <qiconn/qiconn.h>
+#include "qicrypt.h"
 #include "qicommon.h"
 #include "qimeasure.h"
 
@@ -211,7 +212,7 @@ namespace qiconn {
      *  ------------------- the collecting connections -------------------------------------------------------
      */
 
-    class CollectingConn : public SocketConnection
+    class CollectingConn : public CryptConnection
     {
 	private:
 	    string fqdn;
@@ -220,6 +221,7 @@ namespace qiconn {
 	    time_t delay_reconnect;
 	    typedef enum {
 		needtoconnect,
+		challenging,
 		welcome,
 		verify,
 		ready,
@@ -246,8 +248,9 @@ map <string,time_t> lastlatency;
 	public:
 	    virtual ~CollectingConn (void);
 	    virtual const char * gettype (void) { return "CollectingConn"; }
-	    CollectingConn (string const & fqdn, int port);
+	    CollectingConn (string const & fqdn, int port, const string &key);
 	    // CollectingConn (int fd, struct sockaddr_in const &client_addr);
+	    void firstprompt (void);
 	    virtual void lineread (void);
 	    ostream& get_out() { return *out; }
 	    bool assign (CollectionSet * pcc);
