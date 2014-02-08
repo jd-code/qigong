@@ -1,3 +1,8 @@
+chikung () all; urgency=low
+
+  * first beta test of qicrypt
+
+ -- Jean-Daniel PAUGET <qigong@nekodune.com>  Sat, 08 Feb 2014 22:46:00 +0200
 bozomake (1.2.15-0) squeeze; urgency=low
 
   * initial debianisation
