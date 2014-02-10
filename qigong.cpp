@@ -416,6 +416,7 @@ int main (int nb, char ** cmde) {
     int port = QICONNPORT;
     bool dofork = true;
 
+    const char *keyfile = "/etc/qigong/local.key.priv";
     string logfile = "/var/log/qigong.log",
 	   pidfile = "/var/run/qigong.pid";
     
@@ -433,6 +434,10 @@ int main (int nb, char ** cmde) {
 	    param_match (cmde[i], "-pidfile",		pidfile);
 	    param_match (cmde[i], "-logfile",		logfile);
 
+	    if (strncmp (cmde[i], "-localkey=", 10) == 0) {
+		keyfile = cmde[i]+10;
+	    }
+
 	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
 		dofork = false;
 	    }
@@ -441,13 +446,28 @@ int main (int nb, char ** cmde) {
 		return 0;
 	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
-		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [-pidfile=fname] [-logfile=fname] [--help] [--version]" << endl
+		cout << "usage : " << cmde[0] << " [-port N] [-localkey=keyfile] [-nofork] [-pidfile=fname] [-logfile=fname] [--help] [--version]" << endl
 		     << "                         [-debugresolver] [-debugtransmit] [-debugout] [-debuginput] [-debuglineread]" << endl
 		;
 		return 0;
 	    }
 	}
     }
+    {	// we read the local key file
+	ifstream fkey (keyfile);
+	if (!fkey) {
+	    int e = errno;
+	    cerr << "could not open localkey file : " << keyfile << " : "
+		 << strerror (e) << endl;
+	    return -1;
+	}
+	string key;
+	while (fkey) {
+	    key += fkey.get();
+	}
+	theKEY.swap (key);
+    }
+
 
     if (dofork) {
 	cerr_hook.hook (cerr, "qigong", LOG_NDELAY|LOG_NOWAIT|LOG_PID, LOG_DAEMON, LOG_ERR);
