@@ -5,6 +5,7 @@ man:
 
 all:
     dater les lignes de log
+    check permissions at keyfile reading
 
 rc.scripts:
     check for good start of daemons
