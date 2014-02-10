@@ -87,6 +87,18 @@ int main (int nb, char ** cmde) {
 
     string fulldest(cmde[1]);
 
+    string key;
+    {	ifstream fkey(cmde[2]);
+	if (!fkey) {
+	    int e = errno;
+	    cerr << "could not open file " << cmde[2] << " : " << strerror(e) << endl;
+	    return -1;
+	}
+	while (fkey) {
+	    key += fkey.get();
+	}
+    }
+
     int port;
     string dest;
     struct sockaddr_in so_in;
@@ -100,19 +112,29 @@ int main (int nb, char ** cmde) {
 	port = 1264;
     }
 
-    int sock = init_connect (dest.c_str(), port, &so_in);
+    int sock;
 
+    time_t ctimeout = 10;
+    time_t start = time(NULL);
+
+    while (	((sock = init_connect (dest.c_str(), port, &so_in)) <0)
+	    &&  (errno == EINPROGRESS)
+	    &&	((time(NULL)-start) < ctimeout)) {}
 
     if (sock < 0) {
 	int e = errno;
-	cerr << "could not connect to " << dest << ":" << port << " : " << strerror(e) << endl;
+	if (e == EINPROGRESS) {
+	    cerr << "could not connect to " << dest << ":" << port << " : connection attempt timed out" << endl;
+
+	} else {
+	    cerr << "could not connect to " << dest << ":" << port << " : " << strerror(e) << endl;
+	}
 	return 1;
     }
 
     OurPool cp;
     cp.init_signal ();
 
-    string key ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3NDzWw==");
 
     InteractivConn *remote = new InteractivConn(sock, so_in, key, &cp);
     if (remote == NULL) {
