@@ -4,7 +4,7 @@ qigong \- calculates timed metrics based send them back to qicollect
 .br
 .SH SYNOPSIS
 .B ./qigong
-.RI "[" "-port N" "] [" "-nofork" "] [" "-pidfile=fname" "] [" "-logfile=fname" "] [" "--help" "] [" "--version" "] [" "-debugresolver" "] [" "-debugtransmit" "] [" "-debugout" "] [" "-debuginput" "] [" "-debuglineread" "]"
+.RI "[" "-port N" "] [" "-localkey=keyfile" "] [" "-nofork" "] [" "-pidfile=fname" "] [" "-logfile=fname" "] [" "--help" "] [" "--version" "] [" "-debugresolver" "] [" "-debugtransmit" "] [" "-debugout" "] [" "-debuginput" "] [" "-debuglineread" "]"
 .SH DESCRIPTION
 .B qigong
 is tipically invoked at system init without any special parameter, all tunings beeing
@@ -30,11 +30,19 @@ daemon.
 .SH OPTIONS
 .SS 
 .RI "--port " "N"
-open port
+opens port
 .I N
 for listening incoming connections from
 .B qicollect
 daemons.
+.SS
+.RI "-localkey=" "keyfile"
+uses
+.I keyfile
+for providing the local encryption key.
+
+(default :
+.IR "/etc/qigong/local.key.priv" ")."
 .SS
 .RI "-nofork" ""
 do not fork and detach to background.

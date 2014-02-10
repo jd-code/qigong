@@ -99,7 +99,8 @@ namespace qiconn {
     };
 
 #ifdef QIGONG_H_GLOBINST
-string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3NDzWw==");
+// string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3NDzWw==");
+string theKEY ("Not a key");
 #else
 extern string theKEY;
 #endif
