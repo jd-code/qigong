@@ -249,7 +249,7 @@ namespace qiconn {
 		    << "  activate RecordSetIdent" << endl
 		    << "  subscribe|sub RecordSetIdent" << endl
 		    << "  unsubscribe|unsub RecordSetIdent" << endl
-		    << "  shutdown" << endl
+		    << "  turnoff" << endl
 		    << "  quit" << endl
 		    << endl;
 	    
@@ -258,9 +258,9 @@ namespace qiconn {
 	    (*out) << "ending connection" << endl;
 	    schedule_for_destruction ();
 	    
-	} else if (command=="shutdown") { // -----------------------------------------------------------------------------------------------
+	} else if (command=="turnoff") { // -----------------------------------------------------------------------------------------------
 	    
-	    (*out) << "entering shutdown" << endl;
+	    (*out) << "entering turnoff" << endl;
 	    if (cp != NULL)
 		cp->tikkle();
 	    
