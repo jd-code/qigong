@@ -4,7 +4,7 @@ qicollect \- collects and agregates metrics from qigong daemons
 .br
 .SH SYNOPSIS
 .B ./qicollect
-.RI "[" "-port N" "] [" "-nofork" "] [" "-pidfile=fname" "] [" "-logfile=fname" "] [" "--help" "] [" "-debugresolver" "] [" "-debugconnect" "] [" "-debugtransmit" "] [" "-checkconf" "] [" "-debugout" "] [" "-debuginput" "] [" "-debuglineread" "] [" "-debugccstates" "] [" "-conffile=fname" "] [" "-rrdpath=pathname" "] [" "--version" "]"
+.RI "[" "-port N" "] [" "-keydir=dir" "] [" "-nofork" "] [" "-pidfile=fname" "] [" "-logfile=fname" "] [" "--help" "] [" "-debugresolver" "] [" "-debugconnect" "] [" "-debugtransmit" "] [" "-checkconf" "] [" "-debugout" "] [" "-debuginput" "] [" "-debuglineread" "] [" "-debugccstates" "] [" "-conffile=fname" "] [" "-rrdpath=pathname" "] [" "--version" "]"
 .SH DESCRIPTION
 .B qicollect
 is tipically invoked at system init via rc-scripts. It reads its config file and
@@ -21,6 +21,9 @@ open port
 for listening incoming connections from
 .B qicollect
 daemons.
+.SS
+.RI "-keydir=" "dirname"
+sets the default directory for looking for crypt keys.
 .SS
 .RI "-nofork" ""
 do not fork and detach to background.
