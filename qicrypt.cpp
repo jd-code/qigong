@@ -11,6 +11,78 @@ namespace qiconn {
 
     using namespace std;
 
+static bool debugcrypt = false;
+
+    void setdebugcrypt (bool b) {
+	debugcrypt = b;
+    }
+
+    ostream& operator<< (ostream& cout, CryptConnectionChallengeState const& a) {
+	switch (a) {
+	    case    WaitingRemoteSalt:  return cout << "WaitingRemoteSalt";
+            case    WaitingHash      :  return cout << "WaitingHash";
+            case    WaitingChallenge :  return cout << "WaitingChallenge";
+            case    WaitingAnswer    :  return cout << "WaitingAnswer";
+            case    Refused          :  return cout << "Refused";
+            case    Accepted         :  return cout << "Accepted";
+	}
+	return cout;
+    }
+
+
+    int gen2sk (string &result, size_t askedsize, const string &salt1, const string &salt2, const string& data) {
+	char buf[64];
+	if (askedsize > 64)
+	    return -1;
+	keygenid algorithm = KEYGEN_S2K_SALTED;
+	if (mhash_keygen_uses_salt(algorithm) != 1) // no salt, not suitable then ...
+	    return -1;
+	size_t salt_size = mhash_get_keygen_salt_size (algorithm);
+	size_t halfsaltsize = salt_size>>1;
+	if ((salt1.size() < halfsaltsize)  || (salt2.size() < halfsaltsize))
+	    return -1;
+
+
+	KEYGEN keygen;
+
+	int nbalgo;
+	if ((nbalgo = mhash_keygen_uses_hash_algorithm (algorithm)) != 0) {
+	    for (int i=0 ; (i<nbalgo) && (i<2) ; i++) {
+		keygen.hash_algorithm[i] = MHASH_MD5;
+	    }
+	}
+	string salt(salt1, 0, halfsaltsize);
+	salt.append(salt2, 0, halfsaltsize);
+	keygen.salt_size = salt.size();
+	keygen.salt = (void *)salt.c_str();
+
+	if (mhash_keygen_uses_count (algorithm) == 1) {
+	    keygen.count = 2;
+	}
+
+	size_t datasize = data.size();
+	if (mhash_keygen_ext (algorithm, keygen, buf, askedsize, (mutils_word8 *)data.c_str(), datasize) <0)
+	    return -1;
+    
+	result.assign (buf, askedsize);
+	return 0;
+    }
+
+    int getsaltforurandom (string& salt, size_t l=4) {
+	size_t i;
+	salt.clear();
+	ifstream urandom("/dev/urandom");
+	if (!urandom) {
+	    return -1;
+	}
+	for (i=0 ; urandom && (i<l) ; i++) {
+	    salt += (char)urandom.get();
+	}
+	if (i != l)
+	    return -1;
+	return 0;
+    }
+
     static char encoding_table[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
 				    'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',                 
 				    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',                 
@@ -121,7 +193,189 @@ namespace qiconn {
 	return q;
     }
 
-    CryptConnection::CryptConnection (int fd, struct sockaddr_in const &client_addr, const string &crkeyb64) : 
+    QiCrKey::QiCrKey (const char *fname) :
+	key(NULL),
+	keysize(0),
+	IV(NULL),
+	IVsize(0),
+	valid(false)
+    {
+	ifstream fkey(fname);
+	if (!fkey) {
+	    int e=errno;
+	    cerr << "QiCrKey : could not read key from file " << fname << " : " << strerror(e);
+	    valid = false;
+	    return;
+	}
+	string rawkey;
+	while (fkey && !fkey.eof()) {
+	    string line;
+	    char c;
+	    while (fkey && !fkey.eof()) {
+		c = fkey.get();
+		
+		if (fkey.eof() || (c==10) || (c==13)) break;
+		line += c;
+	    }
+	    size_t i=0;   
+	    while (i < line.size()) {
+		while ((i<line.size()) && isspace(line[i])) i++;
+		if (i == line.size()) break; // empty line
+		if ((line[i]=='#') || (line[i] == ';')) break;	// skip comments
+		while ((i<line.size()) && (isbase64(line[i]) || line[i]=='=')) rawkey += line[i++];
+		rawkey += ' ';
+	    }
+	}
+if(debugcrypt) cerr << "rawkey = [" << rawkey << "]" << endl;
+	size_t p;
+	string t;
+	if ((p = base64_seekanddecode (rawkey, t)) == string::npos) {
+	    cerr << " QiCrKey(" << fname << ") : error at decoding base64 key" << endl;
+	    valid = false;
+	    return;
+	}
+	keysize = t.size();
+	key = (char *) malloc (keysize);
+	if (key == NULL) {
+	    cerr << "QiCrKey(" << fname << ") : could not allocate key !" << endl;
+	    valid = false;
+	    return;
+	}
+	memcpy ((void *)key, t.c_str(), keysize);
+
+	t.clear();
+	if ((p = base64_seekanddecode (rawkey, t, p)) == string::npos) {
+	    cerr << "QiCrKey(" << fname << ") : error at decoding base64 key (IV)" << endl;
+	    valid = false;
+	    return;
+	}
+
+	IVsize = t.size();
+	IV = (char *) malloc (IVsize);
+	if (IV == NULL) {
+	    cerr << "QiCrKey(" << fname << ") : could not allocate key (IV) !" << endl;
+	    valid = false;
+	    return;
+	}
+	memcpy ((void *)IV, t.c_str(), IVsize);
+
+	if ((p = base64_seekanddecode (rawkey, t, p)) == string::npos) {
+	    cerr << "QiCrKey(" << fname << ") : error at decoding base64 key (IV)" << endl;
+	    valid = false;
+	    return;
+	}
+	valid = true;
+    }
+
+    QiCrKey::~QiCrKey (void) {
+	valid = false;
+	if (key != NULL) free ((void *)key);
+	if (IV != NULL) free ((void *)IV);
+    }
+
+    string QiCrKey::getReadableID(void) {
+	string r(keyID.substr(4));
+	size_t i;
+static const char *digit = "0123456789abcdef";
+	for (i=0 ; (i<keyID.size()) && (i<4) ; i++) {
+	    r += digit[((int)keyID[i] >> 4) & 0x0f];
+	    r += digit[((int)keyID[i]     ) & 0x0f];
+	}
+	return r;
+    }
+
+    KeyRing::KeyRing () {}
+
+    KeyRing::~KeyRing (void) {
+	map<string,QiCrKey *>::iterator mi;
+	for (mi=mkeys.begin() ; mi!=mkeys.end() ; mi++)
+	    delete (mi->second);
+    }
+
+    void KeyRing::addkey (const char * fname) {
+	QiCrKey *nkey = new QiCrKey(fname);
+	if (nkey == NULL) {
+	    cerr << "KeyRing::addkey (" << fname << ") could not allocate QiCrKey" << endl;
+	    return;
+	}
+	if (!nkey->isvalid()) {
+	    delete (nkey);
+	    return;
+	}
+	map<string,QiCrKey *>::iterator mi = mkeys.find(nkey->getfullkeyID());
+	if (mi != mkeys.end()) {
+	    cerr << "KeyRing::addkey (" << fname << ") a key with ID=" << nkey->getReadableID()
+		 << " is a lready in keyring, skipped" << endl;
+	    delete (nkey);
+	    return;
+	}
+	mkeys[nkey->getfullkeyID()] = nkey;
+    }
+
+    void KeyRing::setwalletdir (const char *walletdir) {
+	KeyRing::walletdir = walletdir;
+    }
+
+    const QiCrKey * KeyRing::gentlyaddkey (const string &fname) {
+	string seekname;
+	if (walletdir.empty())
+	    seekname.append(fname);
+	else {
+	    seekname.append(walletdir);
+	    seekname.append("/");
+	    seekname.append(fname);
+	}
+	seekname.append(".key.priv");
+	
+	QiCrKey *nkey = new QiCrKey(seekname.c_str());
+	if (nkey == NULL) {
+	    cerr << "KeyRing::gentlyaddkey (" << seekname << ") could not allocate QiCrKey" << endl;
+	    return NULL;
+	}
+	if (!nkey->isvalid()) {
+	    delete (nkey);
+	    return NULL;
+	}
+	map<string,QiCrKey *>::iterator mi = mkeys.find(nkey->getfullkeyID());
+	if (mi != mkeys.end()) {
+	    delete (nkey);
+	    return mi->second;
+	} else {
+	    mkeys[nkey->getfullkeyID()] = nkey;
+	    return nkey;
+	}
+    }
+
+    QiCrKey * KeyRing::retreivekey (const string &salt1, const string &salt2, const string &hash) const {
+	map<string,QiCrKey *>::const_iterator mi;
+	for (mi=mkeys.begin() ; mi!=mkeys.end() ; mi++) {
+	    string lhash;
+	    if (gen2sk (lhash, 8, salt1, salt2, mi->second->getfullkeyID()) != 0) continue;   // on error skip
+if(debugcrypt) cerr << "KeyRing::retreivekey " << hexdump(lhash) 
+     << "                     " << hexdump(hash) << endl;
+	    if (lhash == hash)
+		return mi->second;
+	}
+	return NULL;
+    }
+
+    void QiCrKey::getkey (const char * &k, size_t &ks) const {
+	k = key, ks = keysize;
+    }
+
+    void QiCrKey::getIV (const char * &iv, size_t &ivs) const {
+	iv = IV, ivs = IVsize;
+    }
+
+    void CryptConnection::settlekey (QiCrKey const* qicrkey) {
+	CryptConnection::qicrkey = qicrkey;
+	qicrkey->getkey(key, keysize);
+	qicrkey->getIV(IVin, IVsize);
+	qicrkey->getIV(IVout, IVsize);
+	keyID = qicrkey->getfullkeyID ();
+    }
+
+    CryptConnection::CryptConnection (int fd, struct sockaddr_in const &client_addr, const KeyRing* keyring) : 
 	SocketConnection (fd, client_addr),
 	      key (NULL),
 	  keysize (0),
@@ -130,53 +384,74 @@ namespace qiconn {
 	   IVsize (0),
 	     tdin (MCRYPT_FAILED),
 	    tdout (MCRYPT_FAILED),
-      challenging (WaitingChallenge)
+      challenging (WaitingRemoteSalt),
+	  keyring (keyring),
+	  qicrkey (NULL),
+      issuplicant (false)
     {
-	string t;
-	size_t p;
-	if ((p = base64_seekanddecode (crkeyb64, t)) == string::npos) {
-	    cerr << "CryptConnection : error at decoding base64 key" << endl;
-	    flushandclose();
-	    return;
-	}
+	if (fd >= 0)
+	    opencrypt();
+    }
 
-	keysize = t.size();
-	key = (char *) malloc (keysize);
-	if (key == NULL) {
-	    cerr << "CryptConnection : could not allocate key !" << endl;
-	    flushandclose();
-	    return;
-	}
-	memcpy (key, t.c_str(), keysize);
-
-	t.clear();
-	if ((p = base64_seekanddecode (crkeyb64, t, p)) == string::npos) {
-	    cerr << "CryptConnection : error at decoding base64 key (IV)" << endl;
-	    flushandclose();
-	    return;
-	}
-
-	IVsize = t.size();
-	IVin = (char *) malloc (IVsize);
-	if (IVin == NULL) {
-	    cerr << "CryptConnection : could not allocate key (IVin) !" << endl;
-	    flushandclose();
-	    return;
-	}
-	memcpy (IVin, t.c_str(), IVsize);
-	IVout = (char *) malloc (IVsize);
-	if (IVout == NULL) {
-	    cerr << "CryptConnection : could not allocate key (IVout) !" << endl;
-	    flushandclose();
-	    return;
-	}
-	memcpy (IVout, t.c_str(), IVsize);
+    CryptConnection::CryptConnection (int fd, struct sockaddr_in const &client_addr, const QiCrKey* qicrkey) : 
+	SocketConnection (fd, client_addr),
+	      key (NULL),
+	  keysize (0),
+	     IVin (NULL),
+	    IVout (NULL),
+	   IVsize (0),
+	     tdin (MCRYPT_FAILED),
+	    tdout (MCRYPT_FAILED),
+      challenging (WaitingRemoteSalt),
+	  keyring (NULL),
+	  qicrkey (qicrkey),
+      issuplicant (true)
+    {
+//	string t;
+//	size_t p;
+//	if ((p = base64_seekanddecode (crkeyb64, t)) == string::npos) {
+//	    cerr << "CryptConnection : error at decoding base64 key" << endl;
+//	    flushandclose();
+//	    return;
+//	}
+//
+//	keysize = t.size();
+//	key = (char *) malloc (keysize);
+//	if (key == NULL) {
+//	    cerr << "CryptConnection : could not allocate key !" << endl;
+//	    flushandclose();
+//	    return;
+//	}
+//	memcpy (key, t.c_str(), keysize);
+//
+//	t.clear();
+//	if ((p = base64_seekanddecode (crkeyb64, t, p)) == string::npos) {
+//	    cerr << "CryptConnection : error at decoding base64 key (IV)" << endl;
+//	    flushandclose();
+//	    return;
+//	}
+//
+//	IVsize = t.size();
+//	IVin = (char *) malloc (IVsize);
+//	if (IVin == NULL) {
+//	    cerr << "CryptConnection : could not allocate key (IVin) !" << endl;
+//	    flushandclose();
+//	    return;
+//	}
+//	memcpy (IVin, t.c_str(), IVsize);
+//	IVout = (char *) malloc (IVsize);
+//	if (IVout == NULL) {
+//	    cerr << "CryptConnection : could not allocate key (IVout) !" << endl;
+//	    flushandclose();
+//	    return;
+//	}
+//	memcpy (IVout, t.c_str(), IVsize);
 
 	if (fd >= 0)
 	    opencrypt();
     }
 
-    void CryptConnection::opencrypt(void) {
+    void CryptConnection::reallycrypt(void) {
 	tdin = mcrypt_module_open((char *)"twofish", NULL, (char *)"cfb", NULL);
 	if (tdin==MCRYPT_FAILED) {
 	    cerr << "CryptConnection : could not init tdin mcrypt module" << endl;
@@ -190,7 +465,7 @@ namespace qiconn {
 	    flushandclose();
 	    return;
 	}
-	if (mcrypt_generic_init( tdin, key, keysize, IVin) < 0) {
+	if (mcrypt_generic_init( tdin, (void*)key, keysize, (void*)IVin) < 0) {
 	    cerr << "CryptConnection : error at tdin init" << endl;
 	    mcrypt_generic_end(tdin);
 	    tdin = MCRYPT_FAILED;
@@ -211,7 +486,7 @@ namespace qiconn {
 	    flushandclose();
 	    return;
 	}
-	if (mcrypt_generic_init( tdout, key, keysize, IVout) < 0) {
+	if (mcrypt_generic_init( tdout, (void*)key, keysize, (void*)IVout) < 0) {
 	    cerr << "CryptConnection : error at tdout init" << endl;
 	    mcrypt_generic_end(tdout);
 	    tdout = MCRYPT_FAILED;
@@ -219,7 +494,8 @@ namespace qiconn {
 	    return;
 	}
 
-	{   size_t i;
+	    size_t i;
+	    challenge.clear();
 	    ifstream urandom("/dev/urandom");
 	    if (!urandom) {
 		int e = errno;
@@ -228,14 +504,24 @@ namespace qiconn {
 		return;
 	    }
 	    for (i=0 ; i<64 ; i++) {
-		char c = (char)urandom.get();
-		challenge += isalnum(c) ? c : '-';
-		// challenge += (char)urandom.get();
+		challenge += (char)urandom.get();
 	    }
-	    challenging = WaitingChallenge;
+if(debugcrypt) cerr << "challenge=" << hexdump(challenge) << endl;
 	    (*out) << challenge;
-	    flush ();
+	    flush();
+    }
+
+    void CryptConnection::opencrypt(void) {
+	if (getsaltforurandom (salt1, 4) != 0) {
+	    int e = errno;
+	    cerr << "CryptConnection : could not salt1 from /dev/urandom : " << strerror (e) << endl;
+	    challenging = Refused;
+	    flushandclose();
 	}
+	(*out) << salt1;
+if(debugcrypt) cerr << "salt1=" << hexdump(salt1) << endl;
+	challenging = WaitingRemoteSalt;
+	flush ();
     }
 
     void CryptConnection::closecrypt(void) {
@@ -252,15 +538,15 @@ namespace qiconn {
     CryptConnection::~CryptConnection (void) {
 	closecrypt();
 
-	if (IVout != NULL) free (IVout);
+	// if (IVout != NULL) free (IVout);
 	IVout = NULL;
 
-	if (IVin != NULL) free (IVin);
+	// if (IVin != NULL) free (IVin);
 	IVin = NULL;
 
 	IVsize = 0;
 
-	if (key != NULL) free (key);	
+	// if (key != NULL) free (key);	
 	key = NULL;
 
 	keysize = 0;
@@ -336,17 +622,22 @@ if (debug_lineread) {
 	if (base64_decode (bufin, temp) != 0) r++;
 	bufin.clear();
 
-	char buf[2048];
-	size_t p;
-	size_t s = temp.size();
+	if (tdin != MCRYPT_FAILED) {
+	    char buf[2048];
+	    size_t p;
+	    size_t s = temp.size();
 
-	for (p=0 ; p<s ; p+= 2048) {
-	    size_t bs = min(s-p,2048);
-	    memcpy (buf, temp.c_str()+p, bs);
-	    if (mdecrypt_generic (tdin, (void *)buf, bs) != 0)
-		r++;
-	    else
-		temp.assign (buf,bs);
+	    for (p=0 ; p<s ; p+= 2048) {
+		size_t bs = min(s-p,2048);
+		memcpy (buf, temp.c_str()+p, bs);
+		if (mdecrypt_generic (tdin, (void *)buf, bs) != 0)
+		    r++;
+		else
+		    temp.assign (buf,bs);
+	    }
+	} else if ((challenging != WaitingRemoteSalt) && (challenging != WaitingHash)) {
+cerr << "CryptConnection::prelineread " << gettype() << "::" << getname() << " skipping lineread datas because of strange condition : "  << challenging << "!" << endl;
+	    return;
 	}
 
 	if (r!=0) { // JDJDJDJD this is rather strict and prevails over the application ...
@@ -358,7 +649,69 @@ if (debug_lineread) {
 
 	if (challenging != Accepted) {
 	    switch (challenging) {
+		case WaitingRemoteSalt: {
+		    string &salt2 = temp;
+if(debugcrypt) cerr << "salt2=" << hexdump(salt2) << endl;
+		    string salt3;
+		    if (getsaltforurandom (salt3, 4) != 0) {
+			int e = errno;
+			cerr << gettype() << "::" << getname() << " could not salt3 from /dev/urandom : " << strerror (e) << endl;
+			challenging = Refused;
+			flushandclose();
+		    } else {
+			string hash;
+			const string &hashdata = keyID;
+			if (gen2sk (hash, 8, salt2, salt3, hashdata) != 0) {
+cerr << gettype() << "::" << getname() << " gen2sk failed : closing" << endl;
+			    challenging = Refused;
+			    flushandclose();
+			} else {
+if(debugcrypt) cerr << "salt3=" << hexdump(salt3) << endl;
+			    (*out) << salt3;
+if(debugcrypt) cerr << "hashout=" << hexdump(hash) << endl;
+			    (*out) << hash;
+			    flush();
+if(debugcrypt) cerr << gettype() << "::" << getname() << " challenging = WaitingHash" << endl;
+			    challenging = WaitingHash;
+			}
+		    }
+		  }
+		  return;
+
+		case WaitingHash:
+		    {	string salt4(temp,0,4);
+if(debugcrypt) cerr << "salt4=" << hexdump(salt4) << endl;
+			string hash(temp,4);
+if(debugcrypt) cerr << "hash_in=" << hexdump(hash) << endl;
+			if ((!issuplicant) && (keyring != NULL)) {
+			    QiCrKey * matchkey = keyring->retreivekey (salt1, salt4, hash);
+			    if (matchkey == NULL) {
+				cerr << gettype() << "::" << getname() << " could not find matching key in keyring : closing" << endl;
+				challenging = Refused;
+				flushandclose();
+			    } else {
+				settlekey (matchkey);
+if(debugcrypt) cerr << gettype() << "::" << getname() << " challenging = WaitingChallenge" << endl;
+				reallycrypt();
+				challenging = WaitingChallenge;
+			    }
+			} else { // yet no verification on hash on supllicant side ...
+			    if (qicrkey != NULL) {
+				settlekey (qicrkey);
+if(debugcrypt) cerr << gettype() << "::" << getname() << " challenging = WaitingChallenge [2]" << endl;
+				reallycrypt();
+				challenging = WaitingChallenge;
+			    } else {
+				cerr << gettype() << "::" << getname() << " we're supplicant side and don't have a key : closing" << endl;
+				challenging = Refused;
+				flushandclose();
+			    }
+			}
+		    }
+		    return;
+
 		case WaitingChallenge:
+if(debugcrypt) cerr << "challenge=" << hexdump(temp) << endl;
 		    if (temp == challenge) {
 			challenging = Refused;
 cerr << gettype() << "::" << getname() << " got mirror challenge : closing" << endl;
@@ -444,9 +797,14 @@ if (debug_lineread) {
 
 	    bufout += 10;
 	    bufout += 13;
-	    if (cp != NULL)
-		cp->reqw (fd);
+	} else if ((challenging == WaitingRemoteSalt) || (challenging == WaitingHash)) {
+	    base64_encode (out->str(), bufout);
+
+	    bufout += 10;
+	    bufout += 13;
 	}
+	if (cp != NULL)
+	    cp->reqw (fd);
 	delete (out);
 	out = new stringstream ();
     }

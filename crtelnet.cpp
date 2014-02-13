@@ -32,7 +32,7 @@ class InteractivConn : public CryptConnection {
     InteractivConn ** extref;
     OurPool *pool;
   public:
-    InteractivConn (int fd, struct sockaddr_in const &client_addr, const string &key, OurPool *pool);
+    InteractivConn (int fd, struct sockaddr_in const &client_addr, const QiCrKey* qicrkey, OurPool *pool);
     virtual void lineread (void);
 
     inline virtual string getname (void) { return "InteractivConn"; }
@@ -48,8 +48,8 @@ InteractivConn::~InteractivConn (void) {
     pool->askforexit("[connection closed]");
 }
 
-InteractivConn::InteractivConn (int fd, struct sockaddr_in const &client_addr, const string &key, OurPool *pool)
-    : CryptConnection (fd, client_addr, key), extref(NULL), pool(pool)
+InteractivConn::InteractivConn (int fd, struct sockaddr_in const &client_addr, const QiCrKey* qicrkey, OurPool *pool)
+    : CryptConnection (fd, client_addr, qicrkey), extref(NULL), pool(pool)
     {}
 
 void InteractivConn::lineread (void) {
@@ -87,17 +87,19 @@ int main (int nb, char ** cmde) {
 
     string fulldest(cmde[1]);
 
-    string key;
-    {	ifstream fkey(cmde[2]);
-	if (!fkey) {
-	    int e = errno;
-	    cerr << "could not open file " << cmde[2] << " : " << strerror(e) << endl;
-	    return -1;
-	}
-	while (fkey) {
-	    key += fkey.get();
-	}
-    }
+    QiCrKey qicrkey(cmde[2]);
+
+//    string key;
+//    {	ifstream fkey(cmde[2]);
+//	if (!fkey) {
+//	    int e = errno;
+//	    cerr << "could not open file " << cmde[2] << " : " << strerror(e) << endl;
+//	    return -1;
+//	}
+//	while (fkey) {
+//	    key += fkey.get();
+//	}
+//    }
 
     int port;
     string dest;
@@ -136,7 +138,7 @@ int main (int nb, char ** cmde) {
     cp.init_signal ();
 
 
-    InteractivConn *remote = new InteractivConn(sock, so_in, key, &cp);
+    InteractivConn *remote = new InteractivConn(sock, so_in, &qicrkey, &cp);
     if (remote == NULL) {
 	cerr << "could not allocate InteractivConn" << endl;
 	::close (sock);
