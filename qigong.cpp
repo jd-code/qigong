@@ -419,6 +419,7 @@ int main (int nb, char ** cmde) {
     const char *keyfile = "/etc/qigong/local.key.priv";
     string logfile = "/var/log/qigong.log",
 	   pidfile = "/var/run/qigong.pid";
+    bool debug_crypt = false;
     
     {	int i;
 	for (i=1 ; i<nb ; i++) {
@@ -427,6 +428,7 @@ int main (int nb, char ** cmde) {
 		i++;
 	    }
 	    param_match (cmde[i], "-debugresolver",	debug_resolver);
+	    param_match (cmde[i], "-debugcrypt",	debug_crypt);
 	    param_match (cmde[i], "-debugtransmit",	debug_transmit);
 	    param_match (cmde[i], "-debugout",		debug_dummyout);
 	    param_match (cmde[i], "-debuginput",	debug_dummyin);
@@ -452,6 +454,7 @@ int main (int nb, char ** cmde) {
 		return 0;
 	    }
 	}
+	setdebugcrypt (debug_crypt);
     }
     {	//	// we read the local key file
 	//	ifstream fkey (keyfile);
