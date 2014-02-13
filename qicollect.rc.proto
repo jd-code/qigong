@@ -18,7 +18,7 @@ DESC="status collecting daemon"
 NAME="qicollect"
 DAEMON="@@PREFIX@@/sbin/${NAME}"
 PIDFILE="/var/run/${NAME}.pid"
-CONFFILE="/etc/qicollect.conf"
+CONFFILE="/etc/qicollect/qicollect.conf"
 SCRIPTNAME="/etc/init.d/${NAME}"
 USER=qicollect
 

@@ -1139,7 +1139,7 @@ int main (int nb, char ** cmde) {
     
     string logfile ("/var/log/qicollect.log"),
 	   pidfile ("/var/run/qicollect.pid"),
-	   conffile ("/etc/qicollect.conf"),
+	   conffile ("/etc/qicollect/qicollect.conf"),
 	   walletdir ("/etc/qicollect/keys");
     
     {	int i;
