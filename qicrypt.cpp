@@ -61,7 +61,7 @@ static bool debugcrypt = false;
 	}
 
 	size_t datasize = data.size();
-	if (mhash_keygen_ext (algorithm, keygen, buf, askedsize, (mutils_word8 *)data.c_str(), datasize) <0)
+	if (mhash_keygen_ext (algorithm, keygen, buf, askedsize, (mutils_word8 *)data.c_str(), datasize) != MUTILS_OK)
 	    return -1;
     
 	result.assign (buf, askedsize);

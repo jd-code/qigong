@@ -58,17 +58,16 @@ void InteractivConn::lineread (void) {
 
 class ConsoleHook : public BufConnection {
     InteractivConn *remote;
-    OurPool *pool;
   public:
-    ConsoleHook (int fd, InteractivConn *remote, OurPool *pool);
+    ConsoleHook (int fd, InteractivConn *remote);
     virtual void lineread (void);
 
     inline virtual string getname (void) { return "ConsoleHook"; }
     virtual const char * gettype (void) { return "ConsoleHook"; }
 };
 
-ConsoleHook::ConsoleHook (int fd, InteractivConn *remote, OurPool *pool)
-    : BufConnection (fd), remote(remote), pool(pool) {
+ConsoleHook::ConsoleHook (int fd, InteractivConn *remote)
+    : BufConnection (fd), remote(remote) {
     if (remote != NULL)
 	remote->setextref (&(this->remote));
 }
@@ -145,7 +144,7 @@ int main (int nb, char ** cmde) {
 	return 1;
     }
 
-    ConsoleHook *consolehook = new ConsoleHook(0, remote, &cp);
+    ConsoleHook *consolehook = new ConsoleHook(0, remote);
     if (consolehook == NULL) {
 	cerr << "could not allocate console hook" << endl;
 	delete (remote);
