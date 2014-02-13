@@ -100,6 +100,7 @@ namespace qiconn {
 	    int port;		// port for connection
 	    FQDNPort fp;	// fqdn name and port for connection
 	    string key, fullkey;
+	    QiCrKey const* qicrkey;
 	    list<TaggedMeasuredPoint*> lptagmp;
 	    list<CollectFreqDuration> lfreq;
 	    CollectingConn *pcc;
@@ -108,9 +109,10 @@ namespace qiconn {
 	public:
 	    CSState state;
 
-	    inline CollectionSet (string serverkey, string name, string metaname, string fqdn, int port=1264) {
+	    inline CollectionSet (string serverkey, string name, string metaname, string fqdn, QiCrKey const* qicrkey=NULL, int port=1264) {
 		CollectionSet::name = name;
 		CollectionSet::metaname = metaname;
+		CollectionSet::qicrkey = qicrkey;
 		fp = FQDNPort(fqdn, port);
 		// CollectionSet::fqdn = fqdn;
 		// CollectionSet::port = port;
@@ -144,6 +146,9 @@ namespace qiconn {
 	    }
 	    inline FQDNPort const& get_fqdnport (void) const {
 		return fp;
+	    }
+	    inline const QiCrKey * get_qicrkey(void) const {
+		return qicrkey;
 	    }
 
 	    int validate_freqs (void);
@@ -248,7 +253,7 @@ map <string,time_t> lastlatency;
 	public:
 	    virtual ~CollectingConn (void);
 	    virtual const char * gettype (void) { return "CollectingConn"; }
-	    CollectingConn (string const & fqdn, int port, const string &key);
+	    CollectingConn (string const & fqdn, int port, const QiCrKey* qicrKey);
 	    // CollectingConn (int fd, struct sockaddr_in const &client_addr);
 	    void firstprompt (void);
 	    virtual void lineread (void);

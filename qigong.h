@@ -91,7 +91,7 @@ namespace qiconn {
 	    void add_subs (RecordSet * prs, bool completereg = true);
 	    void remove_subs (RecordSet * prs, bool completereg = true);
 	    virtual ~CollectedConn (void);
-	    CollectedConn (int fd, struct sockaddr_in const &client_addr, const string &key);
+	    CollectedConn (int fd, struct sockaddr_in const &client_addr, KeyRing* keyring);
 	    virtual void firstprompt (void);
 	    virtual void lineread (void);
 	    map <RecordSet *, int> subs;
@@ -100,9 +100,9 @@ namespace qiconn {
 
 #ifdef QIGONG_H_GLOBINST
 // string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3NDzWw==");
-string theKEY ("Not a key");
+KeyRing keyring;
 #else
-extern string theKEY;
+extern KeyRing keyring;
 #endif
 
     class SocketBinder : public ListeningSocket
@@ -112,7 +112,7 @@ extern string theKEY;
 	    virtual const char * gettype (void) { return "SocketBinder"; }
 	    SocketBinder (int fd) : ListeningSocket (fd, "socketbinder") {}
 	    virtual SocketConnection* connection_binder (int fd, struct sockaddr_in const &client_addr) {
-		return new CollectedConn (fd, client_addr, theKEY);
+		return new CollectedConn (fd, client_addr, &keyring);
 	    }
 	    virtual void poll (void) {}
     };
