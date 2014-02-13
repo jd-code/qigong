@@ -227,6 +227,7 @@ if (debug_ccstates) cerr <<  "[" << getname() << "] waiting for \"" << wait_stri
 	    case ready:
 	    case timeout:
 	    case needtoconnect:
+	    case challenging:
 		break;
 	}
     }
