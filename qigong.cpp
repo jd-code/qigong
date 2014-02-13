@@ -197,7 +197,7 @@ namespace qiconn {
  */
 
 
-    CollectedConn::CollectedConn (int fd, struct sockaddr_in const &client_addr, const string &key) : CryptConnection(fd, client_addr, key) {
+    CollectedConn::CollectedConn (int fd, struct sockaddr_in const &client_addr, KeyRing* keyring) : CryptConnection(fd, client_addr, keyring) {
 	nbp = 0;
 	char buf[256];
 	if (gethostname (buf, 256) != 0)
@@ -453,19 +453,20 @@ int main (int nb, char ** cmde) {
 	    }
 	}
     }
-    {	// we read the local key file
-	ifstream fkey (keyfile);
-	if (!fkey) {
-	    int e = errno;
-	    cerr << "could not open localkey file : " << keyfile << " : "
-		 << strerror (e) << endl;
-	    return -1;
-	}
-	string key;
-	while (fkey) {
-	    key += fkey.get();
-	}
-	theKEY.swap (key);
+    {	//	// we read the local key file
+	//	ifstream fkey (keyfile);
+	//	if (!fkey) {
+	//	    int e = errno;
+	//	    cerr << "could not open localkey file : " << keyfile << " : "
+	//		 << strerror (e) << endl;
+	//	    return -1;
+	//	}
+	//	string key;
+	//	while (fkey) {
+	//	    key += fkey.get();
+	//	}
+	//	theKEY.swap (key);
+	keyring.addkey (keyfile);
     }
 
 

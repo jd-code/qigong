@@ -108,14 +108,16 @@ WATCHCONNvimtest: watchconn all
 
 
 vimtest: all
-	# ./crtelnet 127.0.0.1:1290 lkjlkj
-	# exit 0
+	# ./crtelnet 127.0.0.1:1364 localhost.key.priv
+	# exit 1
 	### ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
 	killall qigong || true
 	 # ./qigong           -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
-	 ./qigong   -nofork -localkey=test.key.priv       -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 2>&1   &
+	rm -f localhost.key.priv
+	./qigenkey localhost
+	 ./qigong   -nofork -localkey=localhost.key.priv       -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 2>&1   &
 	rm -f *.rrd
-	./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 
+	./qicollect -keydir=. -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 
 	# ./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log ) 
 
 testqigong: qigong
@@ -128,21 +130,21 @@ qicollect.rc: qicollect.rc.proto
 	sed "s=@@PREFIX@@=${prefix}=g" < qicollect.rc.proto > qicollect.rc
 
 qicollect: qicollect.o qicrypt.o qiconn/qiconn.o qimeasure.o
-	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qicollect  qicollect.o qicrypt.o qiconn/qiconn.o qimeasure.o -L /usr/local/lib -lrrd -lmemcached `mysql_config --libs` -lmcrypt
+	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qicollect  qicollect.o qicrypt.o qiconn/qiconn.o qimeasure.o -L /usr/local/lib -lrrd -lmemcached `mysql_config --libs` -lmcrypt -lmhash
 
 qigong: qigong.o qiconn/qiconn.o qimeasure.o qicrypt.o
-	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qigong qigong.o qiconn/qiconn.o qicrypt.o qimeasure.o -lmemcached `mysql_config --libs` -lmcrypt
+	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qigong qigong.o qiconn/qiconn.o qicrypt.o qimeasure.o -lmemcached `mysql_config --libs` -lmcrypt -lmhash
 
 
 qigong-nomc: qigong.o qiconn/qiconn.o qimeasure-nomc.o qicrypt.o
-	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qigong-nomc qigong.o qiconn/qiconn.o qicrypt.o qimeasure-nomc.o -lmcrypt
+	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qigong-nomc qigong.o qiconn/qiconn.o qicrypt.o qimeasure-nomc.o -lmcrypt -lmhash
 
 
 
-qigong.o: qigong.cpp qiconn/qiconn.o qigong.h qimeasure.h
+qigong.o: qigong.cpp qiconn/qiconn.o qigong.h qimeasure.h qicrypt.h
 	g++ ${DEBUG} ${INCLUDE} -DQIVERSION="\"${VERSION}\"" `mysql_config --cflags` -Wall -c qigong.cpp
 
-qicollect.o: qicollect.cpp qiconn/include/qiconn/qiconn.h qicollect.h qimeasure.h
+qicollect.o: qicollect.cpp qiconn/include/qiconn/qiconn.h qicollect.h qimeasure.h qicrypt.h
 	g++ ${DEBUG} ${INCLUDE} -DQIVERSION="\"${VERSION}\"" `mysql_config --cflags` -Wall -c qicollect.cpp
 
 
@@ -164,13 +166,13 @@ qigenkey.o: qigenkey.cpp qicrypt.h
 	g++ ${DEBUG} ${INCLUDE} -Wall -c qigenkey.cpp
 
 qigenkey: qigenkey.o qicrypt.o qiconn/qiconn.o
-	g++ ${DEBUG} ${INCLUDE} -Wall -o qigenkey qigenkey.o  qicrypt.o qiconn/qiconn.o -lmcrypt
+	g++ ${DEBUG} ${INCLUDE} -Wall -o qigenkey qigenkey.o  qicrypt.o qiconn/qiconn.o -lmcrypt -lmhash
 
 crtelnet.o: crtelnet.cpp qicrypt.h
 	g++ ${DEBUG} ${INCLUDE} -Wall -c crtelnet.cpp
 
 crtelnet: crtelnet.o qicrypt.o qiconn/qiconn.o
-	g++ ${DEBUG} ${INCLUDE} -Wall -o crtelnet crtelnet.o  qicrypt.o qiconn/qiconn.o -lmcrypt
+	g++ ${DEBUG} ${INCLUDE} -Wall -o crtelnet crtelnet.o  qicrypt.o qiconn/qiconn.o -lmcrypt -lmhash
 
 
 qigong.h: qicommon.h

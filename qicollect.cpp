@@ -59,7 +59,7 @@ namespace qiconn {
  */
     struct sockaddr_in empty_addr;
     
-    CollectingConn::CollectingConn (string const & fqdn, int port, const string &key) : CryptConnection(-1, empty_addr, key) {
+    CollectingConn::CollectingConn (string const & fqdn, int port, const QiCrKey* qicrKey) : CryptConnection(-1, empty_addr, qicrKey) {
 	CollectingConn::fqdn = fqdn;
 	CollectingConn::port = port;
 	lastattempt = 0;
@@ -626,10 +626,13 @@ if (debug_ccstates) cerr << "                                                   
 	    CollectionSet* pcurcs;
 	    // the currently built CollectFreqDuration
 	    CollectFreqDuration freq;
+
+	    // the reference keyring
+	    KeyRing& keyring;
 	    
 	    void safeclose (void);
 	public:
-	    ReadConf (void) {}
+	    ReadConf (KeyRing &keyring) : keyring(keyring) {}
 	    int readconf (istream& cin, CollectionsConf &conf);
     };
 
@@ -915,7 +918,7 @@ if (debug_ccstates) cerr << "                                                   
 				cerr << "line: " << line << " : no host or service currently declared cannot create CollectionSet" << endl;
 				safeclose() ; return -1;
 			    }
-			    pcurcs = new CollectionSet (serverkey, curcs_name, metaname, curcs_fqdn, curcs_port);
+			    pcurcs = new CollectionSet (serverkey, curcs_name, metaname, curcs_fqdn, keyring.gentlyaddkey(curcs_fqdn), curcs_port);
 			    if (pcurcs == NULL) {
 				cerr << "line: " << line << " : could not allocate CollectionSet(" << curcs_name << ") : "
 				     << strerror(errno) << endl;
@@ -928,7 +931,7 @@ if (debug_ccstates) cerr << "                                                   
 				cerr << "line: " << line << " : no host or service currently declared cannot create CollectionSet" << endl;
 				safeclose() ; return -1;
 			    }
-			    pcurcs = new CollectionSet (serverkey, curcs_name, metaname, curcs_fqdn);
+			    pcurcs = new CollectionSet (serverkey, curcs_name, metaname, curcs_fqdn, keyring.gentlyaddkey(curcs_fqdn));
 			    if (pcurcs == NULL) {
 				cerr << "line: " << line << " : could not allocate CollectionSet(" << curcs_name << ") : "
 				     << strerror(errno) << endl;
@@ -1087,7 +1090,7 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
 	    if (mj == mpcc.end()) {			// no we don't, lets create one
 		CollectingConn *pcc = new CollectingConn (  mi->second->get_fqdnport().fqdn.c_str(),
 							    mi->second->get_fqdnport().port,
-							    theKEY
+							    mi->second->get_qicrkey()
 							 );
 		mpcc[mi->second->get_fqdnport()] = pcc;
 		cp.push(pcc);
@@ -1135,7 +1138,8 @@ int main (int nb, char ** cmde) {
     
     string logfile ("/var/log/qicollect.log"),
 	   pidfile ("/var/run/qicollect.pid"),
-	   conffile ("/etc/qicollect.conf");
+	   conffile ("/etc/qicollect.conf"),
+	   walletdir ("/etc/qicollect/keys");
     
     {	int i;
 	for (i=1 ; i<nb ; i++) {
@@ -1151,6 +1155,7 @@ int main (int nb, char ** cmde) {
 	    param_match (cmde[i], "-debuglineread",	debug_lineread);
 	    param_match (cmde[i], "-pidfile",		pidfile);
 	    param_match (cmde[i], "-logfile",		logfile);
+	    param_match (cmde[i], "-keydir",		walletdir);
 
 	    param_match (cmde[i], "-checkconf",		checkconfonly);
 
@@ -1166,13 +1171,16 @@ int main (int nb, char ** cmde) {
 		return 0;
 	    }
 	    if (strncmp (cmde[i], "--help", 6) == 0) {
-		cout << "usage : " << cmde[0] << " [-port N] [-nofork] [-pidfile=fname] [-logfile=fname] [--help]" << endl
+		cout << "usage : " << cmde[0] << " [-port N] [-keydir=dir] [-nofork] [-pidfile=fname] [-logfile=fname] [--help]" << endl
 		     << "                         [-debugresolver] [-debugconnect] [-debugtransmit] [-checkconf] [-debugout] [-debuginput] [-debuglineread]" << endl
 		     << "                         [-debugccstates] [-conffile=fname] [-rrdpath=pathname] [--version]" << endl;
 		return 0;
 	    }
 	}
     }
+
+    KeyRing keyring;
+    keyring.setwalletdir (walletdir.c_str());
 
     if (dofork) {
 	cerr_hook.hook (cerr, "qicollect", LOG_NDELAY|LOG_NOWAIT|LOG_PID, LOG_DAEMON, LOG_ERR);
@@ -1201,7 +1209,7 @@ int main (int nb, char ** cmde) {
 	return -1;
     }
     int nberr;
-    ReadConf rc;
+    ReadConf rc(keyring);
     if ((nberr = rc.readconf (fconf, runconfig)) != 0) {
 	cerr << "there were errors reading conf file \"" << conffile << "\"" << endl;
 	return -1;
