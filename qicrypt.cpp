@@ -318,7 +318,7 @@ static const char *digit = "0123456789abcdef";
 
     const QiCrKey * KeyRing::gentlyaddkey (const string &fname) {
 	string seekname;
-	if (walletdir.empty())
+	if (walletdir.empty() || (fname[0]=='/'))
 	    seekname.append(fname);
 	else {
 	    seekname.append(walletdir);
