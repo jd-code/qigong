@@ -1,12 +1,25 @@
 
-#DEBUG=
-DEBUG=-g
 prefix=/usr/local
 rcprefix=/
 SHELL=/bin/sh
 VERSION=1.10.1
 DEBSUBV=000
 INCLUDE=-Iqiconn/include
+
+# for linux
+DEBUG=-g
+CPPFLAGS=${DEBUG}
+INCLUDE=-Iqiconn/include 
+MYSQLCONFIG=mysql_config
+
+# for macosX
+#DEBUG=-g -stdlib=libstdc++
+#CPPFLAGS=-stdlib=libstdc++ -Wnon-virtual-dtor ${DEBUG}
+#LDFLAGS=-L/opt/local/lib
+#INCLUDE=-I/opt/local/include -Iqiconn/include
+#MYSQLCONFIG=/opt/local/lib/mysql55/bin/mysql_config
+
+USEMYSQL=-DUSEMYSQL
 
 # be careful with one : it is destroyed at cleaning !!!
 # it is needed only to build debian packages
@@ -21,6 +34,7 @@ default:
 	@echo "interesting targets : all , install , install_qigong ..."
 
 all: qigong qicollect qigong.rc qicollect.rc qigong-nomc qigenkey crtelnet
+otherall: qigong qigong.rc qicollect.rc qigong-nomc qigenkey crtelnet
 
 allstrip: all
 	strip qigong qicollect qigong-nomc
@@ -107,14 +121,12 @@ WATCHCONNvimtest: watchconn all
 	./watchconn -help
 
 
-vimtest: all
+vimtest: all localhost.key.priv
 	# ./crtelnet 127.0.0.1:1364 localhost.key.priv
 	# exit 1
 	### ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
 	killall qigong || true
 	 # ./qigong           -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
-	rm -f localhost.key.priv
-	./qigenkey localhost
 	 ./qigong   -nofork -localkey=localhost.key.priv       -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 2>&1   &
 	rm -f *.rrd
 	./qicollect -keydir=. -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 
@@ -130,49 +142,49 @@ qicollect.rc: qicollect.rc.proto
 	sed "s=@@PREFIX@@=${prefix}=g" < qicollect.rc.proto > qicollect.rc
 
 qicollect: qicollect.o qicrypt.o qiconn/qiconn.o qimeasure.o
-	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qicollect  qicollect.o qicrypt.o qiconn/qiconn.o qimeasure.o -L /usr/local/lib -lrrd -lmemcached `mysql_config --libs` -lmcrypt -lmhash
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} `${MYSQLCONFIG} --cflags` -Wall -o qicollect  qicollect.o qicrypt.o qiconn/qiconn.o qimeasure.o -L /usr/local/lib -lrrd -lmemcached `${MYSQLCONFIG} --libs` -lmcrypt -lmhash
 
 qigong: qigong.o qiconn/qiconn.o qimeasure.o qicrypt.o
-	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qigong qigong.o qiconn/qiconn.o qicrypt.o qimeasure.o -lmemcached `mysql_config --libs` -lmcrypt -lmhash
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} `${MYSQLCONFIG} --cflags` -Wall -o qigong qigong.o qiconn/qiconn.o qicrypt.o qimeasure.o -lmemcached `${MYSQLCONFIG} --libs` -lmcrypt -lmhash
 
 
 qigong-nomc: qigong.o qiconn/qiconn.o qimeasure-nomc.o qicrypt.o
-	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -o qigong-nomc qigong.o qiconn/qiconn.o qicrypt.o qimeasure-nomc.o -lmcrypt -lmhash
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} `${MYSQLCONFIG} --cflags` -Wall -o qigong-nomc qigong.o qiconn/qiconn.o qicrypt.o qimeasure-nomc.o -lmcrypt -lmhash
 
 
 
 qigong.o: qigong.cpp qiconn/qiconn.o qigong.h qimeasure.h qicrypt.h
-	g++ ${DEBUG} ${INCLUDE} -DQIVERSION="\"${VERSION}\"" `mysql_config --cflags` -Wall -c qigong.cpp
+	g++ ${CPPFLAGS} ${INCLUDE} -DQIVERSION="\"${VERSION}\"" `${MYSQLCONFIG} --cflags` -Wall -c qigong.cpp
 
 qicollect.o: qicollect.cpp qiconn/include/qiconn/qiconn.h qicollect.h qimeasure.h qicrypt.h
-	g++ ${DEBUG} ${INCLUDE} -DQIVERSION="\"${VERSION}\"" `mysql_config --cflags` -Wall -c qicollect.cpp
+	g++ ${CPPFLAGS} ${INCLUDE} -DQIVERSION="\"${VERSION}\"" `${MYSQLCONFIG} --cflags` -Wall -c qicollect.cpp
 
 
 
 qiconn/qiconn.o: qiconn/qiconn.cpp qiconn/include/qiconn/qiconn.h
-	( export MAKEDEBUG=${DEBUG} ; cd qiconn ; make qiconn.o )
+	( export MAKEDEBUG="${DEBUG}" ; cd qiconn ; make qiconn.o )
 
 qimeasure-nomc.o: qimeasure.cpp qimeasure.h
-	g++ ${DEBUG} ${INCLUDE} `mysql_config --cflags` -Wall -c qimeasure.cpp -o qimeasure-nomc.o
+	g++ ${CPPFLAGS} ${INCLUDE} `${MYSQLCONFIG} --cflags` -Wall -c qimeasure.cpp -o qimeasure-nomc.o
 
 qimeasure.o: qimeasure.cpp qimeasure.h
-	g++ ${DEBUG} ${INCLUDE} -DUSEMEMCACHED -DUSEMYSQL `mysql_config --cflags` -Wall -c qimeasure.cpp
+	g++ ${CPPFLAGS} ${INCLUDE} -DUSEMEMCACHED -DUSEMYSQL `${MYSQLCONFIG} --cflags` -Wall -c qimeasure.cpp
 
 
 qicrypt.o: qicrypt.cpp qicrypt.h qiconn/include/qiconn/qiconn.h
-	g++ ${DEBUG} ${INCLUDE} -Wall -c qicrypt.cpp
+	g++ ${CPPFLAGS} ${INCLUDE} -Wall -c qicrypt.cpp
 
 qigenkey.o: qigenkey.cpp qicrypt.h
-	g++ ${DEBUG} ${INCLUDE} -Wall -c qigenkey.cpp
+	g++ ${CPPFLAGS} ${INCLUDE} -Wall -c qigenkey.cpp
 
 qigenkey: qigenkey.o qicrypt.o qiconn/qiconn.o
-	g++ ${DEBUG} ${INCLUDE} -Wall -o qigenkey qigenkey.o  qicrypt.o qiconn/qiconn.o -lmcrypt -lmhash
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} -Wall -o qigenkey qigenkey.o  qicrypt.o qiconn/qiconn.o -lmcrypt -lmhash
 
 crtelnet.o: crtelnet.cpp qicrypt.h
-	g++ ${DEBUG} ${INCLUDE} -Wall -c crtelnet.cpp
+	g++ ${CPPFLAGS} ${INCLUDE} -Wall -c crtelnet.cpp
 
 crtelnet: crtelnet.o qicrypt.o qiconn/qiconn.o
-	g++ ${DEBUG} ${INCLUDE} -Wall -o crtelnet crtelnet.o  qicrypt.o qiconn/qiconn.o -lmcrypt -lmhash
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} -Wall -o crtelnet crtelnet.o  qicrypt.o qiconn/qiconn.o -lmcrypt -lmhash
 
 
 qigong.h: qicommon.h
@@ -181,12 +193,16 @@ qicollect.h: qicommon.h
 
 qimeasure.h: qicommon.h
 
+localhost.key.priv: qigenkey
+	./qigenkey localhost
+
 clean:
 	rm -f qigong.o qigong qicollect.o qicollect qimeasure.o watchconn.o watchconn qimeasure-nomc.o qigong-nomc
 	rm -f qigenkey.o crtelnet.o qicrypt.o qigenkey crtelnet
 	rm -f qigong.rc qicollect.rc
 	rm -f testqigong.log testqicoll.log
 	rm -f *_testlastfile.rrd *_testfiles.rrd  *_testglobal.rrd  *_testnet.rrd *_testmem.rrd *_testload.rrd *_testfree.rrd
+	rm -f localhost.key.priv
 	rm -f qigong-*.tgz
 	rm -rf chikung-doc/*
 	cd qiconn ; make clean
