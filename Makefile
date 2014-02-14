@@ -51,8 +51,10 @@ install_qigong: qigong qigong.rc qigenkey crtelnet
 	chmod 700 ./installscript
 	./installscript "${prefix}" qigong "${rcprefix}"
 
-install_qigong-nomc: qigong-nomc qigong.rc
+install_qigong-nomc: qigong-nomc qigong.rc qigenkey crtelnet
 	strip qigong-nomc
+	strip qigenkey
+	strip crtelnet
 	cp -a qigong-nomc qigong
 	./installscript "${prefix}" qigong "${rcprefix}"
 	rm qigong

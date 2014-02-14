@@ -83,25 +83,23 @@ then
 	if [ "$ABSOLUTE" = YES ]
 	then
 	    DEST="/etc/default/${NOM}"
-	else
-	    DEST="${ABSOLUTE}/etc/default/${NOM}"
-	fi
 
-	checkcreatedestdir "${DEST}"
-	if [ -e "${DEST}" ]
-	then
-	    mv "${DEST}" "${DEST}-${BACKUP_TAG}"
+	    checkcreatedestdir "${DEST}"
+	    if [ -e "${DEST}" ]
+	    then
+		mv "${DEST}" "${DEST}-${BACKUP_TAG}"
+	    fi
+	    if [ "$ABSOLUTE" = YES ]
+	    then
+		echo "KEYFILE=\""`hostname`.key.priv"\"" > "${DEST}"
+		mkdir -p /etc/qigong
+		mkdir -p /etc/qigong/keys
+		chmod 750 /etc/qigong
+		chmod 700 /etc/qigong/keys
+		cd /etc/qigong/keys && qigenkey `hostname`
+	    fi
+	    chmod 644 "${DEST}"
 	fi
-	if [ "$ABSOLUTE" = YES ]
-	then
-	    echo "KEYFILE=\""`hostname`.key.priv"\"" > "${DEST}"
-	    mkdir -p /etc/qigong
-	    mkdir -p /etc/qigong/keys
-	    chmod 750 /etc/qigong
-	    chmod 700 /etc/qigong/keys
-	    cd /etc/qigong/keys && qigenkey `hostname`
-	fi
-	chmod 644 "${DEST}"
     done
 fi
 
