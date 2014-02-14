@@ -23,7 +23,7 @@ USEMYSQL=-DUSEMYSQL
 
 # be careful with one : it is destroyed at cleaning !!!
 # it is needed only to build debian packages
-workplace=/tmp/chikung-build-$$USER
+workplace=/tmp/qigong-build-$$USER
 
 
 # mysql lib dev package : libmysqlclient-dev
