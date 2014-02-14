@@ -5,7 +5,7 @@ Section: admin
 Priority: optional
 Architecture: amd64
 Depends: bash (>=3.1), libc6, libmemcached10, libmysqlclient18, librrd
-Pre-Depends: debconf
+Pre-Depends: debconf, adduser
 Suggests: qigong
 Installed-Size: 1024
 Maintainer: Pauget Jean-Daniel <debmaint@nekodune.com>

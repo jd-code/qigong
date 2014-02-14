@@ -1,10 +1,14 @@
-chikung () all; urgency=low
+qigong (1.10.1-000) wheezy squeeze lucid precise; urgency=high
 
-  * first beta test of qicrypt
+  * dedicated system user addition
+  * change of conf file scheme
+  * addition of dedicated db placeholder
 
- -- Jean-Daniel PAUGET <qigong@nekodune.com>  Sat, 08 Feb 2014 22:46:00 +0200
-bozomake (1.2.15-0) squeeze; urgency=low
+ -- Jean-Daniel PAUGET <qigong@nekodune.com>  Fri, 14 Feb 2014 12:30:00 +0200
+
+qigong (1.9.14-0) squeeze; urgency=low
 
   * initial debianisation
 
  -- Jean-Daniel PAUGET <qigong@nekodune.com>  Mon, 27 Jan 2014 22:07:00 +0200
+

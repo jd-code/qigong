@@ -314,6 +314,7 @@ install-deb-qicollect:
 	    cp -a "$$SOURCE" ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
 	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
 	done
+	mkdir -p ${rcprefix}/etc/qicollect/keys
 	find ${prefix}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
 	mkdir -m755 -p ${prefix}/share/doc/${debpackage}
 	gzip -f -9 -c ChangeLog > ${prefix}/share/doc/${debpackage}/changelog.gz
