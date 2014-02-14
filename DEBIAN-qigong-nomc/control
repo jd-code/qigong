@@ -4,7 +4,7 @@ Homepage: http://qigong.nekodune.com/
 Section: admin
 Priority: optional
 Architecture: amd64
-Depends: bash (>=3.1), libc6
+Depends: bash (>=3.1), libc6, libmhash2, libmcrypt4
 Pre-Depends: debconf
 Provides: qigong
 Conflicts: qigong-full
