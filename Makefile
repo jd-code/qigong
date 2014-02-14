@@ -3,7 +3,7 @@ prefix=/usr/local
 rcprefix=/
 SHELL=/bin/sh
 VERSION=1.10.1
-DEBSUBV=001
+DEBSUBV=002
 INCLUDE=-Iqiconn/include
 
 # for linux
@@ -44,8 +44,10 @@ install: allstrip
 	./installscript "${prefix}"
 	# update-rc.d qigong start 20 2 3 4 5 . stop 20 0 1 6 .
 
-install_qigong: qigong qigong.rc
+install_qigong: qigong qigong.rc qigenkey crtelnet
 	strip qigong
+	strip qigenkey
+	strip crtelnet
 	chmod 700 ./installscript
 	./installscript "${prefix}" qigong "${rcprefix}"
 
@@ -243,11 +245,12 @@ install-deb-qigong-nomc:
 	    cp -a "$$SOURCE" ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
 	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
 	done
+	mkdir -p ${rcprefix}/etc/qigong/keys
 	find ${prefix}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
 	mkdir -m755 -p ${prefix}/share/doc/${debpackage}
 	gzip -f -9 -c ChangeLog > ${prefix}/share/doc/${debpackage}/changelog.gz
 	gzip -f -9 -c DEBIAN-qigong-nomc/changelog.Debian > ${prefix}/share/doc/${debpackage}/changelog.Debian.gz
-	cp DEBIAN-common/copyright ${prefix}/share/doc/${debpackage}
+	cp DEBIAN-all/copyright ${prefix}/share/doc/${debpackage}
 	(export DEBNAME=`echo ${prefix} | rev | cut -d/ -f2 | rev` ; cd ${prefix}/../.. ; ls -ld $$DEBNAME ; fakeroot dpkg-deb --build $$DEBNAME ; lintian $$DEBNAME.deb)
 	
 	
@@ -278,11 +281,12 @@ install-deb-qigong-full:
 	    cp -a "$$SOURCE" ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
 	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
 	done
+	mkdir -p ${rcprefix}/etc/qigong/keys
 	find ${prefix}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
 	mkdir -m755 -p ${prefix}/share/doc/${debpackage}
 	gzip -f -9 -c ChangeLog > ${prefix}/share/doc/${debpackage}/changelog.gz
 	gzip -f -9 -c DEBIAN-qigong-full/changelog.Debian > ${prefix}/share/doc/${debpackage}/changelog.Debian.gz
-	cp DEBIAN-common/copyright ${prefix}/share/doc/${debpackage}
+	cp DEBIAN-all/copyright ${prefix}/share/doc/${debpackage}
 	(export DEBNAME=`echo ${prefix} | rev | cut -d/ -f2 | rev` ; cd ${prefix}/../.. ; ls -ld $$DEBNAME ; fakeroot dpkg-deb --build $$DEBNAME ; lintian $$DEBNAME.deb)
 	
 .PHONY: debian-qigong
@@ -319,7 +323,7 @@ install-deb-qicollect:
 	mkdir -m755 -p ${prefix}/share/doc/${debpackage}
 	gzip -f -9 -c ChangeLog > ${prefix}/share/doc/${debpackage}/changelog.gz
 	gzip -f -9 -c DEBIAN-qicollect/changelog.Debian > ${prefix}/share/doc/${debpackage}/changelog.Debian.gz
-	cp DEBIAN-common/copyright ${prefix}/share/doc/${debpackage}
+	cp DEBIAN-all/copyright ${prefix}/share/doc/${debpackage}
 	(export DEBNAME=`echo ${prefix} | rev | cut -d/ -f2 | rev` ; cd ${prefix}/../.. ; ls -ld $$DEBNAME ; fakeroot dpkg-deb --build $$DEBNAME ; lintian $$DEBNAME.deb)
 	
 

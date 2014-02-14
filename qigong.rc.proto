@@ -18,8 +18,15 @@ DAEMON="@@PREFIX@@/sbin/${NAME}"
 PIDFILE="/var/run/${NAME}.pid"
 SCRIPTNAME="/etc/init.d/${NAME}"
 
+if [ ! -f /etc/default/"${NAME}" ]
+then
+    echo "$@" " : missing /etc/default/${NAME}"
+    exit 1
+fi
+source /etc/default/"${NAME}"
+
 d_start() {
-	"${DAEMON}" -pidfile "${PIDFILE}"
+	"${DAEMON}" -pidfile "${PIDFILE}" -localkey="${KEYFILE}"
 }
 
 d_stop() {

@@ -4,8 +4,9 @@ PREFIX="${1}"
 
 case "${2}" in
     "qigong")
-	SBINTARGET="qigong"
+	SBINTARGET="qigong qigenkey crtelnet"
 	INITTARGET="qigong"
+	DEFAULTTARGET="qigong"
 	MANTARGET="qigong.8"
 	;;
     "qicollect")
@@ -14,8 +15,9 @@ case "${2}" in
 	MANTARGET="qicollect.8"
 	;;
     *)
-	SBINTARGET="qigong qicollect"
+	SBINTARGET="qigong qicollect qigenkey crtelnet"
 	INITTARGET="qigong qicollect"
+	MANTARGET="qigong.8 qicollect.8"
 	;;
 esac
 
@@ -73,6 +75,35 @@ do
     cp "${NOM}".rc "${DEST}"
     chmod 755 "${DEST}"
 done
+
+if [ ${DEFAULTTARGET} ]
+then
+    for NOM in ${DEFAULTTARGET}
+    do
+	if [ "$ABSOLUTE" = YES ]
+	then
+	    DEST="/etc/default/${NOM}"
+	else
+	    DEST="${ABSOLUTE}/etc/default/${NOM}"
+	fi
+
+	checkcreatedestdir "${DEST}"
+	if [ -e "${DEST}" ]
+	then
+	    mv "${DEST}" "${DEST}-${BACKUP_TAG}"
+	fi
+	if [ "$ABSOLUTE" = YES ]
+	then
+	    echo "KEYFILE=\""`hostname`.key.priv"\"" > "${DEST}"
+	    mkdir -p /etc/qigong
+	    mkdir -p /etc/qigong/keys
+	    chmod 750 /etc/qigong
+	    chmod 700 /etc/qigong/keys
+	    cd /etc/qigong/keys && qigenkey `hostname`
+	fi
+	chmod 644 "${DEST}"
+    done
+fi
 
 for NOM in ${MANTARGET}
 do
