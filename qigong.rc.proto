@@ -23,7 +23,7 @@ then
     echo "$@" " : missing /etc/default/${NAME}"
     exit 1
 fi
-source /etc/default/"${NAME}"
+. /etc/default/"${NAME}"
 
 d_start() {
 	"${DAEMON}" -pidfile "${PIDFILE}" -localkey="${KEYFILE}"

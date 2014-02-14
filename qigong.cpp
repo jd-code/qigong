@@ -416,7 +416,8 @@ int main (int nb, char ** cmde) {
     int port = QICONNPORT;
     bool dofork = true;
 
-    const char *keyfile = "/etc/qigong/local.key.priv";
+    const char *keyfile = "/etc/qigong/keys/local.key.priv";
+    string wallet = "/etc/qigong/keys";
     string logfile = "/var/log/qigong.log",
 	   pidfile = "/var/run/qigong.pid";
     bool debug_crypt = false;
@@ -456,20 +457,13 @@ int main (int nb, char ** cmde) {
 	}
 	setdebugcrypt (debug_crypt);
     }
-    {	//	// we read the local key file
-	//	ifstream fkey (keyfile);
-	//	if (!fkey) {
-	//	    int e = errno;
-	//	    cerr << "could not open localkey file : " << keyfile << " : "
-	//		 << strerror (e) << endl;
-	//	    return -1;
-	//	}
-	//	string key;
-	//	while (fkey) {
-	//	    key += fkey.get();
-	//	}
-	//	theKEY.swap (key);
-	keyring.addkey (keyfile);
+    {	string kf;
+	if (keyfile[0] == '/')
+	    kf.assign(keyfile);
+	else
+	    kf = wallet + '/' + keyfile;
+	
+	keyring.addkey (kf.c_str());
     }
 
 
