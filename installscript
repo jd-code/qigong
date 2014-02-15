@@ -13,11 +13,14 @@ case "${2}" in
 	SBINTARGET="qicollect"
 	INITTARGET="qicollect"
 	MANTARGET="qicollect.8"
+	SRVTARGET="qicollect"
 	;;
     *)
 	SBINTARGET="qigong qicollect qigenkey crtelnet"
 	INITTARGET="qigong qicollect"
+	DEFAULTTARGET="qigong"
 	MANTARGET="qigong.8 qicollect.8"
+	SRVTARGET="qicollect"
 	;;
 esac
 
@@ -99,6 +102,23 @@ then
 		cd /etc/qigong/keys && qigenkey `hostname`
 	    fi
 	    chmod 644 "${DEST}"
+	fi
+    done
+fi
+
+if [ ${SRVTARGET} ]
+then
+    for NOM in ${SRVTARGET}
+    do
+	if [ "$ABSOLUTE" = YES ]
+	then
+	    mkdir -p /srv/"$NOM"
+	    chown "$NOM":"$NOM" /srv/"$NOM"
+	    chmod 755 /srv/"$NOM"
+
+	    mkdir -p /srv/"$NOM"/rrd
+	    chown "$NOM":"$NOM"  /srv/"$NOM"/rrd
+	    chmod 755 -p /srv/"$NOM"/rrd
 	fi
     done
 fi

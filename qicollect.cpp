@@ -80,7 +80,7 @@ namespace qiconn {
 	return true;
     }
 
-    string rrd_path = "/home/qicollect/rrd";
+    string rrd_path = "/srv/qicollect/rrd";
 
     void CollectingConn::lineread (void) {
 // cerr << "[" << getname() << "] got[" << bufin << "]" << endl;

@@ -8,7 +8,9 @@ all:
     check permissions at keyfile reading
 
 rc.scripts:
-    check for good start of daemons
+    [ok]    check for good start of daemons
+	    script should be more silent (no pid file found (/var/run/qigong.pid) and so on ..)
+    
 
 qicollect:
     create a default random serverkey (instead of empty ??)
