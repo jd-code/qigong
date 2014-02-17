@@ -3,12 +3,12 @@ prefix=/usr/local
 rcprefix=/
 SHELL=/bin/sh
 VERSION=1.10.1
-DEBSUBV=005
+DEBSUBV=006
 INCLUDE=-Iqiconn/include
 
 # for linux
 DEBUG=-g
-CPPFLAGS=${DEBUG}
+CPPFLAGS=${DEBUG} -Wall
 INCLUDE=-Iqiconn/include 
 MYSQLCONFIG=mysql_config
 
@@ -131,9 +131,9 @@ vimtest: all localhost.key.priv
 	### ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
 	killall qigong || true
 	 # ./qigong           -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
-	 ./qigong   -nofork -localkey=`pwd`/localhost.key.priv       -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 2>&1   &
+	 ./qigong   -debugcrypt -nofork -localkey=`pwd`/localhost.key.priv       -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 2>&1   &
 	rm -f *.rrd
-	./qicollect -keydir=. -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 
+	./qicollect -debugcrypt -keydir=. -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 
 	# ./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log ) 
 
 testqigong: qigong
@@ -198,6 +198,7 @@ qicollect.h: qicommon.h
 qimeasure.h: qicommon.h
 
 localhost.key.priv: qigenkey
+	rm -f localhost.key.priv
 	./qigenkey localhost
 
 clean:

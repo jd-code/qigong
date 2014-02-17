@@ -11,7 +11,7 @@ namespace qiconn {
 
     using namespace std;
 
-static bool debugcrypt = false;
+static bool debugcrypt = true;
 
     void setdebugcrypt (bool b) {
 	debugcrypt = b;
@@ -311,6 +311,7 @@ static const char *digit = "0123456789abcdef";
 	    delete (nkey);
 	    return;
 	}
+if(debugcrypt) cerr << "KeyRing::addkey += " << nkey->getReadableID () << endl;;
 	mkeys[nkey->getfullkeyID()] = nkey;
     }
 
@@ -344,6 +345,7 @@ static const char *digit = "0123456789abcdef";
 	    return mi->second;
 	} else {
 	    mkeys[nkey->getfullkeyID()] = nkey;
+if(debugcrypt) cerr << "KeyRing::gentlyaddkey += " << nkey->getReadableID () << endl;;
 	    return nkey;
 	}
     }
@@ -454,6 +456,12 @@ if (debugcrypt) cerr << gettype() << "::" << getname() << " settlekey " << qicrk
 //	}
 //	memcpy (IVout, t.c_str(), IVsize);
 
+	// this below can easily be "overloaded" at need by derivated constructors
+	if (qicrkey != NULL) {
+	    keyID.assign(qicrkey->getfullkeyID());
+if(debugcrypt) cerr << "CryptConnection with " << qicrkey->getReadableID () << endl;
+	}
+
 	if (fd >= 0)
 	    opencrypt();
     }
@@ -526,7 +534,7 @@ if(debugcrypt) cerr << gettype() << "::" << getname() << " challenge=" << hexdum
 	    flushandclose();
 	}
 	(*out) << salt1;
-if(debugcrypt) cerr << gettype() << "::" << getname() << " salt1=" << hexdump(salt1) << endl;
+if(debugcrypt) cerr << "salt1=" << hexdump(salt1) << endl;
 	challenging = WaitingRemoteSalt;
 	flush ();
     }
