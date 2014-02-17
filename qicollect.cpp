@@ -242,11 +242,14 @@ if (debug_ccstates) cerr <<  "[" << getname() << "] waiting for \"" << wait_stri
 	}
 	closecrypt();
 	fd = -1;
-schedule_for_destruction();
-return;
 	cp->push (this);
+
+	if (state == challenging)
+	    failconnect_treat (false); // crypto-failed connection, not straight error ...
+	else
+	    delay_reconnect = 1;
+
 	state = needtoconnect;
-	delay_reconnect = 1;
 if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state needtoconnect" << endl;
     }
 
@@ -329,27 +332,11 @@ gromp = 0;
 			    state = challenging;
 if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state challenging" << endl;
 			} else {
-			    lastattempt = time(NULL);
 			    if (newfd == -2) {
-				if (delay_reconnect < 10) {
-				    delay_reconnect = 10;
-				} else if (delay_reconnect < 3600) {
-				    delay_reconnect *= 2;
-				    delay_reconnect += (rand() % 10);
-				} else {
-				    delay_reconnect = 3600 + (rand() % 100);
-				}
+				failconnect_treat (false);
 			    } else {
-				if (delay_reconnect < 2) {
-				    delay_reconnect = 2;
-				} else if (delay_reconnect < 120) {
-				    delay_reconnect *= 2;
-				    delay_reconnect += (rand() % 5);
-				} else {
-				    delay_reconnect = 120 + (rand() % 10);
-				}
+				failconnect_treat (true);
 			    }
-			    cerr << "connection to " << fqdn << ":" << port << " failed, next attempt in " << delay_reconnect << "s" << endl;
 gromp ++;
 if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->attempt to connect failed " << gromp << endl;
 			}
@@ -360,7 +347,31 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 		break;
 	}
     }
-    
+   
+    void CollectingConn::failconnect_treat (bool straightfail) {
+	lastattempt = time(NULL);
+	if (straightfail) {
+	    if (delay_reconnect < 2) {
+		delay_reconnect = 2;
+	    } else if (delay_reconnect < 120) {
+		delay_reconnect *= 2;
+		delay_reconnect += (rand() % 5);
+	    } else {
+		delay_reconnect = 120 + (rand() % 10);
+	    }
+	} else {    // timeout or encryption fail
+	    if (delay_reconnect < 10) {
+		delay_reconnect = 10;
+	    } else if (delay_reconnect < 3600) {
+		delay_reconnect *= 2;
+		delay_reconnect += (rand() % 10);
+	    } else {
+		delay_reconnect = 3600 + (rand() % 100);
+	    }
+	}
+	cerr << "connection to " << fqdn << ":" << port << " failed, next attempt in " << delay_reconnect << "s" << endl;
+    }
+ 
     void CollectingConn::firstprompt (void) {
 	/* JDJDJDJD let's start the handshake straight away (helps against defferred connections) */
 	(*out) << "qiging ?" << eos();

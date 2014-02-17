@@ -455,7 +455,6 @@ int main (int nb, char ** cmde) {
 		return 0;
 	    }
 	}
-cerr << "debug_crypt=" << (debug_crypt ? "yesy" : "nonon" ) << endl;
 	setdebugcrypt (debug_crypt);
     }
     {	string kf;

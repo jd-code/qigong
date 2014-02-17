@@ -261,6 +261,7 @@ map <string,time_t> lastlatency;
 	    bool assign (CollectionSet * pcc);
 	    virtual void poll (void);
 	    virtual void reconnect_hook (void);
+	    void failconnect_treat (bool straightfail);
     };
 
 

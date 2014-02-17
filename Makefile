@@ -3,12 +3,12 @@ prefix=/usr/local
 rcprefix=/
 SHELL=/bin/sh
 VERSION=1.10.1
-DEBSUBV=006
+DEBSUBV=007
 INCLUDE=-Iqiconn/include
 
 # for linux
 DEBUG=-g
-CPPFLAGS=${DEBUG} -Wall
+CPPFLAGS=${DEBUG}
 INCLUDE=-Iqiconn/include 
 MYSQLCONFIG=mysql_config
 
