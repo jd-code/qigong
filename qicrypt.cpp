@@ -11,7 +11,7 @@ namespace qiconn {
 
     using namespace std;
 
-static bool debugcrypt = true;
+static bool debugcrypt = false;
 
     void setdebugcrypt (bool b) {
 	debugcrypt = b;

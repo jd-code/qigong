@@ -1,3 +1,9 @@
+qigong (1.10.2-000) wheezy squeeze lucid precise; urgency=high
+
+  * crypto chalenging cleanup
+
+ -- Jean-Daniel PAUGET <qigong@nekodune.com>  Fri, 17 Feb 2014 19:30:00 +0200
+
 qigong-full (1.9.14-0) squeeze; urgency=low
 
   * initial debianisation
