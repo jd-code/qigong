@@ -203,7 +203,7 @@ static bool debugcrypt = false;
 	ifstream fkey(fname);
 	if (!fkey) {
 	    int e=errno;
-	    cerr << "QiCrKey : could not read key from file " << fname << " : " << strerror(e);
+	    cerr << "QiCrKey : could not read key from file " << fname << " : " << strerror(e) << endl;
 	    valid = false;
 	    return;
 	}
@@ -259,11 +259,13 @@ if(debugcrypt) cerr << "rawkey = [" << rawkey << "]" << endl;
 	}
 	memcpy ((void *)IV, t.c_str(), IVsize);
 
+	t.clear();
 	if ((p = base64_seekanddecode (rawkey, t, p)) == string::npos) {
-	    cerr << "QiCrKey(" << fname << ") : error at decoding base64 key (IV)" << endl;
+	    cerr << "QiCrKey(" << fname << ") : error at decoding base64 key (keyID)" << endl;
 	    valid = false;
 	    return;
 	}
+	keyID.assign(t);
 	valid = true;
     }
 
@@ -273,7 +275,7 @@ if(debugcrypt) cerr << "rawkey = [" << rawkey << "]" << endl;
 	if (IV != NULL) free ((void *)IV);
     }
 
-    string QiCrKey::getReadableID(void) {
+    string QiCrKey::getReadableID(void) const {
 	string r(keyID.substr(4));
 	size_t i;
 static const char *digit = "0123456789abcdef";
@@ -368,11 +370,16 @@ if(debugcrypt) cerr << "KeyRing::retreivekey " << hexdump(lhash)
     }
 
     void CryptConnection::settlekey (QiCrKey const* qicrkey) {
+	if (qicrkey == NULL) {
+	    cerr << gettype() << "::" << getname() << " settlekey called with NULL" << endl;
+	    return;
+	}
 	CryptConnection::qicrkey = qicrkey;
 	qicrkey->getkey(key, keysize);
 	qicrkey->getIV(IVin, IVsize);
 	qicrkey->getIV(IVout, IVsize);
 	keyID = qicrkey->getfullkeyID ();
+if (debugcrypt) cerr << gettype() << "::" << getname() << " settlekey " << qicrkey->getReadableID () << endl;
     }
 
     CryptConnection::CryptConnection (int fd, struct sockaddr_in const &client_addr, const KeyRing* keyring) : 
@@ -506,7 +513,7 @@ if(debugcrypt) cerr << "KeyRing::retreivekey " << hexdump(lhash)
 	    for (i=0 ; i<64 ; i++) {
 		challenge += (char)urandom.get();
 	    }
-if(debugcrypt) cerr << "challenge=" << hexdump(challenge) << endl;
+if(debugcrypt) cerr << gettype() << "::" << getname() << " challenge=" << hexdump(challenge) << endl;
 	    (*out) << challenge;
 	    flush();
     }
@@ -519,7 +526,7 @@ if(debugcrypt) cerr << "challenge=" << hexdump(challenge) << endl;
 	    flushandclose();
 	}
 	(*out) << salt1;
-if(debugcrypt) cerr << "salt1=" << hexdump(salt1) << endl;
+if(debugcrypt) cerr << gettype() << "::" << getname() << " salt1=" << hexdump(salt1) << endl;
 	challenging = WaitingRemoteSalt;
 	flush ();
     }
@@ -651,7 +658,7 @@ cerr << "CryptConnection::prelineread " << gettype() << "::" << getname() << " s
 	    switch (challenging) {
 		case WaitingRemoteSalt: {
 		    string &salt2 = temp;
-if(debugcrypt) cerr << "salt2=" << hexdump(salt2) << endl;
+if(debugcrypt) cerr << gettype() << "::" << getname() << " salt2=" << hexdump(salt2) << endl;
 		    string salt3;
 		    if (getsaltforurandom (salt3, 4) != 0) {
 			int e = errno;
@@ -666,9 +673,9 @@ cerr << gettype() << "::" << getname() << " gen2sk failed : closing" << endl;
 			    challenging = Refused;
 			    flushandclose();
 			} else {
-if(debugcrypt) cerr << "salt3=" << hexdump(salt3) << endl;
+if(debugcrypt) cerr << gettype() << "::" << getname() << " salt3=" << hexdump(salt3) << endl;
 			    (*out) << salt3;
-if(debugcrypt) cerr << "hashout=" << hexdump(hash) << endl;
+if(debugcrypt) cerr << gettype() << "::" << getname() << " hashout=" << hexdump(hash) << endl;
 			    (*out) << hash;
 			    flush();
 if(debugcrypt) cerr << gettype() << "::" << getname() << " challenging = WaitingHash" << endl;
@@ -680,9 +687,9 @@ if(debugcrypt) cerr << gettype() << "::" << getname() << " challenging = Waiting
 
 		case WaitingHash:
 		    {	string salt4(temp,0,4);
-if(debugcrypt) cerr << "salt4=" << hexdump(salt4) << endl;
+if(debugcrypt) cerr << gettype() << "::" << getname() << " salt4=" << hexdump(salt4) << endl;
 			string hash(temp,4);
-if(debugcrypt) cerr << "hash_in=" << hexdump(hash) << endl;
+if(debugcrypt) cerr << gettype() << "::" << getname() << " hash_in=" << hexdump(hash) << endl;
 			if ((!issuplicant) && (keyring != NULL)) {
 			    QiCrKey * matchkey = keyring->retreivekey (salt1, salt4, hash);
 			    if (matchkey == NULL) {
@@ -711,7 +718,7 @@ if(debugcrypt) cerr << gettype() << "::" << getname() << " challenging = Waiting
 		    return;
 
 		case WaitingChallenge:
-if(debugcrypt) cerr << "challenge=" << hexdump(temp) << endl;
+if(debugcrypt) cerr << gettype() << "::" << getname() << " challenge=" << hexdump(temp) << endl;
 		    if (temp == challenge) {
 			challenging = Refused;
 cerr << gettype() << "::" << getname() << " got mirror challenge : closing" << endl;

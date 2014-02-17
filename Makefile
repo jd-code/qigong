@@ -3,7 +3,7 @@ prefix=/usr/local
 rcprefix=/
 SHELL=/bin/sh
 VERSION=1.10.1
-DEBSUBV=004
+DEBSUBV=005
 INCLUDE=-Iqiconn/include
 
 # for linux

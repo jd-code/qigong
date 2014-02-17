@@ -24,7 +24,7 @@ namespace qiconn {
 	    ~QiCrKey (void);
 	    bool isvalid (void) { return valid; }
 	    const string& getfullkeyID(void) const { return keyID; }
-	    string getReadableID(void);
+	    string getReadableID(void) const;
 	    void getkey (const char * &k, size_t &ks) const;
 	    void getIV (const char * &iv, size_t &ivs) const;
     };

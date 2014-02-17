@@ -1136,6 +1136,7 @@ int main (int nb, char ** cmde) {
     int port = QICONNPORT + 1;
     bool dofork = true;
     bool checkconfonly = false;
+    bool debug_crypt = false;
     
     string logfile ("/var/log/qicollect.log"),
 	   pidfile ("/var/run/qicollect.pid"),
@@ -1149,6 +1150,7 @@ int main (int nb, char ** cmde) {
 		i++;
 	    }
 	    param_match (cmde[i], "-debugresolver",	debug_resolver);
+	    param_match (cmde[i], "-debugcrypt",	debug_crypt);
 	    param_match (cmde[i], "-debugconnect",	debug_connect);
 	    param_match (cmde[i], "-debugtransmit",	debug_transmit);
 	    param_match (cmde[i], "-debugout",		debug_dummyout);
@@ -1178,6 +1180,7 @@ int main (int nb, char ** cmde) {
 		return 0;
 	    }
 	}
+	setdebugcrypt (debug_crypt);
     }
 
     KeyRing keyring;
