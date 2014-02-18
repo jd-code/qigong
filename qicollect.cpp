@@ -71,6 +71,9 @@ namespace qiconn {
 	waiting_pcs_nextstate = collect;
 	
 	setmaxpendsize (4096);
+
+	lastlineread = time(NULL);
+	nbwakeattempt = 0;
     }
 
     bool CollectingConn::assign (CollectionSet * pcc) {
@@ -84,6 +87,7 @@ namespace qiconn {
 
     void CollectingConn::lineread (void) {
 // cerr << "[" << getname() << "] got[" << bufin << "]" << endl;
+	lastlineread = time(NULL);
 
 	if ((is_collecting) && (bufin[0]=='-') && (bufin.find("-->") == 0)) {
 	    stringstream upd;
@@ -249,11 +253,26 @@ if (debug_ccstates) cerr <<  "[" << getname() << "] waiting for \"" << wait_stri
 	else
 	    delay_reconnect = 1;
 
+	is_collecting = false;
+	
+	nbwakeattempt = 0;
 	state = needtoconnect;
 if (debug_ccstates) cerr << "[" << getname() << "] ----------------------------->switching to state needtoconnect" << endl;
     }
 
     void CollectingConn::poll (void) {
+	time_t t = time(NULL);
+	if ((fd >= 0) && is_collecting && ((t - lastlineread) > 45)) {
+	    lastlineread = t;
+	    if (nbwakeattempt < 4) {
+		nbwakeattempt ++;
+cerr << getname() << " was silent for more than 120s, trying to wake it up !" << endl;
+		(*out) << "qiging" << eos;
+		flush();
+	    } else {
+		reconnect_hook ();
+	    }
+	}
 	switch (state) {
 	    case ready:
 		if (pending) {

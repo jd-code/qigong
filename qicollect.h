@@ -244,6 +244,8 @@ namespace qiconn {
 	    string wait_string;
 	    CollectionSet * waiting_pcs;
 	    CSState waiting_pcs_nextstate;
+	    time_t lastlineread;
+	    int nbwakeattempt;
 
 // JDJDJDJD
 // rough test
