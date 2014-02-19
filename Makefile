@@ -2,8 +2,8 @@
 prefix=/usr/local
 rcprefix=/
 SHELL=/bin/sh
-VERSION=1.10.3
-DEBSUBV=003
+VERSION=1.10.4
+DEBSUBV=000
 INCLUDE=-Iqiconn/include
 
 # for linux
