@@ -3,6 +3,7 @@
 man:
     rajouter prise en compte de signal USR1 pour qicollect dans manuel
 
+
 all:
     dater les lignes de log
     check permissions at keyfile reading
@@ -13,15 +14,21 @@ rc.scripts:
     
 
 qicollect:
-    create a default random serverkey (instead of empty ??)
-    put some collection on hold/release via CLI (for safe copying purpose) ???
-    [  try not to log too much for late collections from the past ? - correction attempted, to be validated  ]
-	check for previous log messages ?
+    [droppped] create a default random serverkey (instead of empty ??)
+    -	    utiliser signal pour essayer de reconnecter les cnx perdues ?
+    -	    put some collection on hold/release via CLI (for safe copying purpose) ???
+    [done]  try not to log too much for late collections from the past ?
+    -	    check for previous log messages ?
+    [done]  handle connections time-outs at large  -  correction via expandables delays + jitter
+    -	    per copnnection time-out handling ? or maximum 
+    [done]  handle connections time-outs at large : should add an intermediate connection state for
+	    second connect attempt (should be moved to qiconn)
 
 qiconn:
-     [ handle connections time-outs at large  -  correction via expandables delays + jitter ]
-    handle connections time-outs at large : should add an intermediate connection state for
-    second connect attempt
+    [dropped]  handle connections time-outs at large  -  correction via expandables delays + jitter
+	    (moved to qicollect)
+    -       handle connections time-outs at large : should add an intermediate connection state for
+	    second connect attempt (should be moved to qiconn)
 
 qimeasure:
     dedicated filelen for apache logs

@@ -209,13 +209,18 @@ clean:
 	rm -f *_testlastfile.rrd *_testfiles.rrd  *_testglobal.rrd  *_testnet.rrd *_testmem.rrd *_testload.rrd *_testfree.rrd
 	rm -f localhost.key.priv
 	rm -f qigong-*.tgz
-	rm -rf chikung-doc/*
+	rm -f qigong.dox
+	rm -f hex2base64 hex2base64.o
+	rm -rf qigong-doc/*
 	cd qiconn ; make clean
 
 distclean: clean debian-clean
 
-doc: *.h *.cpp chikung.dox
-	doxygen chikung.dox
+qigong.dox: qigong.dox.proto
+	sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < qigong.dox.proto > qigong.dox
+
+doc: *.h *.cpp qigong.dox
+	doxygen qigong.dox
 
 .PHONY: clean
 
@@ -338,4 +343,10 @@ debian: debian-qigong-full debian-qigong-nomc debian-qicollect
 .PHONY: debian-clean
 debian-clean:
 	rm -rf ${workplace}
+
+
+hex2base64.o: hex2base64.cpp
+	g++ -g -Iqiconn/include  -Wall -c hex2base64.cpp
+hex2base64: hex2base64.o qicrypt.o qiconn/qiconn.o
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} -Wall -o hex2base64 hex2base64.o  qicrypt.o qiconn/qiconn.o -lmcrypt -lmhash
 
