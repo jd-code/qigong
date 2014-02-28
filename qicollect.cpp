@@ -615,51 +615,68 @@ if (debug_ccstates) cerr << "                                                   
  *  ------------------- readconf -------------------------------------------------------------------------
  */
 
+    //! Reads the qicollect configuration file and build internal data tree
+    /*!	ReadConf has no mean of being a static instanmce through the whole
+     *	existence of qicollect. It mainly populates a CollectionsConf through
+     *	the method ReadConf.
+     *  It will instanciate via "new" some CollectionSet with the appropriate
+     *	inner TaggedMeasuredPoint at need.
+     *	It will fetch some global KeyRing for appropriate key via matching
+     *	fqdn or Ip given as mean of connection.
+     *	At any fail it will stop, freeing temporary objects, and return -1;.
+     */
+
     class ReadConf {
 	private:
+	    //! what we are looking-for whilst parsing the conf file
 	    typedef enum {			// we're waiting for :
-				seekdeclare,	// 'host' or 'service'
-				seekhostname,	// hostname
-				seekserverkey,	// serverkey
-				seekhostbegin,	// '{'
-				seekcollect,	// 'collect'
-				seekcollectname,// collect-name
-				seekconnection,	// fqdn(:port)
-				seekcolentry,	// next collect entry : () or tagname
-				seekrddtabledef,// first entry of rddtabledef
-				seekmultiplier,	// the multiplier between the two rddtabledef's elements
-				seekrddtable2nd,// second entry of rddtabledef
-				seekrddenpar,	// end of rddtabledef
-				seektagorend,	// tagname or ending brace
-				seektagname,	// tagname
-				seekequal,	// equal for tagname affectation
-				seekcollectfn,	// collecting function
-				seekendparam,	// end of collecting function's parameters
+				seekdeclare,	//!< 'host' or 'service'
+				seekhostname,	//!< hostname
+				seekserverkey,	//!< serverkey
+				seekhostbegin,	//!< '{'
+				seekcollect,	//!< 'collect'
+				seekcollectname,//!< collect-name
+				seekconnection,	//!< fqdn(:port)
+				seekcolentry,	//!< next collect entry : () or tagname
+				seekrddtabledef,//!< first entry of rddtabledef
+				seekmultiplier,	//!< the multiplier between the two rddtabledef's elements
+				seekrddtable2nd,//!< second entry of rddtabledef
+				seekrddenpar,	//!< end of rddtabledef
+				seektagorend,	//!< tagname or ending brace
+				seektagname,	//!< tagname
+				seekequal,	//!< equal for tagname affectation
+				seekcollectfn,	//!< collecting function
+				seekendparam,	//!< end of collecting function's parameters
 			     } RCState;
 	    
-	    size_t line;
-	    RCState state;
+	    size_t line;   //!< current line number in the conf file for error reporting
+	    RCState state; //!< what we are looking for whilst parsing the conf file
 
-	    // the current serverkey (prepended on qigongs at deletion/creation)
+	    //! the current serverkey (prepended on qigongs at deletion/creation for multiple qicollect discrimination)
 	    string serverkey;
 
-	    // the current metaname
+	    //! the current metaname
+	    /*!	this identifier isn't used for connecting
+	     *  it's the key that will be used for naming the rrd collections
+	     *	it could as well be a service that may move from one server
+	     *	to another
+	     */
 	    string metaname;
 	    
 	    // the currently in-creation-process TaggedMeasuredPoint
-	    string tagmp_tagname,
-		   tagmp_fn,
-		   tagmp_params;
-	    // the currently in-creation CollectionSet
-	    string curcs_name,
-		   curcs_fqdn;
-	    int	   curcs_port;
-	    CollectionSet* pcurcs;
-	    // the currently built CollectFreqDuration
-	    CollectFreqDuration freq;
+	    string tagmp_tagname,   //!< in-creation measurepoint name
+		   tagmp_fn,	    //!< in-creation measurepoint function name
+		   tagmp_params;    //!< in-creation measurepoint function params
+
+	    // stuff about the currently in-creation CollectionSet
+	    string curcs_name,	    //!< currently in construction CollectionSet's name
+		   curcs_fqdn;	    //!< currently in construction CollectionSet's connection fqdn or IP def
+	    int	   curcs_port;	    //!< currently in construction CollectionSet's connection port
+	    CollectionSet* pcurcs;  //!< the currently in-creation CollectionSet
+	    CollectFreqDuration freq;	//!< in-creation CollectionSet frequency and duration
 
 	    // the reference keyring
-	    KeyRing& keyring;
+	    KeyRing& keyring;	    //!< where to find the associated crypt key for connections
 	    
 	    void safeclose (void);
 	public:
@@ -809,7 +826,7 @@ if (debug_ccstates) cerr << "                                                   
 				cerr << "line: " << line << " : the warnings above are yet treated as errors." << endl;
 				safeclose() ; return -1;
 			    }
-			    if (!conf.push_back(pcurcs)) {
+			    if (!conf.push_back(pcurcs)) {  // this could have been tested earlier, but going up to here permit ending parenthesis
 				cerr << "line: " << line << " : error : could not add CollectionSet(" << curcs_name << "). already registred maybe ?." << endl;
 				safeclose() ; return -1;
 			    }
