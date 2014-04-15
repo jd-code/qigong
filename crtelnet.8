@@ -1,0 +1,29 @@
+.TH "crtelnet" "8" "2014" "jd" "nekodune"
+.SH NAME
+crtelnet \- secure connects via encryption
+.br
+.SH SYNOPSIS
+.B ./crtelnet
+.IR "destaddr" "[:" "port" "] " "keyfile"
+.SH DESCRIPTION
+.B crtelnet
+is mostly used for troubleshooting connection establishment with known keys.
+Keys are generated via
+.BR qigenkey ","
+and should be unique for each couple (host+usage).
+.SH EXAMPLE
+.BI "crtelnet 127.0.0.1:1264 /etc/qigong/keys/" "hostname" ".key.priv"
+
+connects to the local
+.B qigong
+metric collecting daemon using it's key.
+.SH SEE ALSO
+.RB "(8)" "qigenkey" ""
+.SH BUGS
+There are probably plenty. Please report them to
+.B qigong@nekodune.com
+.SH AUTHOR
+Jean-Daniel Pauget (qigong@nekodune.com)
+.SH MANPAGE VERSION
+
+

@@ -1,0 +1,35 @@
+.TH "qigenkey" "8" "2014" "jd" "nekodune"
+.SH NAME
+qigenkey \- generates a private key for secure connections
+.br
+.SH SYNOPSIS
+.B ./qigenkey
+.I "filename_prefix"
+.SH DESCRIPTION
+.B qigenkey
+generates a random private key suitable for securing
+.BR qigong and qicollect
+connections. Usually, the filename prefix is the machine hostname, and
+the directory location of the key will settle it's final use.
+nd should be unique for each couple (host+usage).
+.SH EXAMPLE
+.BI "qigenkey " "hostname"
+
+generates a
+.I hostname.key.priv
+file in current directory.
+
+.B The key should be kept as private as possible and should only be disclosed to the intended other end.
+Putting a read-only mode restricted only for the dedicated user is
+mandatory for security.
+.SH SEE ALSO
+.RB "(8)" "crtelnet" " (8)" "qigong" " (8)" "qicollect"
+.SH BUGS
+There are probably plenty. Please report them to
+.B qigong@nekodune.com
+.SH AUTHOR
+Jean-Daniel Pauget (qigong@nekodune.com)
+.SH MANPAGE VERSION
+
+
+

@@ -2,7 +2,7 @@
 DESTDIR=/usr/local
 rcDESTDIR=/
 SHELL=/bin/sh
-VERSION=1.10.4
+VERSION=1.10.5
 DEBSUBV=001
 INCLUDE=-Iqiconn/include
 
@@ -37,7 +37,7 @@ tarfiles.txt:
 	( git archive master | tar -tvf - | cut -b49- ; cd qiconn && git archive master | tar -tvf - | cut -b49- | sed 's_^_qiconn/_') > tarfiles.txt
 
 tar: tarfiles.txt qicollect.cpp qigong.cpp qiconn/include/qiconn/qiconn.h qiconn/qiconn.cpp
-	tar -zcpf qigong_"${VERSION}".tgz --no-recursion --transform='s=^='qigong_"1.10.4"'/=' -T tarfiles.txt
+	tar -zcpf qigong_"${VERSION}".tgz --no-recursion --transform='s=^='qigong_"${VERSION}"'/=' -T tarfiles.txt
 	tar -ztvf qigong_"${VERSION}".tgz
 
 all: qigong qicollect qigong.rc qicollect.rc qigong-nomc qigenkey crtelnet

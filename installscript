@@ -7,7 +7,7 @@ case "${2}" in
 	SBINTARGET="qigong qigenkey crtelnet"
 	INITTARGET="qigong"
 	DEFAULTTARGET="qigong"
-	MANTARGET="qigong.8"
+	MANTARGET="qigong.8 qigenkey.8 crtelnet.8"
 	;;
     "qicollect")
 	SBINTARGET="qicollect"
@@ -19,7 +19,7 @@ case "${2}" in
 	SBINTARGET="qigong qicollect qigenkey crtelnet"
 	INITTARGET="qigong qicollect"
 	DEFAULTTARGET="qigong"
-	MANTARGET="qigong.8 qicollect.8"
+	MANTARGET="qigong.8 qicollect.8 qigenkey.8 crtelnet.8"
 	SRVTARGET="qicollect"
 	;;
 esac
