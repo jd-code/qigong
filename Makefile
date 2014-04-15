@@ -1,6 +1,6 @@
 
-prefix=/usr/local
-rcprefix=/
+DESTDIR=/usr/local
+rcDESTDIR=/
 SHELL=/bin/sh
 VERSION=1.10.4
 DEBSUBV=001
@@ -33,6 +33,13 @@ workplace=/tmp/qigong-build-$$USER
 default:
 	@echo "interesting targets : all , install , install_qigong ..."
 
+tarfiles.txt:
+	( git archive master | tar -tvf - | cut -b49- ; cd qiconn && git archive master | tar -tvf - | cut -b49- | sed 's_^_qiconn/_') > tarfiles.txt
+
+tar: tarfiles.txt qicollect.cpp qigong.cpp qiconn/include/qiconn/qiconn.h qiconn/qiconn.cpp
+	tar -zcpf qigong_"${VERSION}".tgz --no-recursion --transform='s=^='qigong_"1.10.4"'/=' -T tarfiles.txt
+	tar -ztvf qigong_"${VERSION}".tgz
+
 all: qigong qicollect qigong.rc qicollect.rc qigong-nomc qigenkey crtelnet
 otherall: qigong qigong.rc qicollect.rc qigong-nomc qigenkey crtelnet
 
@@ -41,7 +48,7 @@ allstrip: all
 
 install: allstrip
 	chmod 700 ./installscript
-	./installscript "${prefix}"
+	./installscript "${DESTDIR}"
 	# update-rc.d qigong start 20 2 3 4 5 . stop 20 0 1 6 .
 
 install_qigong: qigong qigong.rc qigenkey crtelnet
@@ -49,20 +56,20 @@ install_qigong: qigong qigong.rc qigenkey crtelnet
 	strip qigenkey
 	strip crtelnet
 	chmod 700 ./installscript
-	./installscript "${prefix}" qigong "${rcprefix}"
+	./installscript "${DESTDIR}" qigong "${rcDESTDIR}"
 
 install_qigong-nomc: qigong-nomc qigong.rc qigenkey crtelnet
 	strip qigong-nomc
 	strip qigenkey
 	strip crtelnet
 	cp -a qigong-nomc qigong
-	./installscript "${prefix}" qigong "${rcprefix}"
+	./installscript "${DESTDIR}" qigong "${rcDESTDIR}"
 	rm qigong
 
 install_qicollect: qicollect qicollect.rc
 	strip qicollect
 	chmod 700 ./installscript
-	./installscript "${prefix}" qicollect "${rcprefix}"
+	./installscript "${DESTDIR}" qicollect "${rcDESTDIR}"
 
 
 archive:
@@ -140,10 +147,10 @@ testqigong: qigong
 	./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log
 
 qigong.rc: qigong.rc.proto
-	sed "s=@@PREFIX@@=${prefix}=g" < qigong.rc.proto > qigong.rc
+	sed "s=@@PREFIX@@=${DESTDIR}=g" < qigong.rc.proto > qigong.rc
 
 qicollect.rc: qicollect.rc.proto
-	sed "s=@@PREFIX@@=${prefix}=g" < qicollect.rc.proto > qicollect.rc
+	sed "s=@@PREFIX@@=${DESTDIR}=g" < qicollect.rc.proto > qicollect.rc
 
 qicollect: qicollect.o qicrypt.o qiconn/qiconn.o qimeasure.o
 	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} `${MYSQLCONFIG} --cflags` -Wall -o qicollect  qicollect.o qicrypt.o qiconn/qiconn.o qimeasure.o -L /usr/local/lib -lrrd -lmemcached `${MYSQLCONFIG} --libs` -lmcrypt -lmhash
@@ -229,14 +236,14 @@ doc: *.h *.cpp qigong.dox
 
 debian-qigong-nomc: 
 	make clean
-	make prefix=/usr qigong.rc
+	make DESTDIR=/usr qigong.rc
 	rm -rf ${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`
-	make debpackage=qigong-nomc systarget=`lsb_release -c -s` prefix=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install_qigong-nomc
-	make debpackage=qigong-nomc systarget=`lsb_release -c -s` prefix=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install-deb-qigong-nomc
+	make debpackage=qigong-nomc systarget=`lsb_release -c -s` DESTDIR=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcDESTDIR=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install_qigong-nomc
+	make debpackage=qigong-nomc systarget=`lsb_release -c -s` DESTDIR=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcDESTDIR=${workplace}/qigong-nomc-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install-deb-qigong-nomc
 
 install-deb-qigong-nomc:
-	echo ${prefix}
-	test -d ${prefix}/../DEBIAN-qigong-nomc || mkdir -p -m755 ${prefix}/../DEBIAN
+	echo ${DESTDIR}
+	test -d ${DESTDIR}/../DEBIAN-qigong-nomc || mkdir -p -m755 ${DESTDIR}/../DEBIAN
 	for NOM in \
 		DEBIAN-qigong-nomc/control	    \
 		DEBIAN-qigong-nomc/conffiles	    \
@@ -250,29 +257,29 @@ install-deb-qigong-nomc:
 		SOURCE="$$NOM" ;		    \
 	    fi ;				    \
 	    SHORTNAME=`echo "$$NOM" | rev | cut -d/ -f1 | rev` ; \
-	    cp -a "$$SOURCE" ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
-	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
+	    cp -a "$$SOURCE" ${DESTDIR}/../DEBIAN/"$$SHORTNAME" ;  \
+	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${DESTDIR}/../DEBIAN/"$$SHORTNAME" ;  \
 	done
-	mkdir -p ${rcprefix}/etc/qigong/keys
-	find ${prefix}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
-	mkdir -m755 -p ${prefix}/share/doc/${debpackage}
-	gzip -f -9 -c ChangeLog > ${prefix}/share/doc/${debpackage}/changelog.gz
-	gzip -f -9 -c DEBIAN-qigong-nomc/changelog.Debian > ${prefix}/share/doc/${debpackage}/changelog.Debian.gz
-	cp DEBIAN-all/copyright ${prefix}/share/doc/${debpackage}
-	(export DEBNAME=`echo ${prefix} | rev | cut -d/ -f2 | rev` ; cd ${prefix}/../.. ; ls -ld $$DEBNAME ; fakeroot dpkg-deb --build $$DEBNAME ; lintian $$DEBNAME.deb)
+	mkdir -p ${rcDESTDIR}/etc/qigong/keys
+	find ${DESTDIR}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
+	mkdir -m755 -p ${DESTDIR}/share/doc/${debpackage}
+	gzip -f -9 -c ChangeLog > ${DESTDIR}/share/doc/${debpackage}/changelog.gz
+	gzip -f -9 -c DEBIAN-qigong-nomc/changelog.Debian > ${DESTDIR}/share/doc/${debpackage}/changelog.Debian.gz
+	cp DEBIAN-all/copyright ${DESTDIR}/share/doc/${debpackage}
+	(export DEBNAME=`echo ${DESTDIR} | rev | cut -d/ -f2 | rev` ; cd ${DESTDIR}/../.. ; ls -ld $$DEBNAME ; fakeroot dpkg-deb --build $$DEBNAME ; lintian $$DEBNAME.deb)
 	
 	
 
 debian-qigong-full: 
 	make clean
-	make prefix=/usr qigong.rc
+	make DESTDIR=/usr qigong.rc
 	rm -rf ${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`
-	make debpackage=qigong-full systarget=`lsb_release -c -s` prefix=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install_qigong
-	make debpackage=qigong-full systarget=`lsb_release -c -s` prefix=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install-deb-qigong-full
+	make debpackage=qigong-full systarget=`lsb_release -c -s` DESTDIR=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcDESTDIR=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install_qigong
+	make debpackage=qigong-full systarget=`lsb_release -c -s` DESTDIR=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcDESTDIR=${workplace}/qigong-full-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install-deb-qigong-full
 
 install-deb-qigong-full:
-	echo ${prefix}
-	test -d ${prefix}/../DEBIAN-qigong-full || mkdir -p -m755 ${prefix}/../DEBIAN
+	echo ${DESTDIR}
+	test -d ${DESTDIR}/../DEBIAN-qigong-full || mkdir -p -m755 ${DESTDIR}/../DEBIAN
 	for NOM in \
 		DEBIAN-qigong-full/control	    \
 		DEBIAN-qigong-full/conffiles	    \
@@ -286,30 +293,30 @@ install-deb-qigong-full:
 		SOURCE="$$NOM" ;		    \
 	    fi ;				    \
 	    SHORTNAME=`echo "$$NOM" | rev | cut -d/ -f1 | rev` ; \
-	    cp -a "$$SOURCE" ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
-	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
+	    cp -a "$$SOURCE" ${DESTDIR}/../DEBIAN/"$$SHORTNAME" ;  \
+	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${DESTDIR}/../DEBIAN/"$$SHORTNAME" ;  \
 	done
-	mkdir -p ${rcprefix}/etc/qigong/keys
-	find ${prefix}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
-	mkdir -m755 -p ${prefix}/share/doc/${debpackage}
-	gzip -f -9 -c ChangeLog > ${prefix}/share/doc/${debpackage}/changelog.gz
-	gzip -f -9 -c DEBIAN-qigong-full/changelog.Debian > ${prefix}/share/doc/${debpackage}/changelog.Debian.gz
-	cp DEBIAN-all/copyright ${prefix}/share/doc/${debpackage}
-	(export DEBNAME=`echo ${prefix} | rev | cut -d/ -f2 | rev` ; cd ${prefix}/../.. ; ls -ld $$DEBNAME ; fakeroot dpkg-deb --build $$DEBNAME ; lintian $$DEBNAME.deb)
+	mkdir -p ${rcDESTDIR}/etc/qigong/keys
+	find ${DESTDIR}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
+	mkdir -m755 -p ${DESTDIR}/share/doc/${debpackage}
+	gzip -f -9 -c ChangeLog > ${DESTDIR}/share/doc/${debpackage}/changelog.gz
+	gzip -f -9 -c DEBIAN-qigong-full/changelog.Debian > ${DESTDIR}/share/doc/${debpackage}/changelog.Debian.gz
+	cp DEBIAN-all/copyright ${DESTDIR}/share/doc/${debpackage}
+	(export DEBNAME=`echo ${DESTDIR} | rev | cut -d/ -f2 | rev` ; cd ${DESTDIR}/../.. ; ls -ld $$DEBNAME ; fakeroot dpkg-deb --build $$DEBNAME ; lintian $$DEBNAME.deb)
 	
 .PHONY: debian-qigong
 debian-qigong: debian-qigong-full debian-qigong-nomc
 
 debian-qicollect: 
 	make clean
-	make prefix=/usr qicollect.rc
+	make DESTDIR=/usr qicollect.rc
 	rm -rf ${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`
-	make debpackage=qicollect systarget=`lsb_release -c -s` prefix=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install_qicollect
-	make debpackage=qicollect systarget=`lsb_release -c -s` prefix=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcprefix=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install-deb-qicollect
+	make debpackage=qicollect systarget=`lsb_release -c -s` DESTDIR=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcDESTDIR=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install_qicollect
+	make debpackage=qicollect systarget=`lsb_release -c -s` DESTDIR=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/usr rcDESTDIR=${workplace}/qicollect-${VERSION}-${DEBSUBV}_"amd64"-`lsb_release -c -s`/ install-deb-qicollect
 
 install-deb-qicollect:
-	echo ${prefix}
-	test -d ${prefix}/../DEBIAN-qicollect || mkdir -p -m755 ${prefix}/../DEBIAN
+	echo ${DESTDIR}
+	test -d ${DESTDIR}/../DEBIAN-qicollect || mkdir -p -m755 ${DESTDIR}/../DEBIAN
 	for NOM in \
 		DEBIAN-qicollect/control	    \
 		DEBIAN-qicollect/conffiles	    \
@@ -323,16 +330,16 @@ install-deb-qicollect:
 		SOURCE="$$NOM" ;		    \
 	    fi ;				    \
 	    SHORTNAME=`echo "$$NOM" | rev | cut -d/ -f1 | rev` ; \
-	    cp -a "$$SOURCE" ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
-	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${prefix}/../DEBIAN/"$$SHORTNAME" ;  \
+	    cp -a "$$SOURCE" ${DESTDIR}/../DEBIAN/"$$SHORTNAME" ;  \
+	    sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < "$$SOURCE" > ${DESTDIR}/../DEBIAN/"$$SHORTNAME" ;  \
 	done
-	mkdir -p ${rcprefix}/etc/qicollect/keys
-	find ${prefix}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
-	mkdir -m755 -p ${prefix}/share/doc/${debpackage}
-	gzip -f -9 -c ChangeLog > ${prefix}/share/doc/${debpackage}/changelog.gz
-	gzip -f -9 -c DEBIAN-qicollect/changelog.Debian > ${prefix}/share/doc/${debpackage}/changelog.Debian.gz
-	cp DEBIAN-all/copyright ${prefix}/share/doc/${debpackage}
-	(export DEBNAME=`echo ${prefix} | rev | cut -d/ -f2 | rev` ; cd ${prefix}/../.. ; ls -ld $$DEBNAME ; fakeroot dpkg-deb --build $$DEBNAME ; lintian $$DEBNAME.deb)
+	mkdir -p ${rcDESTDIR}/etc/qicollect/keys
+	find ${DESTDIR}/share/man -type f -regex '.*\.[0-9]' -exec gzip -f -9 '{}' \;
+	mkdir -m755 -p ${DESTDIR}/share/doc/${debpackage}
+	gzip -f -9 -c ChangeLog > ${DESTDIR}/share/doc/${debpackage}/changelog.gz
+	gzip -f -9 -c DEBIAN-qicollect/changelog.Debian > ${DESTDIR}/share/doc/${debpackage}/changelog.Debian.gz
+	cp DEBIAN-all/copyright ${DESTDIR}/share/doc/${debpackage}
+	(export DEBNAME=`echo ${DESTDIR} | rev | cut -d/ -f2 | rev` ; cd ${DESTDIR}/../.. ; ls -ld $$DEBNAME ; fakeroot dpkg-deb --build $$DEBNAME ; lintian $$DEBNAME.deb)
 	
 
 .PHONY: debian

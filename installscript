@@ -36,7 +36,6 @@ checkcreatedestdir () {
     DESTDIR=`echo "$DEST" | rev | cut -d/ -f2- | rev`
     if [ ! -d "${DESTDIR}" ]
     then
-	echo ici mkdir -m755 -p "$DESTDIR"
 	mkdir -m755 -p "$DESTDIR"
     fi
 }
