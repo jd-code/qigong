@@ -220,6 +220,7 @@ clean:
 	rm -f hex2base64 hex2base64.o
 	rm -rf qigong-doc/*
 	cd qiconn ; make clean
+	rm -f tarfiles.txt
 
 distclean: clean debian-clean
 
