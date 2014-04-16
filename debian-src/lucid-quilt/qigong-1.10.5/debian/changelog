@@ -1,8 +1,8 @@
-qigong (1.10.5-1ubuntu2~lucid1) lucid; urgency=low
+qigong (1.10.5-1ubuntu3~lucid1) lucid; urgency=low
 
   * source format changed to quilt
 
- -- jean-daniel pauget <jd@mblic.zz>  Wed, 16 Apr 2014 11:40:09 +0200
+ -- jean-daniel pauget <pauget@nekodune.com>  Wed, 16 Apr 2014 11:40:09 +0200
 
 qigong (1.10.5-1) lucid; urgency=low
 
