@@ -34,11 +34,11 @@ default:
 	@echo "interesting targets : all , install , install_qigong ..."
 
 tarfiles.txt:
-	( git archive master | tar -tvf - | cut -b49- ; cd qiconn && git archive master | tar -tvf - | cut -b49- | sed 's_^_qiconn/_') > tarfiles.txt
+	( git archive master | tar -tvf - | cut -b49- | grep -v deb-src ; cd qiconn && git archive master | tar -tvf - | cut -b49- | sed 's_^_qiconn/_') > tarfiles.txt
 
 tar: tarfiles.txt qicollect.cpp qigong.cpp qiconn/include/qiconn/qiconn.h qiconn/qiconn.cpp
-	tar -zcpf qigong_"${VERSION}".tgz --no-recursion --transform='s=^='qigong_"${VERSION}"'/=' -T tarfiles.txt
-	tar -ztvf qigong_"${VERSION}".tgz
+	tar -zcpf qigong_"${VERSION}".orig.tar.gz --no-recursion --transform='s=^='qigong_"${VERSION}"'/=' -T tarfiles.txt
+	tar -ztvf qigong_"${VERSION}".orig.tar.gz
 
 all: qigong qicollect qigong.rc qicollect.rc qigong-nomc qigenkey crtelnet
 otherall: qigong qigong.rc qicollect.rc qigong-nomc qigenkey crtelnet
