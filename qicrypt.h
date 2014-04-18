@@ -35,7 +35,7 @@ namespace qiconn {
 	    string walletdir;
 	public:
 	    KeyRing ();
-	    void addkey (const char * fname);
+	    bool addkey (const char * fname);
 	    void setwalletdir (const char *walletdir);
 	    const QiCrKey * gentlyaddkey (const string &fname);
 	    ~KeyRing ();
@@ -47,6 +47,7 @@ namespace qiconn {
     int base64_encode (const string &s, string &r);
     int base64_decode (const string &s, string &r);
     size_t base64_seekanddecode (const string &s, string &r, size_t start=0);
+    string nekchecksum (const string & s);
 
     typedef enum {  WaitingRemoteSalt,
 		    WaitingHash,

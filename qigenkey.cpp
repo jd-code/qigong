@@ -17,7 +17,9 @@ void usage (ostream &cout) {
 
 int main (int nb, char ** cmde) {
 
-    stringstream wack;
+    stringstream wack;	// the computed output isn't flushed until the
+			// end to prevent useless file creation if errors occur ...
+    string contkey;	// concatenation of the whole key for final checksum
 
     if (nb != 2) {
 	usage (cerr);
@@ -96,7 +98,7 @@ int main (int nb, char ** cmde) {
     string keyb64;
     base64_encode (key, keyb64);
     wack << keyb64 << endl;
-
+    contkey += key;
 
     for (i=0 ; frandom && (i<ivsize) ; i++) {
 	iv += frandom.get();
@@ -114,6 +116,7 @@ int main (int nb, char ** cmde) {
     string ivb64;
     base64_encode (iv, ivb64);
     wack << ivb64 << endl;
+    contkey += iv;
 
 
 
@@ -134,6 +137,12 @@ int main (int nb, char ** cmde) {
     string keyidb64;
     base64_encode (keyid, keyidb64);
     wack << keyidb64 << endl;
+    contkey += keyid;
+
+    string checksum = nekchecksum (contkey);
+    string checksum64;
+    base64_encode (checksum, checksum64);
+    wack << checksum64 << endl;
 
     fout << wack.str();
 

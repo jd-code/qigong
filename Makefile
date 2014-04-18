@@ -2,7 +2,7 @@
 DESTDIR=/usr/local
 rcDESTDIR=/
 SHELL=/bin/sh
-VERSION=1.10.5
+VERSION=1.10.6
 DEBSUBV=001
 INCLUDE=-Iqiconn/include
 

@@ -5,6 +5,10 @@
 
 #include <fstream>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
 #include "qicrypt.h"
 
 namespace qiconn {
@@ -184,13 +188,41 @@ static bool debugcrypt = false;
     }
 
     size_t base64_seekanddecode (const string &s, string &r, size_t start /* =0 */) {
+	size_t l = s.size();
 	size_t p=start, q;
-	while (isspace(s[p])) p++;
+	while ((p<l) && isspace(s[p])) p++;
 	q = p;
-	while (isbase64(s[q]) || (s[q] == '=')) q++;
+	while ((q<l) && (isbase64(s[q]) || (s[q] == '='))) q++;
+	if (p == q) return p;
 	if (base64_decode (s.substr(p,q-p), r) == -1)
 	    return string::npos;
 	return q;
+    }
+
+    string nekchecksum (const string & s) {
+	size_t	l = s.size(),
+		p = 0;
+	uint16_t a = 24;
+	uint16_t b = 42;
+	uint16_t v1 = 0, v2 = 0;
+	while (p < l) {
+	    v2 = v1;
+	    v1 = (int16_t) ((unsigned char)s[p]);
+	    uint16_t v = (v2 << 8) + v1;
+	    switch (p & 3) {
+		case 0: a += v * (v * (v*a + 13) + 71), b += v * (v * (v*b + 23) +  2); break;
+		case 1: a += v * (v * (v*a +  3) + 11), b += v * (v * (v*b + 73) + 13); break;
+		case 2: a += v * (v * (v*a +  7) + 12), b += v * (v * (v*b + 52) +  5); break;
+		case 3: a += v * (v * (v*a + 61) + 40), b += v * (v * (v*b + 10) +  3); break;
+	    }
+	    p++;
+	}
+	string r;
+	r += (unsigned char) (a & 0xff);
+	r += (unsigned char) ((a & 0xff00) >> 8);
+	r += (unsigned char) (b & 0xff);
+	r += (unsigned char) ((b & 0xff00) >> 8);
+	return r;
     }
 
     QiCrKey::QiCrKey (const char *fname) :
@@ -200,6 +232,21 @@ static bool debugcrypt = false;
 	IVsize(0),
 	valid(false)
     {
+	if (false)
+	{   struct stat stb;
+	    if (stat (fname, &stb) != 0) {
+		int e = errno;
+		cerr << "QiCrKey : could not stat file for key " << fname << " : " << strerror(e) << endl;
+		valid = false;
+		return;
+	    }
+	    if (S_ISDIR(stb.st_mode)) {
+		cerr << "QiCrKey : could not read key, " << fname << " is a directory." << endl;
+		valid = false;
+		return;
+
+	    }
+	}
 	ifstream fkey(fname);
 	if (!fkey) {
 	    int e=errno;
@@ -224,9 +271,14 @@ static bool debugcrypt = false;
 		if ((line[i]=='#') || (line[i] == ';')) break;	// skip comments
 		while ((i<line.size()) && (isbase64(line[i]) || line[i]=='=')) rawkey += line[i++];
 		rawkey += ' ';
+		if ((i<line.size()) && isspace(line[i]))
+		    continue;
+		else
+		    break;
 	    }
 	}
 if(debugcrypt) cerr << "rawkey = [" << rawkey << "]" << endl;
+	string contkey;
 	size_t p;
 	string t;
 	if ((p = base64_seekanddecode (rawkey, t)) == string::npos) {
@@ -242,6 +294,7 @@ if(debugcrypt) cerr << "rawkey = [" << rawkey << "]" << endl;
 	    return;
 	}
 	memcpy ((void *)key, t.c_str(), keysize);
+	contkey += t;
 
 	t.clear();
 	if ((p = base64_seekanddecode (rawkey, t, p)) == string::npos) {
@@ -258,6 +311,7 @@ if(debugcrypt) cerr << "rawkey = [" << rawkey << "]" << endl;
 	    return;
 	}
 	memcpy ((void *)IV, t.c_str(), IVsize);
+	contkey += t;
 
 	t.clear();
 	if ((p = base64_seekanddecode (rawkey, t, p)) == string::npos) {
@@ -266,6 +320,27 @@ if(debugcrypt) cerr << "rawkey = [" << rawkey << "]" << endl;
 	    return;
 	}
 	keyID.assign(t);
+	contkey += t;
+
+//	if (keyID.size() <= 4) {
+//	    cerr << "QiCrKey(" << fname << ") : error invalid keyID" << endl;
+//	    valid = false;
+//	    return;
+//	}
+
+	t.clear();
+	if ((p = base64_seekanddecode (rawkey, t, p)) == string::npos) {
+	    cerr << "QiCrKey(" << fname << ") : error at decoding base64 key (keyID)" << endl;
+	    valid = false;
+	    return;
+	}
+
+	if (t != nekchecksum (contkey)) {
+	    cerr << "QiCrKey(" << fname << ") : error at reading key, bad checksum" << endl;
+	    valid = false;
+	    return;
+	}
+
 	valid = true;
     }
 
@@ -294,25 +369,26 @@ static const char *digit = "0123456789abcdef";
 	    delete (mi->second);
     }
 
-    void KeyRing::addkey (const char * fname) {
+    bool KeyRing::addkey (const char * fname) {
 	QiCrKey *nkey = new QiCrKey(fname);
 	if (nkey == NULL) {
 	    cerr << "KeyRing::addkey (" << fname << ") could not allocate QiCrKey" << endl;
-	    return;
+	    return false;
 	}
 	if (!nkey->isvalid()) {
 	    delete (nkey);
-	    return;
+	    return false;
 	}
 	map<string,QiCrKey *>::iterator mi = mkeys.find(nkey->getfullkeyID());
 	if (mi != mkeys.end()) {
 	    cerr << "KeyRing::addkey (" << fname << ") a key with ID=" << nkey->getReadableID()
 		 << " is a lready in keyring, skipped" << endl;
 	    delete (nkey);
-	    return;
+	    return true;
 	}
 if(debugcrypt) cerr << "KeyRing::addkey += " << nkey->getReadableID () << endl;;
 	mkeys[nkey->getfullkeyID()] = nkey;
+	return true;
     }
 
     void KeyRing::setwalletdir (const char *walletdir) {

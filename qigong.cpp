@@ -462,8 +462,11 @@ int main (int nb, char ** cmde) {
 	    kf.assign(keyfile);
 	else
 	    kf = wallet + '/' + keyfile;
-	
-	keyring.addkey (kf.c_str());
+
+	if (keyring.addkey (kf.c_str()) == false) {
+	    cerr << "error reading key, aborting." << endl;
+	    return -1;
+	}
     }
 
 

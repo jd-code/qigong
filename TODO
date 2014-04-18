@@ -1,4 +1,8 @@
 
+packaging:
+    System start/stop links for /etc/init.d/qigong already exist. (at re-install /upgrade)
+
+
 
 man:
     rajouter prise en compte de signal USR1 pour qicollect dans manuel
