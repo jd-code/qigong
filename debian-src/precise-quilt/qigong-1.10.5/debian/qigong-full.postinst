@@ -5,6 +5,16 @@ set -e
 case "$1" in
   configure)
 
+    if [ ! -d /etc/qigong ]
+    then
+	mkdir /etc/qigong
+    fi
+
+    if [ ! -d /etc/qigong/keys ]
+    then
+	mkdir /etc/qigong/keys
+    fi
+
     chmod 750 /etc/qigong
     chmod 700 /etc/qigong/keys
     if [ ! -f /etc/qigong/keys/`hostname`.key.priv ]
