@@ -8,7 +8,7 @@ INCLUDE=-Iqiconn/include
 
 # for linux
 DEBUG=-g
-CPPFLAGS=${DEBUG}
+CPPFLAGS=${DEBUG} -O2
 INCLUDE=-Iqiconn/include 
 MYSQLCONFIG=mysql_config
 
@@ -34,7 +34,7 @@ default:
 	@echo "interesting targets : all , install , install_qigong ..."
 
 tarfiles.txt:
-	( git archive master | tar -tvf - | cut -b49- | grep -v deb-src ; cd qiconn && git archive master | tar -tvf - | cut -b49- | sed 's_^_qiconn/_') > tarfiles.txt
+	( git archive master | tar -tvf - | cut -b49- | grep -v debian-src ; cd qiconn && git archive master | tar -tvf - | cut -b49- | sed 's_^_qiconn/_') > tarfiles.txt
 
 tar: tarfiles.txt qicollect.cpp qigong.cpp qiconn/include/qiconn/qiconn.h qiconn/qiconn.cpp
 	tar -zcpf qigong_"${VERSION}".orig.tar.gz --no-recursion --transform='s=^='qigong_"${VERSION}"'/=' -T tarfiles.txt

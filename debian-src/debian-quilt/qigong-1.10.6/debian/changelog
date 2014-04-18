@@ -1,0 +1,24 @@
+qigong (1.10.6-1) stable; urgency=low
+
+  * new: keyfile checksum
+  * corrected missing /etc/qigong dir creations
+
+ -- Jean-Daniel Pauget <pauget@nekodune.com>  Fri, 18 Apr 2014 12:04:28 +0200
+
+qigong (1.10.5-3) stable; urgency=low
+
+  * source format changed to quilt
+
+ -- jean-daniel pauget <pauget@nekodune.com>  Wed, 16 Apr 2014 11:40:09 +0200
+
+qigong (1.10.5-1) stable; urgency=low
+
+  * Man pages completion
+
+ -- jean-daniel pauget <pauget@nekodune.com>  Tue, 15 Apr 2014 17:58:05 +0200
+
+qigong (1.10.4-2) stable; urgency=low
+
+  * Initial release.
+
+ -- jean-daniel pauget <pauget@nekodune.com>  Mon, 14 Apr 2014 15:32:45 +0200
