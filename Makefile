@@ -110,14 +110,14 @@ bintardebug: all
 # testdirproc.o: testdirproc.cpp
 #	g++  ${DEBUG} -Wall -c testdirproc.cpp
 
-# testdirproc: qiconn.o testdirproc.o
-#	g++  ${DEBUG} -Wall -o testdirproc testdirproc.o qiconn.o
+# testdirproc: libqiconn.a testdirproc.o
+#	g++  ${DEBUG} -Wall -o testdirproc testdirproc.o libqiconn.a
 
 watchconn.o: watchconn.cpp
 	g++  ${DEBUG} ${INCLUDE} -Wall -c watchconn.cpp
 
-watchconn: qiconn/qiconn.o watchconn.o
-	g++  ${DEBUG} ${INCLUDE} -Wall -o watchconn qiconn/qiconn.o watchconn.o
+watchconn: qiconn/libqiconn.a watchconn.o
+	g++  ${DEBUG} ${INCLUDE} -Wall -o watchconn qiconn/libqiconn.a watchconn.o
 
 WATCHCONNvimtest: watchconn all
 	# ./testdirproc :::80 ::ffff:c700:0001:80 127.0.0.1:80 192.168.132.182:80 127.0.0.1:3306 | tr ':' ';'
@@ -145,19 +145,19 @@ qigong.rc: qigong.rc.proto
 qicollect.rc: qicollect.rc.proto
 	sed "s=@@PREFIX@@=${prefix}=g" < qicollect.rc.proto > qicollect.rc
 
-qicollect: qicollect.o qicrypt.o qiconn/qiconn.o qimeasure.o
-	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} `${MYSQLCONFIG} --cflags` -Wall -o qicollect  qicollect.o qicrypt.o qiconn/qiconn.o qimeasure.o -L /usr/local/lib -lrrd -lmemcached `${MYSQLCONFIG} --libs` -lmcrypt -lmhash
+qicollect: qicollect.o qicrypt.o qiconn/libqiconn.a qimeasure.o
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} `${MYSQLCONFIG} --cflags` -Wall -o qicollect  qicollect.o qicrypt.o qiconn/libqiconn.a qimeasure.o -L /usr/local/lib -lrrd -lmemcached `${MYSQLCONFIG} --libs` -lmcrypt -lmhash
 
-qigong: qigong.o qiconn/qiconn.o qimeasure.o qicrypt.o
-	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} `${MYSQLCONFIG} --cflags` -Wall -o qigong qigong.o qiconn/qiconn.o qicrypt.o qimeasure.o -lmemcached `${MYSQLCONFIG} --libs` -lmcrypt -lmhash
-
-
-qigong-nomc: qigong.o qiconn/qiconn.o qimeasure-nomc.o qicrypt.o
-	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} `${MYSQLCONFIG} --cflags` -Wall -o qigong-nomc qigong.o qiconn/qiconn.o qicrypt.o qimeasure-nomc.o -lmcrypt -lmhash
+qigong: qigong.o qiconn/libqiconn.a qimeasure.o qicrypt.o
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} `${MYSQLCONFIG} --cflags` -Wall -o qigong qigong.o qiconn/libqiconn.a qicrypt.o qimeasure.o -lmemcached `${MYSQLCONFIG} --libs` -lmcrypt -lmhash
 
 
+qigong-nomc: qigong.o qiconn/libqiconn.a qimeasure-nomc.o qicrypt.o
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} `${MYSQLCONFIG} --cflags` -Wall -o qigong-nomc qigong.o qiconn/libqiconn.a qicrypt.o qimeasure-nomc.o -lmcrypt -lmhash
 
-qigong.o: qigong.cpp qiconn/qiconn.o qigong.h qimeasure.h qicrypt.h
+
+
+qigong.o: qigong.cpp qiconn/libqiconn.a qigong.h qimeasure.h qicrypt.h
 	g++ ${CPPFLAGS} ${INCLUDE} -DQIVERSION="\"${VERSION}\"" `${MYSQLCONFIG} --cflags` -Wall -c qigong.cpp
 
 qicollect.o: qicollect.cpp qiconn/include/qiconn/qiconn.h qicollect.h qimeasure.h qicrypt.h
@@ -165,8 +165,8 @@ qicollect.o: qicollect.cpp qiconn/include/qiconn/qiconn.h qicollect.h qimeasure.
 
 
 
-qiconn/qiconn.o: qiconn/qiconn.cpp qiconn/include/qiconn/qiconn.h
-	( export MAKEDEBUG="${DEBUG}" ; cd qiconn ; make qiconn.o )
+qiconn/libqiconn.a: qiconn/qiconn.cpp qiconn/include/qiconn/qiconn.h
+	( export MAKEDEBUG="${DEBUG}" ; cd qiconn ; make libqiconn.a )
 
 qimeasure-nomc.o: qimeasure.cpp qimeasure.h
 	g++ ${CPPFLAGS} ${INCLUDE} `${MYSQLCONFIG} --cflags` -Wall -c qimeasure.cpp -o qimeasure-nomc.o
@@ -181,14 +181,14 @@ qicrypt.o: qicrypt.cpp qicrypt.h qiconn/include/qiconn/qiconn.h
 qigenkey.o: qigenkey.cpp qicrypt.h
 	g++ ${CPPFLAGS} ${INCLUDE} -Wall -c qigenkey.cpp
 
-qigenkey: qigenkey.o qicrypt.o qiconn/qiconn.o
-	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} -Wall -o qigenkey qigenkey.o  qicrypt.o qiconn/qiconn.o -lmcrypt -lmhash
+qigenkey: qigenkey.o qicrypt.o qiconn/libqiconn.a
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} -Wall -o qigenkey qigenkey.o  qicrypt.o qiconn/libqiconn.a -lmcrypt -lmhash
 
 crtelnet.o: crtelnet.cpp qicrypt.h
 	g++ ${CPPFLAGS} ${INCLUDE} -Wall -c crtelnet.cpp
 
-crtelnet: crtelnet.o qicrypt.o qiconn/qiconn.o
-	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} -Wall -o crtelnet crtelnet.o  qicrypt.o qiconn/qiconn.o -lmcrypt -lmhash
+crtelnet: crtelnet.o qicrypt.o qiconn/libqiconn.a
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} -Wall -o crtelnet crtelnet.o  qicrypt.o qiconn/libqiconn.a -lmcrypt -lmhash
 
 
 qigong.h: qicommon.h
@@ -347,6 +347,6 @@ debian-clean:
 
 hex2base64.o: hex2base64.cpp
 	g++ -g -Iqiconn/include  -Wall -c hex2base64.cpp
-hex2base64: hex2base64.o qicrypt.o qiconn/qiconn.o
-	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} -Wall -o hex2base64 hex2base64.o  qicrypt.o qiconn/qiconn.o -lmcrypt -lmhash
+hex2base64: hex2base64.o qicrypt.o qiconn/libqiconn.a
+	g++ ${CPPFLAGS} ${INCLUDE} ${LDFLAGS} -Wall -o hex2base64 hex2base64.o  qicrypt.o qiconn/libqiconn.a -lmcrypt -lmhash
 
