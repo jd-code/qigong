@@ -584,20 +584,6 @@ if (debug_ccstates) cerr << "                                                   
 	mpcs[pcs->getfullkey()] = pcs;
 	return true;
     }
-    bool CollectionsConf::add_host (string name) {
-	map<string, int>::iterator mi = hosts_names.find (name);
-	if (mi != hosts_names.end())
-	    return false;
-	hosts_names[name] = 0;
-	return true;
-    }
-    bool CollectionsConf::add_service (string name) {
-	map<string, int>::iterator mi = services_names.find (name);
-	if (mi != services_names.end())
-	    return false;
-	services_names[name] = 0;
-	return true;
-    }
     ostream & CollectionsConf::dump (ostream &cout) const {
 	return cout << mpcs;
     }
@@ -1041,7 +1027,6 @@ if (debug_ccstates) cerr << "                                                   
 			    safeclose() ; return -1;
 			}
 			metaname = ident;
-			conf.add_host (metaname);
 			// cout << "-----------> hostname: " << ident << endl;
 			state = seekhostbegin;
 			break;

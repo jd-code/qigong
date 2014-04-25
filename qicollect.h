@@ -171,14 +171,10 @@ namespace qiconn {
     class CollectionsConf {
 	protected:
 	    MpCS mpcs;
-	    map<string, int> hosts_names;
-	    map<string, int> services_names;
 	public:
 	    CollectionsConf () {}
 	    ~CollectionsConf (void);
 	    bool push_back (CollectionSet * pcs);
-	    bool add_host (string name);
-	    bool add_service (string name);
 	    ostream & dump (ostream &cout) const;
 
 	    void buildmissing_rrd (void);   // JDJDJDJD might move to CollectionsConfEngine
