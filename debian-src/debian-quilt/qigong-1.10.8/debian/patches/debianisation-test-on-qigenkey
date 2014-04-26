@@ -1,0 +1,12 @@
+--- a/qigenkey.cpp
++++ b/qigenkey.cpp
+@@ -12,7 +12,8 @@ using namespace qiconn;
+ 
+ void usage (ostream &cout) {
+     cout << "qigenkey fqdn_name" << endl
+-	 << "   outputs a key matching the fully qualified domain name supplied" << endl;
++	 << "   outputs a key matching the fully qualified domain name supplied." << endl
++	 << "   (c)2014 j-d pauget - this is the debianized version." << endl;
+ }
+ 
+ int main (int nb, char ** cmde) {

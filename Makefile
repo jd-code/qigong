@@ -2,7 +2,7 @@
 DESTDIR=/usr/local
 rcDESTDIR=/
 SHELL=/bin/sh
-VERSION=1.10.6
+VERSION=1.10.8
 DEBSUBV=001
 INCLUDE=-Iqiconn/include
 
@@ -34,10 +34,11 @@ default:
 	@echo "interesting targets : all , install , install_qigong ..."
 
 tarfiles.txt:
-	( git archive master | tar -tvf - | cut -b49- | grep -v debian-src ; cd qiconn && git archive master | tar -tvf - | cut -b49- | sed 's_^_qiconn/_') > tarfiles.txt
+	( cd qiconn && repozclean && autoall )
+	( git archive master | tar -tvf - | cut -b49- | grep -v debian-src ; find qiconn | grep -v '\.git' ) > tarfiles.txt
 
 tar: tarfiles.txt qicollect.cpp qigong.cpp qiconn/include/qiconn/qiconn.h qiconn/qiconn.cpp
-	tar -zcpf qigong_"${VERSION}".orig.tar.gz --no-recursion --transform='s=^='qigong_"${VERSION}"'/=' -T tarfiles.txt
+	tar -zcphf qigong_"${VERSION}".orig.tar.gz --no-recursion --transform='s=^='qigong_"${VERSION}"'/=' -T tarfiles.txt
 	tar -ztvf qigong_"${VERSION}".orig.tar.gz
 
 all: qigong qicollect qigong.rc qicollect.rc qigong-nomc qigenkey crtelnet
@@ -170,9 +171,13 @@ qigong.o: qigong.cpp qiconn/libqiconn.a qigong.h qimeasure.h qicrypt.h
 qicollect.o: qicollect.cpp qiconn/include/qiconn/qiconn.h qicollect.h qimeasure.h qicrypt.h
 	g++ ${CPPFLAGS} ${INCLUDE} -DQIVERSION="\"${VERSION}\"" `${MYSQLCONFIG} --cflags` -Wall -c qicollect.cpp
 
+qiconn/configure: qiconn/configure.ac
+	( cd qiconn ; autoall )
 
+qiconn/Makefile: qiconn/configure
+	( cd qiconn ; ./configure )
 
-qiconn/libqiconn.a: qiconn/qiconn.cpp qiconn/include/qiconn/qiconn.h
+qiconn/libqiconn.a: qiconn/qiconn.cpp qiconn/include/qiconn/qiconn.h qiconn/Makefile
 	( export MAKEDEBUG="${DEBUG}" ; cd qiconn ; make libqiconn.a )
 
 qimeasure-nomc.o: qimeasure.cpp qimeasure.h
@@ -209,6 +214,7 @@ localhost.key.priv: qigenkey
 	./qigenkey localhost
 
 clean:
+	cd qiconn ; test -f Makefile && make clean || exit 0
 	rm -f qigong.o qigong qicollect.o qicollect qimeasure.o watchconn.o watchconn qimeasure-nomc.o qigong-nomc
 	rm -f qigenkey.o crtelnet.o qicrypt.o qigenkey crtelnet
 	rm -f qigong.rc qicollect.rc
@@ -219,10 +225,10 @@ clean:
 	rm -f qigong.dox
 	rm -f hex2base64 hex2base64.o
 	rm -rf qigong-doc/*
-	cd qiconn ; make clean
 	rm -f tarfiles.txt
 
 distclean: clean debian-clean
+	cd qiconn ; test -f Makefile && make distclean || exit 0
 
 qigong.dox: qigong.dox.proto
 	sed 's/@@VERSION@@/${VERSION}-${DEBSUBV}/' < qigong.dox.proto > qigong.dox

@@ -1,0 +1,26 @@
+This work was packaged for Debian by:
+
+    jean-daniel pauget <pauget@nekodune.com> on Wed, 09 Apr 2014 10:56:38 +0200
+
+It was downloaded from git://repoz.nekodune.net/qigong.git
+
+Upstream Author(s):
+
+    jean-daniel pauget <pauget@nekodune.com>
+
+Copyright:
+
+    Copyright (C) 2014 Jean-Daniel Pauget
+
+License:
+
+    GPL-2
+
+The Debian packaging is:
+
+    Copyright (C) 2014 jean-daniel pauget <pauget@nekodune.com>
+
+and is licensed under the GPL version 2, 
+see `/usr/share/common-licenses/GPL-2'.
+
+
