@@ -18,6 +18,7 @@ rc.scripts:
     
 
 qicollect:
+    -       use some signal to re-read crypt-keys ...?
     [droppped] create a default random serverkey (instead of empty ??)
     -	    utiliser signal pour essayer de reconnecter les cnx perdues ?
     -	    put some collection on hold/release via CLI (for safe copying purpose) ???
