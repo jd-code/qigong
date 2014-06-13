@@ -237,7 +237,8 @@ if (debug_ccstates) cerr <<  "[" << getname() << "] waiting for \"" << wait_stri
     }
 
     void CollectingConn::reconnect_hook (void) {
-	cp->pull (this);
+	ConnectionPool *oldcp = cp;
+	deregister_from_pool ();
 	if (fd > 0) {
 	    if (::close(fd) != 0) {
 		int e = errno;
@@ -246,6 +247,7 @@ if (debug_ccstates) cerr <<  "[" << getname() << "] waiting for \"" << wait_stri
 	}
 	closecrypt();
 	fd = -1;
+	cp = oldcp;
 	cp->push (this);
 
 	if (state == challenging)
@@ -339,8 +341,10 @@ static int gromp = 0;
 			if (newfd >= 0) {
 gromp = 0;
 			    setname (sin);
-			    cp->pull (this);
+			    ConnectionPool *oldcp = cp;
+			    deregister_from_pool ();
 			    fd = newfd;
+			    cp = oldcp;
 			    cp->push (this);
 			    opencrypt();
 
