@@ -18,9 +18,38 @@ localhost.key.priv: qigenkey
 	rm -f localhost.key.priv
 	./qigenkey localhost
 
+qigong.rc: qigong.rc.proto
+	sed "s=@@PREFIX@@=${DESTDIR}=g" < qigong.rc.proto > qigong.rc
+
+qicollect.rc: qicollect.rc.proto
+	sed "s=@@PREFIX@@=${DESTDIR}=g" < qicollect.rc.proto > qicollect.rc
+
+install_qigong: qigong qigong.rc qigenkey crtelnet
+	ls -ld `pwd`/*
+	strip qigong
+	strip qigenkey
+	strip crtelnet
+	chmod 700 ./installscript
+	./installscript "${DESTDIR}" qigong "${rcDESTDIR}"
+
+install_qigong_nomc: qigong_nomc qigong.rc qigenkey crtelnet
+	strip qigong_nomc
+	strip qigenkey
+	strip crtelnet
+	cp -a qigong_nomc qigong
+	./installscript "${DESTDIR}" qigong "${rcDESTDIR}"
+	rm qigong
+
+install_qicollect: qicollect qicollect.rc
+	strip qicollect
+	chmod 700 ./installscript
+	./installscript "${DESTDIR}" qicollect "${rcDESTDIR}"
+
 ## this target is for maintainers
 tarfiles.txt:
-	( git archive master | tar -tvf - | cut -b49- | grep -v debian-src ) > tarfiles.txt
+	repozclean
+	( git archive `git rev-parse --abbrev-ref HEAD` | tar -tvf - | cut -b49- | grep -v debian-src ) > tarfiles.txt
+	: > tstamp ; autoall ; find . -cnewer tstamp -not -type d | grep -v tarfiles.txt >> tarfiles.txt ; rm tstamp
 
 tar: tarfiles.txt qicollect.cpp qigong.cpp qiconn/include/qiconn/qiconn.h qiconn/qiconn.cpp
 	tar -zcphf qigong_"${VERSION}".orig.tar.gz --no-recursion --transform='s=^='qigong_"${VERSION}"'/=' -T tarfiles.txt
@@ -64,7 +93,8 @@ hex2base64_LDFLAGS = @QICONNLDFLAGS@
 CLEANFILES = bulkrays.cc simplefmap.cc access_log
 
 clean-local:
-	rm -rf qigong-doc
+	rm -rf qigong-doc/*
+	rm -f tarfiles.txt
 
 distclean-local:
 	rm m4/*.m4
