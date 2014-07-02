@@ -121,6 +121,11 @@ namespace qiconn {
 	    bool proc_diskstats (string & result);
 
 	    virtual bool measure (string &result);			// the measuring function itself
+	    using MeasurePoint::get_source_type;    // -Woverloaded
+	    using MeasurePoint::get_min;	    // -Woverloaded
+	    using MeasurePoint::get_max;	    // -Woverloaded
+	    using MeasurePoint::get_first_rra;	    // -Woverloaded
+	    using MeasurePoint::get_next_rras;	    // -Woverloaded
 	    virtual string get_source_type(void) { return "DERIVE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
 	    virtual string get_min(void) { return "0"; }		// min or U for unknown
 	    virtual string get_max(void) { return "U"; }		// min or U for unknown
@@ -142,6 +147,11 @@ namespace qiconn {
 	    bool proc_net_dev (string & result);
 
 	    virtual bool measure (string &result);			// the measuring function itself
+	    using MeasurePoint::get_source_type;    // -Woverloaded
+	    using MeasurePoint::get_min;	    // -Woverloaded
+	    using MeasurePoint::get_max;	    // -Woverloaded
+	    using MeasurePoint::get_first_rra;	    // -Woverloaded
+	    using MeasurePoint::get_next_rras;	    // -Woverloaded
 	    virtual string get_source_type(void) { return "DERIVE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
 	    virtual string get_min(void) { return "0"; }		// min or U for unknown
 	    virtual string get_max(void) { return "U"; }		// min or U for unknown
@@ -172,6 +182,11 @@ namespace qiconn {
 	    MPfilelen (const string & param, time_t zltimeout = 0);
 
 	    virtual bool measure (string &result);			// the measuring function itself
+	    using MeasurePoint::get_source_type;    // -Woverloaded
+	    using MeasurePoint::get_min;	    // -Woverloaded
+	    using MeasurePoint::get_max;	    // -Woverloaded
+	    using MeasurePoint::get_first_rra;	    // -Woverloaded
+	    using MeasurePoint::get_next_rras;	    // -Woverloaded
 	    virtual string get_source_type(void) { return "DERIVE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
 	    virtual string get_min(void) { return "0"; }		// min or U for unknown
 	    virtual string get_max(void) { return "U"; }		// min or U for unknown
@@ -229,6 +244,11 @@ namespace qiconn {
 	    MPloadavg (const string & param);
 
 	    virtual bool measure (string &result);			// the measuring function itself
+	    using MeasurePoint::get_source_type;    // -Woverloaded
+	    using MeasurePoint::get_min;	    // -Woverloaded
+	    using MeasurePoint::get_max;	    // -Woverloaded
+	    using MeasurePoint::get_first_rra;	    // -Woverloaded
+	    using MeasurePoint::get_next_rras;	    // -Woverloaded
 	    virtual string get_source_type(void) { return "GAUGE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
 	    virtual string get_min(void) { return "0"; }		// min or U for unknown
 	    virtual string get_max(void) { return "U"; }		// min or U for unknown
@@ -251,6 +271,11 @@ namespace qiconn {
 	    MPfilevalue (const string & param);
 
 	    virtual bool measure (string &result);			// the measuring function itself
+	    using MeasurePoint::get_source_type;    // -Woverloaded
+	    using MeasurePoint::get_min;	    // -Woverloaded
+	    using MeasurePoint::get_max;	    // -Woverloaded
+	    using MeasurePoint::get_first_rra;	    // -Woverloaded
+	    using MeasurePoint::get_next_rras;	    // -Woverloaded
 	    virtual string get_source_type(void) { return "GAUGE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
 	    virtual string get_min(void) { return "U"; }		// min or U for unknown
 	    virtual string get_max(void) { return "U"; }		// min or U for unknown
@@ -276,6 +301,11 @@ namespace qiconn {
 	    virtual int get_nbpoints (void);
 
 	    virtual string get_tagsub (int i);				// gives the suffix for appending to the tagname
+	    using MeasurePoint::get_source_type;    // -Woverloaded
+	    using MeasurePoint::get_min;	    // -Woverloaded
+	    using MeasurePoint::get_max;	    // -Woverloaded
+	    using MeasurePoint::get_first_rra;	    // -Woverloaded
+	    using MeasurePoint::get_next_rras;	    // -Woverloaded
 	    virtual string get_source_type (int i) { return "GAUGE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
 	    virtual string get_min (int i) { return "0"; }		// min or U for unknown
 	    virtual string get_max (int i) { return "U"; }		// min or U for unknown
@@ -307,6 +337,11 @@ namespace qiconn {
 	    virtual int get_nbpoints (void);
 
 	    virtual string get_tagsub (int i);				// gives the suffix for appending to the tagname
+	    using MeasurePoint::get_source_type;    // -Woverloaded
+	    using MeasurePoint::get_min;	    // -Woverloaded
+	    using MeasurePoint::get_max;	    // -Woverloaded
+	    using MeasurePoint::get_first_rra;	    // -Woverloaded
+	    using MeasurePoint::get_next_rras;	    // -Woverloaded
 	    virtual string get_source_type (int i) { return source_type; }	// GAUGE COUNTER DERIVE ABSOLUTE
 	    virtual string get_min (int i) { return "0"; }		// min or U for unknown
 	    virtual string get_max (int i) { return "U"; }		// min or U for unknown
@@ -337,6 +372,11 @@ namespace qiconn {
 	    virtual int get_nbpoints (void);
 
 	    virtual string get_tagsub (int i);				// gives the suffix for appending to the tagname
+	    using MeasurePoint::get_source_type;    // -Woverloaded
+	    using MeasurePoint::get_min;	    // -Woverloaded
+	    using MeasurePoint::get_max;	    // -Woverloaded
+	    using MeasurePoint::get_first_rra;	    // -Woverloaded
+	    using MeasurePoint::get_next_rras;	    // -Woverloaded
 	    virtual string get_source_type (int i);			// GAUGE COUNTER DERIVE ABSOLUTE
 	    virtual string get_min (int i) { return "0"; }		// min or U for unknown
 	    virtual string get_max (int i) { return "U"; }		// min or U for unknown
@@ -363,6 +403,11 @@ namespace qiconn {
 	    MPfreespace (const string & param);
 
 	    virtual bool measure (string &result);			// the measuring function itself
+	    using MeasurePoint::get_source_type;    // -Woverloaded
+	    using MeasurePoint::get_min;	    // -Woverloaded
+	    using MeasurePoint::get_max;	    // -Woverloaded
+	    using MeasurePoint::get_first_rra;	    // -Woverloaded
+	    using MeasurePoint::get_next_rras;	    // -Woverloaded
 	    virtual string get_source_type(void) { return "GAUGE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
 	    virtual string get_min(void) { return "0"; }		// min or U for unknown
 	    virtual string get_max(void) { return "U"; }		// min or U for unknown
@@ -384,6 +429,11 @@ namespace qiconn {
 	    MPconncount (const string & param);
 
 	    virtual bool measure (string &result);			// the measuring function itself
+	    using MeasurePoint::get_source_type;    // -Woverloaded
+	    using MeasurePoint::get_min;	    // -Woverloaded
+	    using MeasurePoint::get_max;	    // -Woverloaded
+	    using MeasurePoint::get_first_rra;	    // -Woverloaded
+	    using MeasurePoint::get_next_rras;	    // -Woverloaded
 	    virtual string get_source_type(void) { return "GAUGE"; }	// GAUGE COUNTER DERIVE ABSOLUTE
 	    virtual string get_min(void) { return "0"; }		// min or U for unknown
 	    virtual string get_max(void) { return "U"; }		// min or U for unknown

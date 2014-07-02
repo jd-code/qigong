@@ -11,6 +11,15 @@ namespace qiconn {
 
     void setdebugcrypt (bool b);
 
+    // binder for mcrypt with better const modifier tracking
+#pragma GCC diagnostic ignored "-Wcast-qual"
+    inline MCRYPT qimcrypt_module_open ( const char *algorithm,
+					 const char *a_directory, const char *mode,
+					 const char *m_directory) {
+	return mcrypt_module_open ((char *)algorithm, (char *)a_directory, (char *)mode, (char *)m_directory);
+    }
+#pragma GCC diagnostic warning "-Wcast-qual"
+
     class QiCrKey {
 	private:
 	    const char* key;

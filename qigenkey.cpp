@@ -54,7 +54,7 @@ int main (int nb, char ** cmde) {
 
     MCRYPT td;	// only for getting iv and key sizes
 
-    td = mcrypt_module_open((char *)"twofish", NULL, (char *)"cfb", NULL);
+    td = qimcrypt_module_open("twofish", NULL, "cfb", NULL);
     if (td==MCRYPT_FAILED) {
 	cerr << "could not initialise module mcrypt twofish" << endl;
 	unlink (filename.c_str());

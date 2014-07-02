@@ -543,7 +543,7 @@ if(debugcrypt) cerr << "CryptConnection with " << qicrkey->getReadableID () << e
     }
 
     void CryptConnection::reallycrypt(void) {
-	tdin = mcrypt_module_open((char *)"twofish", NULL, (char *)"cfb", NULL);
+	tdin = qimcrypt_module_open("twofish", NULL, "cfb", NULL);
 	if (tdin==MCRYPT_FAILED) {
 	    cerr << "CryptConnection : could not init tdin mcrypt module" << endl;
 	    flushandclose();
@@ -564,7 +564,7 @@ if(debugcrypt) cerr << "CryptConnection with " << qicrkey->getReadableID () << e
 	    return;
 	}
 	
-	tdout = mcrypt_module_open((char *)"twofish", NULL, (char *)"cfb", NULL);
+	tdout = qimcrypt_module_open("twofish", NULL, "cfb", NULL);
 	if (tdout==MCRYPT_FAILED) {
 	    cerr << "CryptConnection : could not init tdout mcrypt module" << endl;
 	    flushandclose();
