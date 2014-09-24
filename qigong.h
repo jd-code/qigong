@@ -52,6 +52,7 @@ namespace qiconn {
 	    void remove_channel (CollectedConn * pcc);
 	    void measure (time_t t);
 	    void dump (ostream& cout) const;
+	    void dumpdetails (ostream& cout) const;
     };
 
     ostream& operator<< (ostream& cout, RecordSet const& rs);

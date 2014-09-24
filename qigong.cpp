@@ -52,6 +52,14 @@ namespace qiconn {
 	    cout << "        " << **li << endl;
 	}
     }
+    void RecordSet::dumpdetails (ostream& cout) const {
+	map <CollectedConn *, int>::const_iterator li;
+	cout     << "   --- subs channels (" << channels.size() << ") :" << endl;
+	for (li=channels.begin() ; li!=channels.end() ; li++) {
+	    cout << "     {" << li->first << "}" << endl;
+	}
+	cout     << "   ---" << endl;
+    }
 
     ostream& operator<< (ostream& cout, RecordSet const& rs) {
 	rs.dump (cout);
@@ -245,6 +253,7 @@ namespace qiconn {
 	    (*out)  << "  help    this help" << endl
 		    << "  create RecordSetIdent Interval MeasurePointName(Params ) [ MP(params) ... ]" << endl
 		    << "  list" << endl
+		    << "  listall" << endl
 		    << "  delete RecordSetIdent" << endl
 		    << "  activate RecordSetIdent" << endl
 		    << "  subscribe|sub RecordSetIdent" << endl
@@ -278,6 +287,17 @@ namespace qiconn {
 	    (*out) << endl;
 	    for (mi=mrecordsets.begin() ; mi!=mrecordsets.end() ; mi++)
 		(*out) << *(mi->second) << endl;
+
+	} else if (command=="listall") {// -------------------------------------------------------------------------------------------------
+
+	    map<string, RecordSet*>::iterator mi;
+	    (*out) << endl;
+	    for (mi=mrecordsets.begin() ; mi!=mrecordsets.end() ; mi++) {
+		(*out) << "------------------------" << endl
+		       << *(mi->second) << endl;
+		mi->second->dumpdetails (out);
+		
+	    }
 
 	} else if (command=="delete") {	// -------------------------------------------------------------------------------------------------
 
