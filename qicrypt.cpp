@@ -40,11 +40,11 @@ static bool debugcrypt = false;
 	    return -1;
 	keygenid algorithm = KEYGEN_S2K_SALTED;
 	if (mhash_keygen_uses_salt(algorithm) != 1) // no salt, not suitable then ...
-	    return -1;
+	    return -2;
 	size_t salt_size = mhash_get_keygen_salt_size (algorithm);
 	size_t halfsaltsize = salt_size>>1;
 	if ((salt1.size() < halfsaltsize)  || (salt2.size() < halfsaltsize))
-	    return -1;
+	    return -3;
 
 
 	KEYGEN keygen;
@@ -66,7 +66,7 @@ static bool debugcrypt = false;
 
 	size_t datasize = data.size();
 	if (mhash_keygen_ext (algorithm, keygen, buf, askedsize, (mutils_word8 *)data.c_str(), datasize) != MUTILS_OK)
-	    return -1;
+	    return -4;
     
 	result.assign (buf, askedsize);
 	return 0;
@@ -752,8 +752,9 @@ if(debugcrypt) cerr << gettype() << "::" << getname() << " salt2=" << hexdump(sa
 		    } else {
 			string hash;
 			const string &hashdata = keyID;
-			if (gen2sk (hash, 8, salt2, salt3, hashdata) != 0) {
-cerr << gettype() << "::" << getname() << " gen2sk failed : closing" << endl;
+			int gval = 0;
+			if ((gval = gen2sk (hash, 8, salt2, salt3, hashdata)) != 0) {
+cerr << gettype() << "::" << getname() << " gen2sk failed err=" << gval << " : closing" << endl;
 			    challenging = Refused;
 			    flushandclose();
 			} else {
