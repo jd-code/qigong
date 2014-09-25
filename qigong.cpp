@@ -56,7 +56,7 @@ namespace qiconn {
 	map <CollectedConn *, int>::const_iterator li;
 	cout     << "   --- subs channels (" << channels.size() << ") :" << endl;
 	for (li=channels.begin() ; li!=channels.end() ; li++) {
-	    cout << "     {" << li->first << "}" << endl;
+	    cout << "     {" << li->first->getname() << "}" << endl;
 	}
 	cout     << "   ---" << endl;
     }
@@ -285,6 +285,7 @@ namespace qiconn {
 
 	    map<string, RecordSet*>::iterator mi;
 	    (*out) << endl;
+	    (*out) << mrecordsets.size() << " RecordSets :" << endl;
 	    for (mi=mrecordsets.begin() ; mi!=mrecordsets.end() ; mi++)
 		(*out) << *(mi->second) << endl;
 
@@ -292,11 +293,11 @@ namespace qiconn {
 
 	    map<string, RecordSet*>::iterator mi;
 	    (*out) << endl;
+	    (*out) << mrecordsets.size() << " RecordSets :" << endl;
 	    for (mi=mrecordsets.begin() ; mi!=mrecordsets.end() ; mi++) {
 		(*out) << "------------------------" << endl
 		       << *(mi->second) << endl;
-		mi->second->dumpdetails (out);
-		
+		 mi->second->dumpdetails (*out);
 	    }
 
 	} else if (command=="delete") {	// -------------------------------------------------------------------------------------------------
