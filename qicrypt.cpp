@@ -714,6 +714,7 @@ if (debug_lineread) {
 	bufin.clear();
 
 	if (tdin != MCRYPT_FAILED) {
+	    string temp1;
 	    char buf[2048];
 	    size_t p;
 	    size_t s = temp.size();
@@ -724,8 +725,9 @@ if (debug_lineread) {
 		if (mdecrypt_generic (tdin, (void *)buf, bs) != 0)
 		    r++;
 		else
-		    temp.assign (buf,bs);
+		    temp1.append (buf,bs);
 	    }
+	    temp.swap(temp1);
 	} else if ((challenging != WaitingRemoteSalt) && (challenging != WaitingHash)) {
 cerr << "CryptConnection::prelineread " << gettype() << "::" << getname() << " skipping lineread datas because of strange condition : "  << challenging << "!" << endl;
 	    return;
