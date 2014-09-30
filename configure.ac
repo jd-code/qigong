@@ -166,6 +166,110 @@ CXXFLAGS="${CXXFLAGS} ${MHASH_INCLUDES}"
 AC_SUBST(MHASH_LIBS)
 
 
+dnl offer a bypass for bulkrays lib and binaries
+AC_ARG_ENABLE(libbulkrays-path,
+[  --enable-libbulkrays-path define the path for libbulkrays and includes],
+    bulkrayspath=$enableval, bulkrayspath="")
+if test "x${bulkrayspath}" = "x"; then
+:
+else
+    INCPATH="$INCPATH -I${bulkrayspath}/include"
+    BULKRAYSLDFLAGS="-L${bulkrayspath}"
+fi
+
+dnl allow static linking to bulkrays
+AC_ARG_ENABLE(bulkrays-static,
+[  --enable-bulkrays-static  link with static bulkrays libes],
+    bulkraysstatic=$enableval, bulkraysstatic="no")
+if test "x$bulkraysstatic" = "xyes"; then
+    BULKRAYSLDFLAGS=""
+    BULKRAYSLDLIB="${bulkrayspath}/libbulkrays.a"
+else
+    BULKRAYSLDFLAGS="$BULKRAYSLDFLAGS -lbulkrays"
+    BULKRAYSLDLIB=""
+fi
+
+dnl check for bulkrays include and lib
+AC_MSG_CHECKING(for bulkrays lib)
+have_bulkrays=no
+SAVECXXFLAGS="$CXXFLAGS"
+CXXFLAGS="$SAVECXXFLAGS $INCPATH"
+AC_LANG(C++)
+## AC_TRY_COMPILE([
+## #include <bulkrays/bulkrays.h>
+## ],[
+##     bulkrays::BulkRaysCPool cp (0, NULL);
+##     cp.add_signal_handler (13);
+## ],[
+## have_bulkrays=yes
+## ])
+if test x$have_bulkrays = xno; then
+    for P_INC in "${prefix}" /usr/local /usr
+    do
+	if test x$have_bulkrays = xno; then
+	    echo -n "  ($P_INC :"
+	    CXXFLAGS="$SAVECXXFLAGS $INCPATH -I$P_INC/include"
+	    AC_TRY_COMPILE([
+#include <bulkrays/bulkrays.h>
+	    ],[
+    bulkrays::BulkRaysCPool cp (0, NULL);
+    cp.add_signal_handler (13);
+	    ],[
+	    have_bulkrays=yes
+	    ])
+	    if test x$have_bulkrays = xyes; then
+		INCPATH="$INCPATH -I$P_INC/include"
+		if test "x$bulkraysstatic" = "xyes"; then
+		    BULKRAYSLDFLAGS=""
+		    BULKRAYSLDLIB="${P_INC}/lib/libbulkrays.a"
+		else
+		    BULKRAYSLDFLAGS="-L${P_INC}/lib -lbulkrays"
+		    BULKRAYSLDLIB=""
+		fi
+
+		echo -n " yes.)"
+	    else
+		echo -n " no.)"
+	    fi
+	fi
+    done
+    echo -n " : "
+fi
+CXXFLAGS="$SAVECXXFLAGS"
+AC_MSG_RESULT($have_bulkrays)
+if test x$have_bulkrays = xyes; then
+    :
+else
+    AC_MSG_ERROR(Unable to find bulkrays headers)
+fi
+AC_SUBST(BULKRAYSLDFLAGS)
+AC_SUBST(BULKRAYSLDLIB)
+dnl end of check for bulkrays lib --------------------------------------------------
+
+dnl check for bulkrays' hcpp2cpp ---------------------------------------------------
+AC_MSG_CHECKING(for bulkrays hcpp2cpp util)
+found_hcpp2cpp="no"
+HCPP2CPP="notfoundyet__"
+for P_INC in "${prefix}" /usr/local /usr
+do
+    if test -x "${P_INC}/bin/hcpp2cpp"
+    then
+	found_hcpp2cpp="yes"
+	HCPP2CPP="${P_INC}/bin/hcpp2cpp"
+	break;
+    fi
+done
+AC_MSG_RESULT($found_hcpp2cpp)
+if test x$found_hcpp2cpp = xyes; then
+    :
+else
+    AC_MSG_ERROR("Unable to find bulkrays' hcpp2cpp")
+fi
+AC_SUBST(HCPP2CPP)
+dnl end of check for bulkrays' hcpp2cpp --------------------------------------------
+
+
+
 dnl rough check for librrd
 AC_DEFINE([RRDLIB], [], [rrd library flags])
 RRDLIB=""

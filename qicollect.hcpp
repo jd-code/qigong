@@ -9,6 +9,9 @@
 #include <fstream>
 #include <iomanip>
 
+
+#include <bulkrays/bulkrays.h>
+
 #include <rrd.h>
 
 #define QICOLLECT_H_GLOBINST
@@ -1148,10 +1151,132 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
     // CollectionsConf runconfig;
     CollectionsConfEngine runconfig;
     
+
+
+    /*
+     *	------------------------------------------------------------------------------------------------------
+     */
+
+    using namespace bulkrays;
+
+
+    class htqc_TreatRequest : virtual public TreatRequest {
+
+	public:
+	    htqc_TreatRequest (void) : TreatRequest() {}
+
+	    ~htqc_TreatRequest() {}
+
+	virtual TReqResult output (ostream &cout, HTTPRequest &req) {
+            bool isGET = false;
+            bool isHEAD = false;
+            if (req.method == "GET") {
+                isGET = true;
+            } else if (req.method == "HEAD") {
+                isHEAD = true;
+            } else {
+                req.set_relative_expires (60);
+                return error (cout, req, 405);  // JDJDJDJD The response MUST include an Allow header containing a list of valid methods for the requested resource. 
+            }
+
+
+	    
+		req.statuscode = 200;
+                req.outmime["Content-Type"] = "text/html;charset=UTF-8";
+		req.outmime["Keep-Alive"] = "timeout=15, max=100";
+
+
+            string uridecode;
+            percentdecode (req.document_uri, uridecode);
+
+                stringstream s;
+                s <<
+{{<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+ <title>}} << xmlencode (uridecode) << {{</title>
+ <link rel="stylesheet" type="text/css" href="/stylesheet.css">
+</head>
+<body>
+<h1>}} << req.document_uri << {{</h1>
+<p>nothing here yet</p>
+</body>
+</html>
+}};
+                req.set_contentlength (s.str().size());
+                req.set_relative_expires (20);      // JDJDJDJD this should be tunable ?
+                req.publish_header();
+		cout << s.str();
+
+                    return TRCompleted;
+
+
+	}
+
+    }; // class htqc_TreatRequest
+
+    class htqc_urimapper : virtual public URIMapper {
+	public:
+	    htqc_TreatRequest htqc_treatrequest;
+
+	    htqc_urimapper (void) : URIMapper(), htqc_treatrequest() {}
+	    ~htqc_urimapper() {}
+	    virtual TreatRequest* treatrequest (HTTPRequest &req) {
+		return &htqc_treatrequest;
+	    }
+    };
+
+    htqc_urimapper *mapper = NULL;
+    int htqc_global (BSOperation op) {
+        switch (op) {
+          case StartUp:
+            mapper = new htqc_urimapper();
+            if (mapper == NULL) {
+                cerr << "bulkrays::htqc_global could not allocate htqc_urimapper" << endl;
+                return -1;
+            }
+            hostmapper["hashttpp.zz"] = mapper;
+            hostmapper["127.0.0.1:10080"] = mapper;
+            return 0;
+
+          case ShutDown:
+            if (mapper == NULL) return -1;
+            hostmapper.deregisterall (mapper);
+            delete (mapper);
+            return 0;
+        }
+    }
+
 } // namespace qiconn
+
+
+
+// needed if the project splits
+// namespace qiconn { int htqc_global (bulkrays::BSOperation op); }
+
+
+namespace bulkrays {
+
+    int bootstrap_global (bulkrays::BSOperation op) {
+	int i = 0;
+
+        if (qiconn::htqc_global(op) != 0) i++;
+
+
+	if (i != 0) {
+	    std::cerr << "bootstrap_global(" << op << ") : " << i << "errors reported" << endl;	// JDJDJDJD should check if things go the proper to log channel
+	    return -1;
+	} else
+	    return 0;
+    }
+
+} // namespace bulkrays
 
 using namespace std;
 using namespace qiconn;
+using namespace bulkrays;
 
 void param_match (const char * param, const char * match, bool &flag) {
     size_t l = strlen (match);
@@ -1239,7 +1364,22 @@ int main (int nb, char ** cmde) {
 	}
     }
 
-    CollectPool cp;
+
+    // -----------------------------------------------------------------
+    // from bulkrays::main (int nb, char ** cmde) ...
+    BulkRaysCPool *pcp = new BulkRaysCPool (nb, cmde);
+    if (pcp == NULL) {
+	cerr << "could not create BulkRaysCPool ... ?" << endl;
+	return -1;
+    }
+    if (!*pcp) {
+	cerr << "BulkRaysCPool isn't fully operationnal." << endl;
+	return -1;
+    }
+    // -----------------------------------------------------------------
+    
+
+    CollectPool &cp = *(CollectPool *)pcp;
     
     init_mmpcreators(&cp);
     

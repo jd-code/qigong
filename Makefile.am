@@ -51,7 +51,7 @@ tarfiles.txt:
 	( git archive `git rev-parse --abbrev-ref HEAD` | tar -tvf - | cut -b49- | grep -v debian-src ) > tarfiles.txt
 	: > tstamp ; autoall ; find . -cnewer tstamp -not -type d | grep -v tarfiles.txt >> tarfiles.txt ; rm tstamp
 
-tar: tarfiles.txt qicollect.cpp qigong.cpp qiconn/include/qiconn/qiconn.h qiconn/qiconn.cpp
+tar: tarfiles.txt qicollect.hcpp qigong.cpp qiconn/include/qiconn/qiconn.h qiconn/qiconn.cpp
 	tar -zcphf qigong_"${VERSION}".orig.tar.gz --no-recursion --transform='s=^='qigong_"${VERSION}"'/=' -T tarfiles.txt
 	tar -ztvf qigong_"${VERSION}".orig.tar.gz
 
@@ -59,11 +59,13 @@ tar: tarfiles.txt qicollect.cpp qigong.cpp qiconn/include/qiconn/qiconn.h qiconn
 
 bin_PROGRAMS = qigong qicollect qigenkey crtelnet hex2base64 qigong_nomc
 
+%.cc: %.hcpp
+	${HCPP2CPP} $< -o $@
 
-qicollect_SOURCES = qicollect.cpp qicrypt.cpp qimeasure.cpp
+qicollect_SOURCES = qicollect.cc qicrypt.cpp qimeasure.cpp
 qicollect_CXXFLAGS = @MYSQL_CLIENT_CFLAGS@ @LCF_LIBMEMCACHED@
-qicollect_LDADD = @QICONNLDLIB@
-qicollect_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @MHASH_LIBS@ @RRDLIB@ @MYSQL_CLIENT_LIBS@ @LDF_LIBMEMCACHED@
+qicollect_LDADD = @QICONNLDLIB@ @BULKRAYSLDLIB@
+qicollect_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @MHASH_LIBS@ @BULKRAYSLDFLAGS@ @RRDLIB@ @MYSQL_CLIENT_LIBS@ @LDF_LIBMEMCACHED@
 
 qigong_SOURCES = qigong.cpp qimeasure.cpp qicrypt.cpp
 qigong_CXXFLAGS = @MYSQL_CLIENT_CFLAGS@ @LCF_LIBMEMCACHED@
