@@ -1,0 +1,15 @@
+#!/usr/bin/make -f
+
+#export DH_VERBOSE=1
+
+%:
+	dh  $@
+
+override_dh_auto_build:
+	make all DESTDIR=/usr
+
+override_dh_auto_install:
+	make install_qigong	    DESTDIR=`pwd`/debian/qigong-full/usr rcDESTDIR=`pwd`/debian/qigong-full
+	make install_qigong-nomc    DESTDIR=`pwd`/debian/qigong-nomc/usr rcDESTDIR=`pwd`/debian/qigong-nomc
+	make install_qicollect	    DESTDIR=`pwd`/debian/qicollect/usr   rcDESTDIR=`pwd`/debian/qicollect
+

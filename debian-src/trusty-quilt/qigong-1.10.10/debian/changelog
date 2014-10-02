@@ -1,0 +1,47 @@
+qigong (1.10.10-1ubuntu1~trusty1) trusty; urgency=low
+
+  * new architecture : armhf
+
+ -- Jean-Daniel Pauget <pauget@nekodune.com>  Thu, 02 Oct 2014 16:32:09 +0200
+
+qigong (1.10.9-1ubuntu1~trusty1) trusty; urgency=low
+
+  * self-deregistration bug correction
+
+ -- Jean-Daniel Pauget <pauget@nekodune.com>  Sat, 14 Jun 2014 00:35:05 +0200
+
+qigong (1.10.8-1ubuntu1~trusty1) trusty; urgency=low
+
+  * qiconn autoconf+automake build
+
+ -- jean-daniel pauget <jd@mblic.zz>  Fri, 25 Apr 2014 19:31:52 +0200
+
+qigong (1.10.6-1ubuntu1~trusty1) trusty; urgency=low
+
+  * new: checksum for keyfiles
+
+ -- Jean-Daniel Pauget <pauget@nekodune.com>  Fri, 18 Apr 2014 11:08:08 +0200
+
+qigong (1.10.5-1ubuntu3~trusty1) trusty; urgency=low
+
+  * corrected missing /etc/qigong dir creations
+
+ -- Jean-Daniel Pauget <pauget@nekodune.com>  Thu, 17 Apr 2014 15:47:42 +0200
+
+qigong (1.10.5-1ubuntu2~trusty1) trusty; urgency=low
+
+  * source format changed to quilt
+
+ -- jean-daniel pauget <pauget@nekodune.com>  Wed, 16 Apr 2014 11:40:09 +0200
+
+qigong (1.10.5-1) lucid; urgency=low
+
+  * Man pages completion
+
+ -- jean-daniel pauget <pauget@nekodune.com>  Tue, 15 Apr 2014 17:58:05 +0200
+
+qigong (1.10.4-2) lucid; urgency=low
+
+  * Initial release.
+
+ -- jean-daniel pauget <pauget@nekodune.com>  Mon, 14 Apr 2014 15:32:45 +0200

@@ -1,0 +1,45 @@
+Source: qigong
+Section: admin
+Priority: extra
+Maintainer: jean-daniel pauget <pauget@nekodune.com>
+Build-Depends: debhelper (>= 7.0.50), libc6-dev (>= 2.11.1), libmysqlclient-dev, librrd-dev, libmcrypt-dev, libmhash-dev, libmemcached-dev
+Standards-Version: 3.8.4
+Homepage: http://qigong.nekodune.com/
+
+Package: qigong-full
+Architecture: i386 amd64
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Provides: qigong
+Conflicts: qigong-nomc
+Description: local metrics collection-daemon
+ This package provides binaries with full features and full
+ dependencies.
+ "qigong" establish timed metrics in a single ultra-light nifty
+ running daemon and export them to it's paired (and eventually
+ remote) aggregating daemon : "qicollect".
+ Apart from a single security keyfile, all configurations are set
+ from the collecting point.
+
+Package: qigong-nomc
+Architecture: i386 amd64 armhf
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Provides: qigong
+Conflicts: qigong-full
+Description: local metrics collection-daemon
+ This package provides binaries without memcache lib dependency.
+ "qigong" establish timed metrics in a single ultra-light nifty
+ running daemon and export them to it's paired (and eventually
+ remote) aggregating daemon : "qicollect".
+ Apart from a single security keyfile, all configurations are set
+ from the collecting point.
+
+Package: qicollect
+Architecture: i386 amd64 armhf
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Pre-Depends: debconf, adduser
+Suggests: qigong
+Description: remote collects and aggregates metrics from qigong daemons
+ "qicollect" reads it's config file, connects to its swarm of
+ "qigong" daemons, send them the list of metrics to measures
+ and then collects and aggregates them into rrd databases.
+

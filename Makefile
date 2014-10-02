@@ -2,7 +2,7 @@
 DESTDIR=/usr/local
 rcDESTDIR=/
 SHELL=/bin/sh
-VERSION=1.10.9
+VERSION=1.10.10
 DEBSUBV=001
 INCLUDE=-Iqiconn/include
 
@@ -134,15 +134,16 @@ WATCHCONNvimtest: watchconn all
 
 
 vimtest: all localhost.key.priv
-	# ./crtelnet 127.0.0.1:1364 localhost.key.priv
-	# exit 1
-	### ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
-	killall qigong || true
-	 # ./qigong           -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
-	 ./qigong   -debugcrypt -nofork -localkey=`pwd`/localhost.key.priv       -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 2>&1   &
-	rm -f *.rrd
-	./qicollect -debugcrypt -keydir=. -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 
-	# ./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log ) 
+	./qicollect -port 1266 -nofork -logfile=logs -conffile=/home/jd/qic-goji/qicollect.conf -rrdpath=/tmp/rrd -keydir=/home/jd/qic-goji/keys
+	####	# ./crtelnet 127.0.0.1:1364 localhost.key.priv
+	####	# exit 1
+	####	### ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
+	####	killall qigong || true
+	####	 # ./qigong           -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
+	####	 ./qigong   -debugcrypt -nofork -localkey=`pwd`/localhost.key.priv       -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 2>&1   &
+	####	rm -f *.rrd
+	####	./qicollect -debugcrypt -keydir=. -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 
+	####	# ./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log ) 
 
 testqigong: qigong
 	./qigong ; telnet localhost 1264 ; tail /var/log/qigong.log

@@ -1,6 +1,10 @@
 
 packaging:
-    System start/stop links for /etc/init.d/qigong already exist. (at re-install /upgrade)
+    o System start/stop links for /etc/init.d/qigong already exist. (at re-install /upgrade)
+    o at first install :
+	Setting up qicollect (1.10.10-1ubuntu1~trusty1) ...
+	chown: cannot access '/etc/qicollect/keys': No such file or directory
+
 
 
 
