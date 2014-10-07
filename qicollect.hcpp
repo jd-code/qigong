@@ -428,7 +428,7 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 		 << setw(15) << lastlatency[mi->second->getkey()]
 		 << endl
 		 << "          - " << mi->second->getkey() << endl;
-		 mi->second->dumpveryall (cout);
+		 mi->second->dumpall (cout);
 		 cout << endl;
 	}
 
@@ -488,7 +488,7 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
  */
 
     // JDJDJDJD peut-etre inutile a terme ....
-    ostream& CollectionSet::dumpveryall (ostream& cout) {
+    ostream& CollectionSet::dumpall (ostream& cout) {
 	cout << "                lfreq.size() = " << lfreq.size() << endl;
 	cout << "                lptagmp.size() = " << lptagmp.size() << endl;
 
