@@ -3,15 +3,16 @@
 ACLOCAL_AMFLAGS = -I m4
 
 vimtest: all localhost.key.priv
-	## # ./crtelnet 127.0.0.1:1364 localhost.key.priv
-	## # exit 1
-	## ### ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
-	killall qigong || true
-	## # ./qigong           -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
-	 ./qigong   -debugcrypt -nofork -localkey=`pwd`/localhost.key.priv       -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 2>&1   &
-	rm -f *.rrd
-	./qicollect -debugcrypt -keydir=. -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 
-	## # ./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log ) 
+	./qicollect --bind=127.0.0.1:10080 --user=$$USER --access_log=access_log --earlylog -debugcrypt -nofork -keydir=/home/jd/srcg/conftestqicollect/keys -logfile=testqicoll.log -conffile=/home/jd/srcg/conftestqicollect/qicollect.conf -rrdpath=/tmp/badqi -debugout -port 1365  2>&1 | unbuffer -p tr ':' '='
+	##	    ## # ./crtelnet 127.0.0.1:1364 localhost.key.priv
+	##	    ## # exit 1
+	##	    ## ### ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
+	##	    killall qigong || true
+	##	    ## # ./qigong           -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364
+	##	     ./qigong   -debugcrypt -nofork -localkey=`pwd`/localhost.key.priv       -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 2>&1   &
+	##	    rm -f *.rrd
+	##	    ./qicollect -debugcrypt -keydir=. -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 
+	##	    ## # ./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log ) 
 
 
 localhost.key.priv: qigenkey
@@ -92,7 +93,7 @@ hex2base64_LDFLAGS = @QICONNLDFLAGS@
 
 
 
-CLEANFILES = bulkrays.cc simplefmap.cc access_log
+CLEANFILES = qicollect.cc access_log
 
 clean-local:
 	rm -rf qigong-doc/*

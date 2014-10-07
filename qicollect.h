@@ -44,6 +44,7 @@ namespace qiconn {
     {
 	private:
 	    string tagname, fn, params;
+	    string DSdef;
 	    time_t interval;
 	public:
 	    TaggedMeasuredPoint (string tagname, string fn, string params) {
@@ -121,7 +122,7 @@ namespace qiconn {
 		    fullkey = serverkey + '_' + key;
 		else
 		    fullkey = key;
-		// cerr << "new CollectionSet(" << name << ", " << fqdn << ":" << port << ")" << endl;
+		// cerr << "new CollectionSet(" << name << ", " << fqdn << ":" << port << ") = " << fullkey << endl;
 		pcc = NULL;
 		base_interval = 0;
 		state = unmatched;
@@ -159,6 +160,8 @@ namespace qiconn {
 	    int sub_remote (void);
 	    int activate_remote (void);
 	    int unsub_remote (void);
+
+	    ostream&  dumpall (ostream& cout);
     };
     
     
@@ -185,7 +188,9 @@ namespace qiconn {
      */
 
     class CollectionsConfEngine : public CollectionsConf {
-	private:
+// JDJDJDJD for temprary convenience  (accessed from bulkrays part)
+//	private:
+	public:
 	    map<FQDNPort, CollectingConn *> mpcc;
 	public:
 	    CollectionsConfEngine () {}
@@ -260,6 +265,8 @@ map <string,time_t> lastlatency;
 	    virtual void poll (void);
 	    virtual void reconnect_hook (void);
 	    void failconnect_treat (bool straightfail);
+
+	    ostream& dumpall (ostream& out);
     };
 
 

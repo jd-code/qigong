@@ -43,8 +43,14 @@ namespace qiconn {
 	    string param;
 	    string name;
 	public:
-	    virtual ~MeasurePoint (void) {}
-	    MeasurePoint (const string & param) { MeasurePoint::param = param; }
+	    virtual ~MeasurePoint (void) {
+// JDJDJDJD
+    cerr << "      release of MeasurePoint " << param << " <====================================================" << endl;
+}
+	    MeasurePoint (const string & param) { MeasurePoint::param = param;
+// JDJDJDJD
+    cerr << "instanciation of MeasurePoint " << param << " <====================================================" << endl;
+}
 	    string getname (void) const {
 		return name + '(' + param + ')';
 	    }

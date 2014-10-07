@@ -409,11 +409,41 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
     CollectingConn::~CollectingConn (void) {
     }
     
+    ostream& CollectingConn::dumpall (ostream &cout) {
+	cout << "        " << fqdn << ":" << port << " ";
+	switch (state) {
+	    case needtoconnect: cout << "needtoconnect"; break;
+	    case challenging:   cout << "challenging";   break;
+	    case welcome:       cout << "welcome";       break;
+	    case verify:        cout << "verify";        break;
+	    case ready:         cout << "ready";         break;
+	    case waiting:       cout << "waiting";       break;
+	    case timeout:       cout << "timeout";       break;
+	}
+	cout << endl;
+	map<string, CollectionSet *>::const_iterator mi;
+	for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++) {
+	    cout << "          - " << setfill('-') << setw(50) << mi->first 
+		 << setw(15) << rrdlastupdate[mi->second->getkey()]
+		 << setw(15) << lastlatency[mi->second->getkey()]
+		 << endl
+		 << "          - " << mi->second->getkey() << endl;
+		 mi->second->dumpveryall (cout);
+		 cout << endl;
+	}
+
+	return cout << endl;
+    }
+
 /*
  *  ------------------- TaggedMeasuredPoint --------------------------------------------------------------
  */
 
     string TaggedMeasuredPoint::get_DSdef (time_t heartbeat) {
+	if (!DSdef.empty())
+	    return DSdef;
+
+// JDJDJDJD shouldn't this one be destroyed or not ?
 	MeasurePoint * pmp = mmpcreators[fn](params);
 	stringstream ds;
 	if (pmp == NULL) {
@@ -440,7 +470,10 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 		   << pmp->get_max(i) ;
 	    }
 	}
-	return ds.str();
+
+	DSdef = ds.str();
+	delete (pmp);
+	return DSdef;
     }
 
     string TaggedMeasuredPoint::getremote_def (void) {
@@ -453,6 +486,20 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 /*
  *  ------------------- CollectionSet --------------------------------------------------------------------
  */
+
+    // JDJDJDJD peut-etre inutile a terme ....
+    ostream& CollectionSet::dumpveryall (ostream& cout) {
+	cout << "                lfreq.size() = " << lfreq.size() << endl;
+	cout << "                lptagmp.size() = " << lptagmp.size() << endl;
+
+	time_t heartbeat = 2 * base_interval;
+	{   list<TaggedMeasuredPoint*>::iterator li;
+ 	    for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++) {
+		cout << "                    " << (*li)->get_DSdef(heartbeat) << endl;
+	    }
+	}
+	return cout;
+    }
 
     int CollectionSet::validate_freqs (void) {
 	lfreq.sort();
@@ -1201,7 +1248,25 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
 </head>
 <body>
 <h1>}} << req.document_uri << {{</h1>
-<p>nothing here yet</p>
+<h2>runconfig&nbsp;:</h2>
+<p><pre><code>}} << runconfig << {{</code></pre></p>
+<h2>runconfig&nbsp;mpcc&nbsp;:</h2>
+}};
+
+    {	map<FQDNPort, CollectingConn *>::const_iterator mi;
+	s << "<ul>" << endl;
+	for (mi=runconfig.mpcc.begin() ; mi!=runconfig.mpcc.end() ; mi++) {
+	    s << "<li>" << endl
+	      << "<p>" << mi->first.fqdn << "</p>" << endl
+	      << "<p><pre>";
+	    mi->second->dumpall (s);
+	    s << "</pre></p>" << endl
+	      << "</li>" << endl;
+	}
+	s << "</ul" << endl;
+    }
+		s <<
+{{
 </body>
 </html>
 }};
