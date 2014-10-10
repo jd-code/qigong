@@ -41,6 +41,32 @@ namespace qiconn {
 	    return -1;
     }
 
+    DSkind stoDSkind (const string & s) {
+	if ("GAUGE" == s) {
+	    return DSK_GAUGE;
+	} else if ("COUNTER" == s) {
+	    return DSK_COUNTER;
+	} else if ("DERIVE" == s) {
+	    return DSK_DERIVE;
+	} else if ("ABSOLUTE" == s) {
+	    return DSK_ABSOLUTE;
+	} else {
+	    return DSK_UNKNOWN;
+	}
+    }
+
+    ostream& operator<< (ostream& cout, DSkind const & kind) {
+	switch (kind) {
+	    case DSK_UNKNOWN:   return cout << "UNKNOWN";
+	    case DSK_GAUGE:	return cout << "GAUGE";
+	    case DSK_COUNTER:   return cout << "COUNTER";
+	    case DSK_DERIVE:    return cout << "DERIVE";
+	    case DSK_ABSOLUTE:  return cout << "ABSOLUTE";
+	    default:
+		cerr << "tore::DSkind warning : encountered some garbaged DSkind at ostream" << endl;
+		return cout << "GARBAGED";
+	}
+    }
 
     Tore::Tore (string filename) : 
 	usable (false),
@@ -92,14 +118,6 @@ namespace qiconn {
 #define BK_DATAOFFSET	32	// int64_t offset for datas
 
 
-// JDJDJDJD this should be public, probably
-// definitions of DS kinds
-#define DSK_UNKNOWN	13	// unkown DS kind
-#define DSK_GAUGE	1	// direct value stored
-#define DSK_COUNTER	2	// a number that can only go high
-#define DSK_DERIVE	3	// the value stored is the difference from two reports
-#define DSK_ABSOLUTE	4	// counter that is reset after read
-
 
     int Tore::readheader ()
     {
@@ -137,7 +155,7 @@ cerr << "base pulse = "	<< basetime << "s" << endl
 	    size_t offset = 0;
 	    for (i=0 ; i<nbMPs ; i++) {
 		string name (startDSdef + offset + DS_NAME_OFF);
-		int kind = *(int32_t *)(startDSdef + offset + DS_KIND_OFF);
+		DSkind kind = (DSkind) *(int32_t *)(startDSdef + offset + DS_KIND_OFF);
 		offset += *(int32_t *)(startDSdef + offset + DS_DEFSIZE_OFF);
 cerr << "   DS:" << name << ":[" << kind << "]" << endl;
 	    }
@@ -161,6 +179,8 @@ cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures <<
 
 	return 0;
     }
+
+    
 
     Tore::~Tore () {
 	if (fd > 0) close (fd);
@@ -287,22 +307,15 @@ cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures <<
 	    }
 	}
 
+
+
 	// writing DS kinds
 	{   int dsnum;
 	    list<string>::iterator li;
 	    for (dsnum=0,li=DSkinds.begin() ; li!=DSkinds.end() ; li++,dsnum++) {
-		int32_t kind = DSK_UNKNOWN;    // DSK_UNKNOWN
-		if ("GAUGE" == *li) {
-		    kind = DSK_GAUGE;
-		} else if ("COUNTER" == *li) {
-		    kind = DSK_COUNTER;
-		} else if ("DERIVE" == *li) {
-		    kind = DSK_DERIVE;
-		} else if ("ABSOLUTE" == *li) {
-		    kind = DSK_ABSOLUTE;
-		}
+		DSkind kind = stoDSkind (*li);
 
-		*(int32_t *)(mheader + PROPOFFDSDEF0 + dsnum*DS_DEF_SIZE + DS_KIND_OFF) = kind;
+		*(int32_t *)(mheader + PROPOFFDSDEF0 + dsnum*DS_DEF_SIZE + DS_KIND_OFF) = (int32_t)kind;
 
 		if (kind == DSK_UNKNOWN) {	// JDJDJDJD a previous check should prevent this
 		    cerr << "Tore::" << filename << " Tore::specify warning : unkown kind \"" << *li << "\"" << endl;
@@ -360,8 +373,9 @@ cerr << "bigdataoffset = " << bigdataoffset << endl;
 		    cerr <<  "Tore::" << filename << " Tore::specify error in padding : " << strerror (e) << endl;
 		    return -4;
 		}
-		cout << (100*towrite) / (bigdataoffset-headersize) << endl;
+		cout << "  " << 100 - ((100*towrite) / (bigdataoffset-headersize)) << "%\r" << flush;
 	    }
+	    cout << "  100%" << endl;
 	}
 
 	return 0;
