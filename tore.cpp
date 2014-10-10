@@ -41,6 +41,10 @@ namespace qiconn {
 	    return -1;
     }
 
+    /*
+     *	----------------------------------- DSkind ------------------------------------
+     */
+
     DSkind stoDSkind (const string & s) {
 	if ("GAUGE" == s) {
 	    return DSK_GAUGE;
@@ -67,6 +71,32 @@ namespace qiconn {
 		return cout << "GARBAGED";
 	}
     }
+
+    /*
+     *	----------------------------------- toreBank ----------------------------------
+     */
+
+    toreBank::toreBank (CollectFreqDuration freq,
+			long nbmeasures,
+			size_t bankpaddedsize,
+			size_t bankdataoffset,
+			time_t creationdate,
+			int64_t *plastupdate
+		       ) :
+	freq (freq),
+	nbmeasures (nbmeasures),
+	bankpaddedsize (bankpaddedsize),
+	bankdataoffset (bankdataoffset),
+	creationdate (creationdate),
+	lastupdate (*plastupdate)
+    {	
+    }
+
+    toreBank::~toreBank () {}
+
+    /*
+     *	----------------------------------- Tore --------------------------------------
+     */
 
     Tore::Tore (string filename) : 
 	usable (false),
@@ -97,6 +127,8 @@ namespace qiconn {
 #define NBBANK_OFF	12	// number of banks
 #define OFFDSDEF0	16	// offset for the first DS definition
 #define OFFBANK0	20	// offset for the first bank definition
+#define CREATIONDATE	24	// int64 time_t creation of this archive
+#define LASTUPDATE  	32	// int64 time_t last update of this archive
 
 // offset valid only at creation time (may change any at time)
 #define PROPOFFDSDEF0	64	// offset for the first DS definition
@@ -116,6 +148,8 @@ namespace qiconn {
 #define BK_NBMEASURES	12	// number of measures
 #define BK_SIZE_LL	16	// int64_t padded size of the bank in bytes
 #define BK_DATAOFFSET	32	// int64_t offset for datas
+#define BK_CREATIONDATE	40	// the 64b timestamp of first data
+#define BK_LASTUPDATE  	48	// the 64b timestamp of last update
 
 
 
@@ -143,24 +177,30 @@ cerr << "entering readheader" << endl;
 	    return -5;
 	}
 	
+	// collection of main properties
 	basetime = *(int32_t *)(mheader + BASETIME_OFF);
-	long nbMPs = *(int32_t *)(mheader + NBMP_OFF);
-	long nbbanks = *(int32_t *)(mheader + NBBANK_OFF);
+	nbMPs = *(int32_t *)(mheader + NBMP_OFF);
+	nbbanks = *(int32_t *)(mheader + NBBANK_OFF);
 cerr << "base pulse = "	<< basetime << "s" << endl
      << nbbanks << " banks of " << nbMPs << " measure-points rows" << endl;
-	char *startDSdef = mheader + *(int32_t *)(mheader + OFFDSDEF0);
-	char *startbankdef = mheader + *(int32_t *)(mheader + OFFBANK0);
+	startDSdef = mheader + *(int32_t *)(mheader + OFFDSDEF0);
+	startbankdef = mheader + *(int32_t *)(mheader + OFFBANK0);
+	creationdate = (time_t) *(int64_t *)(mheader + CREATIONDATE);
+	plastupdate = (int64_t *)(mheader + LASTUPDATE);
 
+	// collection of DS properties
 	{   int i;
 	    size_t offset = 0;
 	    for (i=0 ; i<nbMPs ; i++) {
 		string name (startDSdef + offset + DS_NAME_OFF);
 		DSkind kind = (DSkind) *(int32_t *)(startDSdef + offset + DS_KIND_OFF);
+		DSdefs.push_back (toreDSdef(name, kind));
 		offset += *(int32_t *)(startDSdef + offset + DS_DEFSIZE_OFF);
 cerr << "   DS:" << name << ":[" << kind << "]" << endl;
 	    }
 	}
 
+	// collection of bank properties
 	{   size_t offset = 0;
 	    int i;
 	    for (i=0 ; i<nbbanks ; i++) {
@@ -169,7 +209,22 @@ cerr << "   DS:" << name << ":[" << kind << "]" << endl;
 		long nbmeasures = *(int32_t *)(startbankdef + offset + BK_NBMEASURES);
 		size_t bankpaddedsize = (size_t)(*(int64_t *)(startbankdef + offset + BK_SIZE_LL));
 		size_t bankdataoffset = (size_t)(*(int64_t *)(startbankdef + offset + BK_SIZE_LL));
+		time_t creationdate = (time_t) (*(int64_t *)(startbankdef + offset + BK_CREATIONDATE));
+		int64_t *plastupdate = (int64_t *)(startbankdef + offset + BK_LASTUPDATE);
 		offset += *(int32_t *)(startbankdef + offset + BK_DEFSIZE_OFF);
+
+		toreBank *pbank = new toreBank (CollectFreqDuration(interval,duration),
+						nbmeasures,
+						bankpaddedsize,
+						bankdataoffset,
+						creationdate,
+						plastupdate
+						);
+		if (pbank == NULL) {
+		    cerr << "Tore::" << filename << " Tore::readheader failed. could not allocate toreBank" << endl;
+		    return -7;
+		}
+		lbanks.push_back (pbank);
 
 cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures << " measures" << endl
      << "          padded = " << bankpaddedsize << " (" << bankpaddedsize/1024 << "Ko),  off=" << bankdataoffset << endl
@@ -180,15 +235,22 @@ cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures <<
 	return 0;
     }
 
-    
+    int Tore::mapall (void) {
+	return 0;
+    }
 
     Tore::~Tore () {
+// JDJDJDJD MISSING should unmap the mapping !!!!!
 	if (fd > 0) close (fd);
     }
 
     int Tore::specify (int basetime, list<CollectFreqDuration> &lfreq, string const &DSdefinition) {
+
+	Tore::basetime = basetime;
+
 	if (defined) {
 	    cerr << "Tore::" << filename << " : attempt to redefine" << endl;
+	    return -6;
 	}
 	
 	fd = open (filename.c_str(), O_RDWR | O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
@@ -216,7 +278,6 @@ cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures <<
 	// write the IFF tag
 	mheader[0]='T'; mheader[1]='o'; mheader[2]='r'; mheader[3]='e';
 
-	Tore::basetime = basetime;
 	*(int32_t *)(mheader + BASETIME_OFF) = basetime;
 	
 
@@ -270,6 +331,8 @@ cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures <<
 	    return -3;
 	}
 
+	creationdate = time(NULL);
+
 	// writing the number of measure-points
 	*(int32_t *)(mheader + NBMP_OFF) = DSnames.size();
 
@@ -286,6 +349,10 @@ cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures <<
 	size_t offset_defbank0 = PROPOFFDSDEF0 + DSnames.size() * DS_DEF_SIZE;
 	// writing first bank definition offset position
 	*(int32_t *)(mheader + OFFBANK0) = offset_defbank0;
+	// writing creation date
+	*(int64_t *)(mheader + CREATIONDATE) = creationdate;
+	// writing last update as unkonwn
+	*(int64_t *)(mheader + LASTUPDATE) = TORE_TIME_UNKNOWN;
 	
 
 	// writing DS names and def sizes
@@ -346,6 +413,8 @@ cerr << "bigdataoffset = " << bigdataoffset << endl;
 		    padsize = pagesize * (1 + datasize/pagesize);
 		*(int64_t *)(mheader + bankoffset + BK_SIZE_LL) = padsize;
 		*(int64_t *)(mheader + bankoffset + BK_DATAOFFSET) = bigdataoffset;
+		*(int64_t *)(mheader + bankoffset + BK_CREATIONDATE) = creationdate;
+		*(int64_t *)(mheader + bankoffset + BK_LASTUPDATE) = TORE_TIME_UNKNOWN;
 		bigdataoffset += padsize;
 cerr << "bigdataoffset = " << bigdataoffset << endl;
 	    }
@@ -362,7 +431,7 @@ cerr << "bigdataoffset = " << bigdataoffset << endl;
 	}
 
 	{   cout << "padding the repository :" << endl;
-	    size_t towrite = bigdataoffset-headersize;
+	    size_t towrite = bigdataoffset - headersize;
 	    while (towrite > 0) {
 		size_t size = (towrite > 128*1024) ? 128*1024 : towrite;
 		size_t w = pad (fd, size);
