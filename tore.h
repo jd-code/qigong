@@ -1,6 +1,14 @@
 #ifndef TORE_H_INCLUDE
 #define TORE_H_INCLUDE
 
+#ifdef TORE_H_GLOBINST
+#define TORE_H_SCOPE
+#define QIMEASURE_H_GLOBINST
+#else
+#define TORE_H_SCOPE extern
+#endif
+
+
 #include <string>
 #include <list>
 
@@ -13,6 +21,12 @@ namespace qiconn {
 #define TORE_TIME_UNKNOWN   314	//!< timestamp for an unknown date or never
 
     using namespace std;
+
+#ifdef TORE_H_GLOBINST
+    bool debug_tore = true;
+#else
+    TORE_H_SCOPE bool debug_tore;
+#endif
 
     //! nature of a measure point
     typedef enum {
@@ -104,10 +118,14 @@ namespace qiconn {
 		return usable ? false : true;
 	    }
 
-	    int readheader (void);
-	    int mapall (bool check=true);
-
 	    int specify (int basetime, list<CollectFreqDuration> &lfreq, string const &DSdefinition);
+
+	private:
+	    int readheader (void);
+	    int unmapheader (void);
+	    int mapallbanks (bool check=true);
+	    int unmapallbanks (void);
+
     };
 
 }  // namespace qiconn

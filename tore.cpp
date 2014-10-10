@@ -8,6 +8,7 @@
 #include <iostream>
 #include <iomanip>
 
+#define TORE_H_GLOBINST	    // remember that only this file should have this
 #include "tore.h"
 
 namespace qiconn {
@@ -94,6 +95,10 @@ namespace qiconn {
     }
 
     int toreBank::map_it (int fd, bool check /* =true */) {
+	if ((map != NULL) && (map != MAP_FAILED)) {
+	    cerr << "ToreBank::map_it failed to map : allready mapped !" << endl;
+	    return -3;
+	}
 	map = (char *) mmap (NULL, bankpaddedsize, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, fd, bankdataoffset);
 	if ((map == MAP_FAILED) || (map == NULL)) {
 	    int e = errno;
@@ -150,7 +155,7 @@ namespace qiconn {
 	    usable = false;
 	    return;
 	}
-	usable = true;
+	mapallbanks (true);
     }
 
 // file offsets
@@ -206,6 +211,7 @@ cerr << "entering readheader" << endl;
 	if ((mheader[0]!='T') || (mheader[1]!='o') || (mheader[2]!='r') || (mheader[3]!='e')) {
 	    cerr << "Tore::" << filename << " Tore::readheader failed bad IFF header" << endl;
 	    munmap (mheader, headersize); mheader = NULL; close (fd);
+	    mheader = NULL;
 	    return -5;
 	}
 	
@@ -254,6 +260,8 @@ cerr << "   DS:" << name << ":[" << kind << "]" << endl;
 						);
 		if (pbank == NULL) {
 		    cerr << "Tore::" << filename << " Tore::readheader failed. could not allocate toreBank" << endl;
+		    munmap (mheader, headersize); mheader = NULL; close (fd);
+		    mheader = NULL;
 		    return -7;
 		}
 		lbanks.push_back (pbank);
@@ -264,18 +272,73 @@ cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures <<
 	    }
 	}
 
+if (debug_tore) cerr << "Tore::" << filename << " readheader success" << endl;
 	return 0;
     }
 
-    int Tore::mapall (bool check /* =true */) {
+    int Tore::mapallbanks (bool check /* =true */) {
+	if ((mheader == NULL) || (mheader == MAP_FAILED)) {
+	    cerr << "Tore::" << filename << " mapallbanks : error : no header previously mapped" << endl;
+	    usable = false;
+	    return -2;
+	}
+	if (lbanks.empty()) {
+	    cerr << "Tore::" << filename << " mapallbanks : error : strange attempt to map empty list of banks" << endl;
+	    usable = false;
+	    return -3;
+	}
+	int nberr = 0;
 	list<toreBank*>::iterator li;
-	for (li=lbanks.begin() ; li!=lbanks.end() ; li++)
-	    (*li)->map_it (fd, check);
-	return 0;
+	for (li=lbanks.begin() ; li!=lbanks.end() ; li++) {
+	    if ((*li)->map_it (fd, check) < 0) nberr ++;
+	}
+	if (nberr == 0) {
+if (debug_tore) cerr << "Tore::" << filename << " mapallbanks success" << endl;
+	    usable = true;
+	    return 0;
+	} else {
+if (debug_tore) cerr << "Tore::" << filename << " mapallbanks FAILED" << endl;
+	    usable = false;
+	    return -1;
+	}
+    }
+
+    int Tore::unmapallbanks (void) {
+	usable = false;
+	int nberr = 0;
+	list<toreBank*>::iterator li;
+	for (li=lbanks.begin() ; li!=lbanks.end() ; li++) {
+	    if ((*li)->unmap_it () < 0) nberr ++;
+	}
+	if (nberr == 0) {
+if (debug_tore) cerr << "Tore::" << filename << " unmapallbanks success" << endl;
+	    return 0;
+	} else {
+if (debug_tore) cerr << "Tore::" << filename << " unmapallbanks success" << endl;
+	    return -1;
+	}
+    }
+    
+    int Tore::unmapheader (void) {
+	usable = false;
+	if ((mheader != NULL) && (mheader != MAP_FAILED)) {
+	    if (munmap (mheader, headersize) < 0) {
+		int e = errno;
+		cerr << "Tore::" << filename << " : unmapheader error : " << strerror(e) << endl;
+		return -2;  // difficult to know the current mheader state !
+	    }
+	    mheader = NULL;
+if (debug_tore) cerr << "Tore::" << filename << " unmapheader success" << endl;
+	    return 0;
+	} else {
+	    cerr << "Tore::" << filename << " : unmapheader called without mapping to unmap" << endl;
+	    return -1;
+	}
     }
 
     Tore::~Tore () {
-// JDJDJDJD MISSING should unmap the mapping !!!!!
+	unmapallbanks ();
+	unmapheader ();
 	if (fd > 0) close (fd);
     }
 
@@ -287,7 +350,15 @@ cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures <<
 	    cerr << "Tore::" << filename << " : attempt to redefine" << endl;
 	    return -6;
 	}
-	
+	if ((mheader != NULL) && (mheader != MAP_FAILED)) {
+	    cerr << "Tore::" << filename << " : attempt to define while already mapped" << endl;
+	    return -7;
+	}
+	if (fd >= 0) {
+	    cerr << "Tore::" << filename << " : attempt to define while fd already in use" << endl;
+	    return -7;
+	}	
+
 	fd = open (filename.c_str(), O_RDWR | O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
 	if (fd<0) {	// either the file doesn't exist or not readable
 	    int e = errno;
@@ -502,6 +573,7 @@ cerr << "bigdataoffset = 0x" << setbase(16) << bigdataoffset << setbase(10) << "
 	    }
 	}
 
+if (debug_tore) cerr << "Tore::" << filename << " specify success" << endl;
 	return 0;
     }
 
