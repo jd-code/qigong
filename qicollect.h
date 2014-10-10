@@ -16,6 +16,8 @@
 #include "qicommon.h"
 #include "qimeasure.h"
 
+#include "colfreq.h"
+
 #ifndef QIVERSION
 #define QIVERSION "__unversionned at compile time__"
 #endif
@@ -59,23 +61,6 @@ namespace qiconn {
 	    string getremote_def (void);
     };
     
-    /*
-     *  ------------------- Configuration : CollectFreqDuration ----------------------------------------------
-     */
-
-    class CollectFreqDuration
-    {
-	public: 
-	    long interval, duration;
-	    inline CollectFreqDuration (long interval = -1, long duration = -1) {
-		CollectFreqDuration::interval = interval;
-		CollectFreqDuration::duration = duration;
-		// cerr << "new CollectFreqDuration (" << interval << ", " << duration << ")" << endl;
-	    }
-	    bool operator< (CollectFreqDuration const & cfd) const {
-		return interval < cfd.interval;
-	    }
-    };
     
     /*
      *  ------------------- Configuration : CollectionSet ----------------------------------------------------
@@ -287,7 +272,6 @@ map <string,time_t> lastlatency;
 
 
     ostream& operator<< (ostream& cout, TaggedMeasuredPoint const & tagmp);
-    ostream& operator<< (ostream& cout, CollectFreqDuration const & cfd);
     ostream& operator<< (ostream& cout, CollectionSet const& cs);
     ostream& operator<< (ostream& cout, map<string, CollectionSet *> const& l);
     ostream& operator<< (ostream& cout, CollectionsConf const &conf);

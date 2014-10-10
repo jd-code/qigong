@@ -3,6 +3,8 @@
 ACLOCAL_AMFLAGS = -I m4
 
 vimtest: all localhost.key.priv
+	./testtore
+	exit 1
 	./qicollect --bind=127.0.0.1:10080 --user=$$USER --access_log=access_log --earlylog -debugcrypt -nofork -keydir=/home/jd/srcg/conftestqicollect/keys -logfile=testqicoll.log -conffile=/home/jd/srcg/conftestqicollect/qicollect.conf -rrdpath=/tmp/badqi -debugout -port 1365  2>&1 | unbuffer -p tr ':' '='
 	##	    ## # ./crtelnet 127.0.0.1:1364 localhost.key.priv
 	##	    ## # exit 1
@@ -58,10 +60,12 @@ tar: tarfiles.txt qicollect.hcpp qigong.cpp qiconn/include/qiconn/qiconn.h qicon
 
 
 
-bin_PROGRAMS = qigong qicollect qigenkey crtelnet hex2base64 qigong_nomc
+bin_PROGRAMS = qigong qicollect qigenkey crtelnet hex2base64 qigong_nomc testtore
 
 %.cc: %.hcpp
 	${HCPP2CPP} $< -o $@
+
+testtore_SOURCES = tore.cpp testtore.cpp
 
 qicollect_SOURCES = qicollect.cc qicrypt.cpp qimeasure.cpp
 qicollect_CXXFLAGS = @MYSQL_CLIENT_CFLAGS@ @LCF_LIBMEMCACHED@
