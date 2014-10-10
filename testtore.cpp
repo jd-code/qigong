@@ -10,6 +10,7 @@ using namespace qiconn;
 int main (void) {
 
     Tore tore("bigbagboug.tore");
+    tore.mapall (true);
 
     if (tore)
 	cout << "tore reports ok" << endl;

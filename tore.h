@@ -47,6 +47,7 @@ namespace qiconn {
 	    size_t bankdataoffset;
 	    time_t creationdate;
 	    int64_t & lastupdate;
+	    char *map;
 
 	    toreBank (CollectFreqDuration freq,
 			long nbmeasures,
@@ -56,6 +57,8 @@ namespace qiconn {
 			int64_t *plastupdate
 		     );
 	    ~toreBank ();
+	    int map_it (int fd, bool check=true);
+	    int unmap_it (void);
     };
 
 
@@ -102,7 +105,7 @@ namespace qiconn {
 	    }
 
 	    int readheader (void);
-	    int mapall (void);
+	    int mapall (bool check=true);
 
 	    int specify (int basetime, list<CollectFreqDuration> &lfreq, string const &DSdefinition);
     };

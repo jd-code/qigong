@@ -88,8 +88,40 @@ namespace qiconn {
 	bankpaddedsize (bankpaddedsize),
 	bankdataoffset (bankdataoffset),
 	creationdate (creationdate),
-	lastupdate (*plastupdate)
+	lastupdate (*plastupdate),
+	map(NULL)
     {	
+    }
+
+    int toreBank::map_it (int fd, bool check /* =true */) {
+	map = (char *) mmap (NULL, bankpaddedsize, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, fd, bankdataoffset);
+	if ((map == MAP_FAILED) || (map == NULL)) {
+	    int e = errno;
+	    cerr << "ToreBank::map_it failed to map : " << strerror(e) << endl;
+	    return -1;
+	}
+	if (check) {
+	    if (    (map[0]!='T') || (map[1]!='o') || (map[2]!='r') || (map[3]!='e')
+		 || (map[4]!='B') || (map[5]!='a') || (map[6]!='n') || (map[7]!='k')) {
+		cerr << "ToreBank::map_it check failed for IFF token" << endl;
+		unmap_it ();
+		return -2;
+	    }
+	}
+	return 0;
+    }
+
+    int toreBank::unmap_it (void) {
+	int r = 0;
+	if ((map != NULL) && (map != MAP_FAILED)) {
+	    if (munmap (map, bankpaddedsize) != 0) {
+		int e = errno;
+		cerr << "ToreBank::unmap_it failed at unmap : " << strerror(e) <<  endl;
+		r = -1;
+	    }
+	}
+	map = NULL;
+	return r;
     }
 
     toreBank::~toreBank () {}
@@ -208,7 +240,7 @@ cerr << "   DS:" << name << ":[" << kind << "]" << endl;
 		long duration = *(int32_t *)(startbankdef + offset + BK_DURATION);
 		long nbmeasures = *(int32_t *)(startbankdef + offset + BK_NBMEASURES);
 		size_t bankpaddedsize = (size_t)(*(int64_t *)(startbankdef + offset + BK_SIZE_LL));
-		size_t bankdataoffset = (size_t)(*(int64_t *)(startbankdef + offset + BK_SIZE_LL));
+		size_t bankdataoffset = (size_t)(*(int64_t *)(startbankdef + offset + BK_DATAOFFSET));
 		time_t creationdate = (time_t) (*(int64_t *)(startbankdef + offset + BK_CREATIONDATE));
 		int64_t *plastupdate = (int64_t *)(startbankdef + offset + BK_LASTUPDATE);
 		offset += *(int32_t *)(startbankdef + offset + BK_DEFSIZE_OFF);
@@ -235,7 +267,10 @@ cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures <<
 	return 0;
     }
 
-    int Tore::mapall (void) {
+    int Tore::mapall (bool check /* =true */) {
+	list<toreBank*>::iterator li;
+	for (li=lbanks.begin() ; li!=lbanks.end() ; li++)
+	    (*li)->map_it (fd, check);
 	return 0;
     }
 
@@ -392,19 +427,20 @@ cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures <<
 
 	// writing Bank definitions and offsets
 	size_t bigdataoffset = headersize;
+	list<size_t> offsets_to_bankstamp;
 	{
-cerr << "bigdataoffset = " << bigdataoffset << endl;
 
 	    list<CollectFreqDuration>::iterator lj;
 	    int banknum = 0;
 	    for (lj=lfreq.begin(),banknum=0 ; lj!=lfreq.end() ; lj++, banknum++) {
+cerr << "bigdataoffset = 0x" << setbase(16) << bigdataoffset << setbase(10) << endl;
 		size_t bankoffset = offset_defbank0 + banknum * BK_DEF_SIZE;
 		// write defsize, interval, duration
 		*(int32_t *)(mheader + bankoffset + BK_DEFSIZE_OFF) = BK_DEF_SIZE;
 		*(int32_t *)(mheader + bankoffset + BK_INTERVAL) = lj->interval;
 		*(int32_t *)(mheader + bankoffset + BK_DURATION) = lj->duration;
 		*(int32_t *)(mheader + bankoffset + BK_NBMEASURES) = lj->duration / lj->interval;
-		size_t datasize = (lj->duration / lj->interval) * (8 * DSnames.size());
+		size_t datasize = 8 + (lj->duration / lj->interval) * (8 * DSnames.size()); // 8 is for the verif token
 		// check if it's a multiple of pagesize or pad
 		size_t padsize;
 		if (datasize % pagesize == 0)
@@ -413,11 +449,12 @@ cerr << "bigdataoffset = " << bigdataoffset << endl;
 		    padsize = pagesize * (1 + datasize/pagesize);
 		*(int64_t *)(mheader + bankoffset + BK_SIZE_LL) = padsize;
 		*(int64_t *)(mheader + bankoffset + BK_DATAOFFSET) = bigdataoffset;
+		offsets_to_bankstamp.push_back (bigdataoffset);
 		*(int64_t *)(mheader + bankoffset + BK_CREATIONDATE) = creationdate;
 		*(int64_t *)(mheader + bankoffset + BK_LASTUPDATE) = TORE_TIME_UNKNOWN;
 		bigdataoffset += padsize;
-cerr << "bigdataoffset = " << bigdataoffset << endl;
 	    }
+cerr << "bigdataoffset = 0x" << setbase(16) << bigdataoffset << setbase(10) << " (at exit)" << endl;
 	}
 
 	cout << "sizes to allocate : " << endl;
@@ -430,7 +467,7 @@ cerr << "bigdataoffset = " << bigdataoffset << endl;
 	    
 	}
 
-	{   cout << "padding the repository :" << endl;
+	{   cout << "padding the " << filename << " tore-repository :" << endl;
 	    size_t towrite = bigdataoffset - headersize;
 	    while (towrite > 0) {
 		size_t size = (towrite > 128*1024) ? 128*1024 : towrite;
@@ -445,6 +482,24 @@ cerr << "bigdataoffset = " << bigdataoffset << endl;
 		cout << "  " << 100 - ((100*towrite) / (bigdataoffset-headersize)) << "%\r" << flush;
 	    }
 	    cout << "  100%" << endl;
+	}
+	{   cout << "stamping the banks for " << filename << " tore-repository :" << endl;
+	    
+	    list<size_t>::iterator li;
+	    for (li=offsets_to_bankstamp.begin() ; li!=offsets_to_bankstamp.end() ; li++) {
+		char *map = (char *) mmap (NULL, 16, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, fd, *li);
+		if ((map == MAP_FAILED) || (map == NULL)) {
+		    int e = errno;
+		    cerr << "Tore::" << filename << " Tore::specify could not map at stamping banks : " << strerror(e) << endl; 
+		    return -9;
+		}
+		
+		map[0]='T'; map[1]='o'; map[2]='r'; map[3]='e';
+		map[4]='B'; map[5]='a'; map[6]='n'; map[7]='k';
+		if (munmap (map, 16) != 0) {
+		    cerr << "Tore::" << filename << " Tore::specify warning : error at munpam in bank-stamping" << endl;
+		}
+	    }
 	}
 
 	return 0;
