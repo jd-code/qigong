@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iomanip>
 
+#include <math.h>   // NAN
 
 #include <bulkrays/bulkrays.h>
 
@@ -24,6 +25,39 @@
 
 namespace qiconn {
     using namespace std;
+
+    size_t getinteger (bool &valid, const string &s, long long &n, size_t p /* = 0 */ ) {
+	valid = false;
+	size_t l = s.size();
+	string buf;
+
+	p = seekspace(s, p);
+	
+	if (p == string::npos)
+	    return string::npos;
+	
+	if (p >= l)
+	    return string::npos;
+
+	if (! isdigit(s[p]))
+	    return p;
+
+	while (p < l) {
+	    if (isdigit (s[p])) {
+		buf += s[p];
+		p++;
+	    } else
+		break;
+	}
+
+	n = atoll (buf.c_str());
+	valid = true;
+	
+	if (p >= l)
+	    return string::npos;
+
+	return p;
+    }
 
     int CollectPool::select_poll (struct timeval *timeout) {
 	int r = ConnectionPool::select_poll (timeout);
@@ -87,6 +121,7 @@ namespace qiconn {
     }
 
     string rrd_path = "/srv/qicollect/rrd";
+    string tore_path = "/srv/qicollect/tore";
 
     void CollectingConn::lineread (void) {
 // cerr << "[" << getname() << "] got[" << bufin << "]" << endl;
@@ -97,9 +132,11 @@ namespace qiconn {
 	    string rrd_name;
 	    size_t p = getidentifier (bufin, rrd_name, 3);
 	
+	    CollectionSet * pcs = NULL;
 	    {	MpCS::iterator mi = mpcs.find(rrd_name);
-		if (mi!=mpcs.end()) {
-		    rrd_name = mi->second->getkey();
+		if (mi != mpcs.end()) {
+		    pcs = mi->second;
+		    rrd_name = pcs->getkey();
 		}
 	    }
 	    
@@ -156,6 +193,45 @@ namespace qiconn {
 		    }
 		}
 		rrdlastupdate[rrd_name] = trecord;
+	    }
+
+	    if (pcs != NULL) {
+		    list<double> lv;
+		    size_t q = p;
+		    size_t qq = p;
+		    while (q != string::npos) {
+			string s;
+			qq = bufin.find(':',q+1);
+			if (qq == string::npos)
+			    s = bufin.substr (q+1);
+			else
+			    s = bufin.substr (q+1, qq-q-1);
+			if (s.empty() || (s == "U"))
+			    lv.push_back (NAN);
+			else
+			    lv.push_back(atof(s.c_str()));
+			q = qq;
+		    }
+cerr << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << endl;
+		if (pcs->ptore != NULL) {
+		    pcs->ptore->insertvalue (trecord, lv);
+cerr << "oyo : bufin=[" <<  bufin << "]" << endl;
+cerr << "      substr(p+1)=[" <<  bufin.substr(p+1) << "]" << endl;
+cerr << "      lv=         [";
+list<double>::iterator li;
+for (li=lv.begin() ; li!=lv.end() ; li++)  {
+    if (li != lv.begin())
+	cerr << ':';
+    if (isnan (*li))
+	cerr << "U";
+    else
+	cerr << (long long)(*li);
+}
+cerr << endl << endl;
+		} // already warned about data loss when the tore could not be created.
+
+	    } else {
+cerr << "debug_tore: no matching CollectionSet could be find for " << rrd_name << ". some datas might get lost." << endl;
 	    }
 
 	    if (mustrecorddata) {
@@ -524,6 +600,37 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 	return nbw;
     }
 
+    void CollectionSet::buildmissing_tore (bool warnexist /* = false */) {
+	string fullname = tore_path + '/' + key + ".tore";
+//	struct stat buf;
+//	if (stat (fullname.c_str(), &buf) == 0) {
+//	    if (warnexist) {
+//		cerr << "error: will not re-create already existing tore \"" << fullname << "\"." << endl
+//		     << "         change the collect name in configuration or remove/rename existing rrd" << endl;
+//	    }
+//	    return;
+//	}
+	ptore = new Tore (fullname);
+	if (ptore == NULL) {
+	    cerr << "error : could not create tore repository \"" << fullname << "\". some datas might get lost !" << endl;
+	    return;
+	}
+
+	if (*ptore) {
+cerr << "debug_tore: buildmissing_tore " << fullname << " is already ok" << endl;
+	    return;
+	}
+cerr << "debug_tore: buildmissing_tore " << fullname << " about to specify" << endl;
+	stringstream sdef;
+	{   list<TaggedMeasuredPoint*>::iterator li;
+	    for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++)
+		sdef << (*li)->get_DSdef(base_interval*2) << " ";
+	}
+	
+	ptore->specify (base_interval, lfreq, sdef.str());
+	
+    }
+
     void CollectionSet::buildmissing_rrd (bool warnexist /* = false */) {
 	string fullname = rrd_path + '/' + key + ".rrd";
 	struct stat buf;
@@ -648,6 +755,7 @@ if (debug_ccstates) cerr << "                                                   
 	for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++) {
 	    mi->second->validate_freqs();
 	    mi->second->buildmissing_rrd ();
+	    mi->second->buildmissing_tore ();
 	}
     }
     
@@ -1388,6 +1496,7 @@ int main (int nb, char ** cmde) {
 	    param_match (cmde[i], "-debugccstates",	debug_ccstates);
 	    param_match (cmde[i], "-conffile",		conffile);
 	    param_match (cmde[i], "-rrdpath",		rrd_path);
+	    param_match (cmde[i], "-torepath",		tore_path);
 
 	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
 		dofork = false;

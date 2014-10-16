@@ -17,6 +17,7 @@
 #include "qimeasure.h"
 
 #include "colfreq.h"
+#include "tore.h"
 
 #ifndef QIVERSION
 #define QIVERSION "__unversionned at compile time__"
@@ -92,6 +93,9 @@ namespace qiconn {
 	    CollectingConn *pcc;
 	    time_t base_interval;
 
+public: // temporary convenience ! JDJDJDJD JDJDJDJD
+	    Tore *ptore;
+
 	public:
 	    CSState state;
 
@@ -99,6 +103,7 @@ namespace qiconn {
 		CollectionSet::name = name;
 		CollectionSet::metaname = metaname;
 		CollectionSet::qicrkey = qicrkey;
+		ptore = NULL;
 		fp = FQDNPort(fqdn, port);
 		// CollectionSet::fqdn = fqdn;
 		// CollectionSet::port = port;
@@ -116,6 +121,8 @@ namespace qiconn {
 		list <TaggedMeasuredPoint*>::iterator li;
 		for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++)
 		    delete (*li);
+		if (ptore != NULL)
+		    delete (ptore);
 	    }
 	    inline void push_back (TaggedMeasuredPoint* ptagmp) {
 		lptagmp.push_back (ptagmp);
@@ -139,6 +146,7 @@ namespace qiconn {
 
 	    int validate_freqs (void);
 	    void buildmissing_rrd (bool warnexist = false);
+	    void buildmissing_tore (bool warnexist = false );
 	    void bindcc (CollectingConn *pcc);
 	    int create_remote (void);
 	    int delete_remote (void);

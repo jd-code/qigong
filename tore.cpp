@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <string.h>	    // strerror
 #include <sys/mman.h>
+#include <cmath>	    // NAN / isnan ?
 
 #include <iostream>
 #include <iomanip>
@@ -78,11 +79,12 @@ namespace qiconn {
      */
 
     toreBank::toreBank (CollectFreqDuration freq,
-			long nbmeasures,
+			size_t nbmeasures,
 			size_t bankpaddedsize,
 			size_t bankdataoffset,
 			time_t creationdate,
-			int64_t *plastupdate
+			int64_t *plastupdate,
+			int nbMPs
 		       ) :
 	freq (freq),
 	nbmeasures (nbmeasures),
@@ -90,8 +92,120 @@ namespace qiconn {
 	bankdataoffset (bankdataoffset),
 	creationdate (creationdate),
 	lastupdate (*plastupdate),
-	map(NULL)
-    {	
+	map (NULL),
+	nbMPs (nbMPs)
+	{}
+
+//    int toreBank::insertvalue (time_t t, list<double> const & lv) {
+//	if (t <= lastupdate) {
+//	    cerr < "toreBank::insertvalue failed : insertion time is anterior to last update" << endl;
+//	    return -2;
+//	}
+//	if (lv.size() != (size_t)nbMPs) {
+//	    cerr << "toreBank::insertvalue failed : ask for inserting "
+//		 << lv.size() << " values where " << nbMPs << " are schedulled" << endl;
+//	    return -1;
+//	}
+//	uint64_t lastupdatecycle_n = (lastupdate-creationdate)/freq.duration;
+//	uint64_t curcycle_n = (t-creationdate) / freq.duration;
+//
+//	size_t indexupdate = ((t-creationdate) % freq.duration) / freq.interval;
+//cerr << "                                                                                       indexupdate = " << indexupdate << endl;
+//	if (lastupdatecycle_n == curcycle_n) {	// previous and current points are in the
+//						// same cycle-number
+//	    size_t index = (((lastupdate-creationdate) % freq.duration) / freq.interval) + 1;
+//	    double *p = ((double *)(map + 8)) + index * nbMPs;
+//	    for ( ; index < indexupdate ; index ++) {
+//		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN;
+//	    }
+//	    list<double>::const_iterator li;
+//	    for (li=lv.begin() ; li!=lv.end() ; li++) *p++ = *li;
+//	} else {    // previous and current points arei not in the same cycle-number
+//	    size_t index = 0;
+//	    double *p = ((double *)(map + 8)) + index * nbMPs;
+//	    for ( ; index < indexupdate ; index ++) {
+//		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN;
+//	    }
+//	    list<double>::const_iterator li;
+//	    for (li=lv.begin() ; li!=lv.end() ; li++) *p++ = *li;
+//
+//	    size_t startblankindex = indexupdate+1; // we should wipe the end of previous cycle
+//	    if (lastupdatecycle_n+1 == curcycle_n) { // the previous point was right before the current cycle
+//		size_t previndex = (((lastupdate-creationdate) % freq.duration) / freq.interval) + 1;
+//		if (previndex >= indexupdate+1)	    // and it was after the current modulo-index, we blank from there
+//		    startblankindex = previndex;
+//	    }
+//	    p = ((double *)(map + 8)) + startblankindex * nbMPs;
+//	    for ( ; index < nbmeasures ; index++) {
+//		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN;
+//	    }
+//	}
+//
+//	lastupdate = t;
+//
+//	return 0;
+//    }
+
+    int toreBank::insertvalue (time_t t, list<double> const & lv) {
+	if (t <= lastupdate) {
+	    cerr << "toreBank::insertvalue failed : insertion time is anterior to last update" << endl;
+	    return -2;
+	}
+	time_t tt =          (t - creationdate) / freq.interval,
+	       lu = (lastupdate - creationdate) / freq.interval;
+	if (tt <= lu) {
+	    cerr << "toreBank::insertvalue failed : insertion time when divided by freq is anterior or equal to last update" << endl;
+	    return -2;
+	}
+	if (lv.size() != (size_t)nbMPs) {
+	    cerr << "toreBank::insertvalue failed : ask for inserting "
+		 << lv.size() << " values where " << nbMPs << " are schedulled" << endl;
+	    return -1;
+	}
+	uint64_t lastupdatecycle_n = lu / nbmeasures;
+	uint64_t        curcycle_n = tt / nbmeasures;
+
+	size_t indexupdate = tt % nbmeasures;
+cerr << "                                                                                       indexupdate = " << indexupdate << endl;
+	if (lastupdatecycle_n == curcycle_n) {	// previous and current points are in the
+						// same cycle-number
+	    size_t index = (lu + 1) % nbmeasures;
+	    double *p = ((double *)(map + 8)) + index * nbMPs;
+int debugit = 0;
+	    for ( ; index < indexupdate ; index ++) {
+		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN, debugit++;
+	    }
+if (debugit != 0) cerr << "                                                                               wrote " << debugit << " NANs before (case 1)" << endl;
+	    list<double>::const_iterator li;
+	    for (li=lv.begin() ; li!=lv.end() ; li++) *p++ = *li;
+	} else {    // previous and current points are not in the same cycle-number
+	    size_t index = 0;
+	    double *p = ((double *)(map + 8)) + index * nbMPs;
+int debugit = 0;
+	    for ( ; index < indexupdate ; index ++) {
+		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN, debugit++;
+	    }
+if (debugit != 0) cerr << "                                                                               wrote " << debugit << " NANs before (case 2)" << endl;
+	    list<double>::const_iterator li;
+	    for (li=lv.begin() ; li!=lv.end() ; li++) *p++ = *li;
+
+	    size_t startblankindex = indexupdate+1; // we should wipe the end of previous cycle
+	    if (lastupdatecycle_n+1 == curcycle_n) { // the previous point was right before the current cycle
+		size_t previndex = (lu + 1) % nbmeasures;
+		if (previndex >= indexupdate+1)	    // and it was after the current modulo-index, we blank from there
+		    startblankindex = previndex;
+	    }
+	    p = ((double *)(map + 8)) + startblankindex * nbMPs;
+int debugthere = 0;
+	    for ( ; index < nbmeasures ; index++) {
+		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN, debugthere++;
+	    }
+if (debugthere != 0) cerr << "                                                                               wrote " << debugthere << " NANs at the end?" << endl;
+	}
+
+	lastupdate = t;
+
+	return 0;
     }
 
     int toreBank::map_it (int fd, bool check /* =true */) {
@@ -158,6 +272,21 @@ namespace qiconn {
 	mapallbanks (true);
     }
 
+
+    int Tore::insertvalue (time_t t, list<double> const & lv) {
+	if (!usable) {
+cerr << "Tore::insertvalue: error, attempt to use an un-usable instance !" << endl;
+	    return -2;
+	}
+	if (t < lastupdate()) {
+	    cerr << "Tore::" << filename << " recordvalue failed : attempt to register "
+		 << difftime (t, lastupdate()) << "s late" << endl;
+	    return -1;
+	}
+
+	return (*lbanks.begin())->insertvalue (t, lv);
+    }
+
 // file offsets
 #define BASETIME_OFF	4	// basetime (s)
 #define NBMP_OFF	8	// number of measure-points
@@ -198,12 +327,14 @@ cerr << "entering readheader" << endl;
 	else
 	    headersize = pagesize;
 
-	mheader = (char *) mmap (NULL, headersize, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, fd, 0);
-	if ((mheader == MAP_FAILED) || (mheader == NULL)) {
-	    int e = errno;
-	    cerr << "Tore::" << filename << " Tore::readheader failed could not mmap header: " << strerror (e) << endl;
-	    close (fd);
-	    return -5;
+	if ((mheader == NULL) || (mheader == MAP_FAILED)) {
+	    mheader = (char *) mmap (NULL, headersize, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, fd, 0);
+	    if ((mheader == MAP_FAILED) || (mheader == NULL)) {
+		int e = errno;
+		cerr << "Tore::" << filename << " Tore::readheader failed could not mmap header: " << strerror (e) << endl;
+		close (fd);
+		return -5;
+	    }
 	}
 
 	// minimal first checks
@@ -242,13 +373,13 @@ cerr << "   DS:" << name << ":[" << kind << "]" << endl;
 	{   size_t offset = 0;
 	    int i;
 	    for (i=0 ; i<nbbanks ; i++) {
-		long interval = *(int32_t *)(startbankdef + offset + BK_INTERVAL);
-		long duration = *(int32_t *)(startbankdef + offset + BK_DURATION);
-		long nbmeasures = *(int32_t *)(startbankdef + offset + BK_NBMEASURES);
+		long interval =			 *(int32_t *)(startbankdef + offset + BK_INTERVAL);
+		long duration =			 *(int32_t *)(startbankdef + offset + BK_DURATION);
+		size_t nbmeasures = (size_t)	(*(int32_t *)(startbankdef + offset + BK_NBMEASURES));
 		size_t bankpaddedsize = (size_t)(*(int64_t *)(startbankdef + offset + BK_SIZE_LL));
 		size_t bankdataoffset = (size_t)(*(int64_t *)(startbankdef + offset + BK_DATAOFFSET));
-		time_t creationdate = (time_t) (*(int64_t *)(startbankdef + offset + BK_CREATIONDATE));
-		int64_t *plastupdate = (int64_t *)(startbankdef + offset + BK_LASTUPDATE);
+		time_t creationdate = (time_t)  (*(int64_t *)(startbankdef + offset + BK_CREATIONDATE));
+		int64_t *plastupdate =            (int64_t *)(startbankdef + offset + BK_LASTUPDATE);
 		offset += *(int32_t *)(startbankdef + offset + BK_DEFSIZE_OFF);
 
 		toreBank *pbank = new toreBank (CollectFreqDuration(interval,duration),
@@ -256,7 +387,8 @@ cerr << "   DS:" << name << ":[" << kind << "]" << endl;
 						bankpaddedsize,
 						bankdataoffset,
 						creationdate,
-						plastupdate
+						plastupdate,
+						nbMPs
 						);
 		if (pbank == NULL) {
 		    cerr << "Tore::" << filename << " Tore::readheader failed. could not allocate toreBank" << endl;
@@ -574,6 +706,13 @@ cerr << "bigdataoffset = 0x" << setbase(16) << bigdataoffset << setbase(10) << "
 	}
 
 if (debug_tore) cerr << "Tore::" << filename << " specify success" << endl;
+
+	if (readheader () < 0) {
+	    cerr << "Tore::specify " << filename << " : failed at specify->readheader" << endl;
+	    usable = false;
+	    return -7;
+	}
+	mapallbanks ();
 	return 0;
     }
 

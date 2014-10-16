@@ -55,24 +55,30 @@ namespace qiconn {
     //! inner definition for a tor bank
     class toreBank {
 	public:
-	    CollectFreqDuration freq;
-	    long nbmeasures;
-	    size_t bankpaddedsize;
-	    size_t bankdataoffset;
-	    time_t creationdate;
-	    int64_t & lastupdate;
-	    char *map;
+	    CollectFreqDuration freq;	//!< update frequency (s)
+	    size_t nbmeasures;		//!< number of maesures in one cycle
+	    size_t bankpaddedsize;	//!< the padded size of the bank in bytes
+	    size_t bankdataoffset;	//!< file offset of the begining of the bank
+	    time_t creationdate;	//!< when the bank (and repository) was created
+					//    is used as a time-offset for indexes calculations
+	    int64_t & lastupdate;	//!< the last update
+	    char *map;			//!< where the bank is mapped
+	    int64_t cycleduration;	//!< how long is a whole bank cycle (s)
+	    int nbMPs;			//!< how many measures in each indexed row
 
 	    toreBank (CollectFreqDuration freq,
-			long nbmeasures,
+			size_t nbmeasures,
 			size_t bankpaddedsize,
 			size_t bankdataoffset,
 			time_t creationdate,
-			int64_t *plastupdate
+			int64_t *plastupdate,
+			int nbMPs
 		     );
 	    ~toreBank ();
 	    int map_it (int fd, bool check=true);
 	    int unmap_it (void);
+
+	    int insertvalue (time_t t, list<double> const & lv);
     };
 
 
@@ -88,7 +94,7 @@ namespace qiconn {
 
 	    long basetime;	//!< base pulsation in seconds
 	    long nbbanks;	//!< number of banks of datas
-	    long nbMPs;		//!< the number of measures in a row - JDJDJDJD not sure MP stands correct here
+	    int nbMPs;		//!< the number of measures in a row - JDJDJDJD not sure MP stands correct here
 	time_t creationdate;    //!< creation date of the archive
 	int64_t *plastupdate;   //!< pointer to the mapped last update time of the archive
 
@@ -118,7 +124,14 @@ namespace qiconn {
 		return usable ? false : true;
 	    }
 
-	    int specify (int basetime, list<CollectFreqDuration> &lfreq, string const &DSdefinition);
+	    int specify (             int basetime,
+		list<CollectFreqDuration> &lfreq,
+			     string const &DSdefinition  );
+
+	    inline time_t lastupdate (void) {
+		return (time_t) *plastupdate;
+	    }
+	    int insertvalue (time_t t, list<double> const & lv);
 
 	private:
 	    int readheader (void);

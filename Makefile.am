@@ -3,9 +3,9 @@
 ACLOCAL_AMFLAGS = -I m4
 
 vimtest: all localhost.key.priv
-	./testtore
-	exit 1
-	./qicollect --bind=127.0.0.1:10080 --user=$$USER --access_log=access_log --earlylog -debugcrypt -nofork -keydir=/home/jd/srcg/conftestqicollect/keys -logfile=testqicoll.log -conffile=/home/jd/srcg/conftestqicollect/qicollect.conf -rrdpath=/tmp/badqi -debugout -port 1365  2>&1 | unbuffer -p tr ':' '='
+	## ./testtore
+	## exit 1
+	./qicollect --bind=127.0.0.1:10080 --user=$$USER --access_log=access_log --earlylog -debugcrypt -nofork -keydir=/home/jd/srcg/conftestqicollect/keys -logfile=testqicoll.log -conffile=/home/jd/srcg/conftestqicollect/qicollect.conf -torepath=/tmp/badqi -rrdpath=/tmp/badqi -debugout -port 1365  2>&1 | unbuffer -p tr ':' '='
 	##	    ## # ./crtelnet 127.0.0.1:1364 localhost.key.priv
 	##	    ## # exit 1
 	##	    ## ### ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
@@ -17,7 +17,8 @@ vimtest: all localhost.key.priv
 	##	    ## # ./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log ) 
 
 
-localhost.key.priv: qigenkey
+localhost.key.priv: qigenkey.cpp qicrypt.cpp
+	make qigenkey
 	rm -f localhost.key.priv
 	./qigenkey localhost
 
@@ -67,7 +68,7 @@ bin_PROGRAMS = qigong qicollect qigenkey crtelnet hex2base64 qigong_nomc testtor
 
 testtore_SOURCES = tore.cpp testtore.cpp
 
-qicollect_SOURCES = qicollect.cc qicrypt.cpp qimeasure.cpp
+qicollect_SOURCES = qicollect.cc qicrypt.cpp qimeasure.cpp tore.cpp
 qicollect_CXXFLAGS = @MYSQL_CLIENT_CFLAGS@ @LCF_LIBMEMCACHED@
 qicollect_LDADD = @QICONNLDLIB@ @BULKRAYSLDLIB@
 qicollect_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @MHASH_LIBS@ @BULKRAYSLDFLAGS@ @RRDLIB@ @MYSQL_CLIENT_LIBS@ @LDF_LIBMEMCACHED@
