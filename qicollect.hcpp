@@ -212,22 +212,8 @@ namespace qiconn {
 			    lv.push_back(atof(s.c_str()));
 			q = qq;
 		    }
-cerr << "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" << endl;
 		if (pcs->ptore != NULL) {
 		    pcs->ptore->insertvalue (trecord, lv);
-cerr << "oyo : bufin=[" <<  bufin << "]" << endl;
-cerr << "      substr(p+1)=[" <<  bufin.substr(p+1) << "]" << endl;
-cerr << "      lv=         [";
-list<double>::iterator li;
-for (li=lv.begin() ; li!=lv.end() ; li++)  {
-    if (li != lv.begin())
-	cerr << ':';
-    if (isnan (*li))
-	cerr << "U";
-    else
-	cerr << (long long)(*li);
-}
-cerr << endl << endl;
 		} // already warned about data loss when the tore could not be created.
 
 	    } else {
@@ -519,7 +505,6 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 	if (!DSdef.empty())
 	    return DSdef;
 
-// JDJDJDJD shouldn't this one be destroyed or not ?
 	MeasurePoint * pmp = mmpcreators[fn](params);
 	stringstream ds;
 	if (pmp == NULL) {
@@ -1487,6 +1472,7 @@ int main (int nb, char ** cmde) {
 	    param_match (cmde[i], "-debugout",		debug_dummyout);
 	    param_match (cmde[i], "-debuginput",	debug_dummyin);
 	    param_match (cmde[i], "-debuglineread",	debug_lineread);
+	    param_match (cmde[i], "-debugtore",		debug_tore);
 	    param_match (cmde[i], "-pidfile",		pidfile);
 	    param_match (cmde[i], "-logfile",		logfile);
 	    param_match (cmde[i], "-keydir",		walletdir);

@@ -31,8 +31,13 @@ namespace qiconn {
 	    size_t n = (s > 1024) ? 1024 : s;
 	    size_t r = write (fd, buf, n);
 	    if (r<0) {
-		cerr << "qiconn::pad (tore.cpp) we'll see later what to do here" << endl;
-		break;
+		int e = errno;
+		if ((errno == EINTR) || (errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+		    cerr << "qiconn::pad (tore.cpp) write failed : errno=" << e << " : " << strerror(e) << " : we will retry" << endl;
+		} else {
+		    cerr << "qiconn::pad (tore.cpp) write failed : errno=" << e << " : " << strerror(e) << endl;
+		    break;
+		}
 	    }
 	    s -= r;
 	    written += r;
@@ -95,56 +100,6 @@ namespace qiconn {
 	map (NULL),
 	nbMPs (nbMPs)
 	{}
-
-//    int toreBank::insertvalue (time_t t, list<double> const & lv) {
-//	if (t <= lastupdate) {
-//	    cerr < "toreBank::insertvalue failed : insertion time is anterior to last update" << endl;
-//	    return -2;
-//	}
-//	if (lv.size() != (size_t)nbMPs) {
-//	    cerr << "toreBank::insertvalue failed : ask for inserting "
-//		 << lv.size() << " values where " << nbMPs << " are schedulled" << endl;
-//	    return -1;
-//	}
-//	uint64_t lastupdatecycle_n = (lastupdate-creationdate)/freq.duration;
-//	uint64_t curcycle_n = (t-creationdate) / freq.duration;
-//
-//	size_t indexupdate = ((t-creationdate) % freq.duration) / freq.interval;
-//cerr << "                                                                                       indexupdate = " << indexupdate << endl;
-//	if (lastupdatecycle_n == curcycle_n) {	// previous and current points are in the
-//						// same cycle-number
-//	    size_t index = (((lastupdate-creationdate) % freq.duration) / freq.interval) + 1;
-//	    double *p = ((double *)(map + 8)) + index * nbMPs;
-//	    for ( ; index < indexupdate ; index ++) {
-//		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN;
-//	    }
-//	    list<double>::const_iterator li;
-//	    for (li=lv.begin() ; li!=lv.end() ; li++) *p++ = *li;
-//	} else {    // previous and current points arei not in the same cycle-number
-//	    size_t index = 0;
-//	    double *p = ((double *)(map + 8)) + index * nbMPs;
-//	    for ( ; index < indexupdate ; index ++) {
-//		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN;
-//	    }
-//	    list<double>::const_iterator li;
-//	    for (li=lv.begin() ; li!=lv.end() ; li++) *p++ = *li;
-//
-//	    size_t startblankindex = indexupdate+1; // we should wipe the end of previous cycle
-//	    if (lastupdatecycle_n+1 == curcycle_n) { // the previous point was right before the current cycle
-//		size_t previndex = (((lastupdate-creationdate) % freq.duration) / freq.interval) + 1;
-//		if (previndex >= indexupdate+1)	    // and it was after the current modulo-index, we blank from there
-//		    startblankindex = previndex;
-//	    }
-//	    p = ((double *)(map + 8)) + startblankindex * nbMPs;
-//	    for ( ; index < nbmeasures ; index++) {
-//		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN;
-//	    }
-//	}
-//
-//	lastupdate = t;
-//
-//	return 0;
-//    }
 
     int toreBank::insertvalue (time_t t, list<double> const & lv) {
 	if (t <= lastupdate) {
@@ -321,7 +276,7 @@ cerr << "Tore::insertvalue: error, attempt to use an un-usable instance !" << en
 
     int Tore::readheader ()
     {
-cerr << "entering readheader" << endl;
+if (debug_tore) cerr << "entering readheader" << endl;
 	if (pagesize < 4096)
 	    headersize = 4096;
 	else
@@ -350,8 +305,8 @@ cerr << "entering readheader" << endl;
 	basetime = *(int32_t *)(mheader + BASETIME_OFF);
 	nbMPs = *(int32_t *)(mheader + NBMP_OFF);
 	nbbanks = *(int32_t *)(mheader + NBBANK_OFF);
-cerr << "base pulse = "	<< basetime << "s" << endl
-     << nbbanks << " banks of " << nbMPs << " measure-points rows" << endl;
+if (debug_tore) cerr << "base pulse = "	<< basetime << "s" << endl
+		     << nbbanks << " banks of " << nbMPs << " measure-points rows" << endl;
 	startDSdef = mheader + *(int32_t *)(mheader + OFFDSDEF0);
 	startbankdef = mheader + *(int32_t *)(mheader + OFFBANK0);
 	creationdate = (time_t) *(int64_t *)(mheader + CREATIONDATE);
@@ -365,7 +320,7 @@ cerr << "base pulse = "	<< basetime << "s" << endl
 		DSkind kind = (DSkind) *(int32_t *)(startDSdef + offset + DS_KIND_OFF);
 		DSdefs.push_back (toreDSdef(name, kind));
 		offset += *(int32_t *)(startDSdef + offset + DS_DEFSIZE_OFF);
-cerr << "   DS:" << name << ":[" << kind << "]" << endl;
+if (debug_tore) cerr << "   DS:" << name << ":[" << kind << "]" << endl;
 	    }
 	}
 
@@ -398,9 +353,9 @@ cerr << "   DS:" << name << ":[" << kind << "]" << endl;
 		}
 		lbanks.push_back (pbank);
 
-cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures << " measures" << endl
-     << "          padded = " << bankpaddedsize << " (" << bankpaddedsize/1024 << "Ko),  off=" << bankdataoffset << endl
-     << endl;
+if (debug_tore) cerr << "   freq : " << interval << " x " << duration << "  = " << nbmeasures << " measures" << endl
+		     << "          padded = " << bankpaddedsize << " (" << bankpaddedsize/1024 << "Ko),  off=" << bankdataoffset << endl
+		     << endl;
 	    }
 	}
 
@@ -503,7 +458,11 @@ if (debug_tore) cerr << "Tore::" << filename << " unmapheader success" << endl;
 	else
 	    headersize = pagesize;
 
-	pad (fd, headersize, 0x7e);
+	if (pad (fd, headersize, 0x7e) != headersize) {
+	    cerr << "Tore::" << filename << " Tore::specify failed to pad the header." << endl;
+	    close (fd);
+	    return -8;
+	}
 
 	mheader = (char *) mmap (NULL, headersize, PROT_READ|PROT_WRITE, MAP_FILE|MAP_SHARED, fd, 0);
 	if ((mheader == MAP_FAILED) || (mheader == NULL)) {
@@ -548,14 +507,14 @@ if (debug_tore) cerr << "Tore::" << filename << " unmapheader success" << endl;
 	    p = s.find (':', p+1); if (p == string::npos) break;
 	}
 
-	list<string>::iterator li;
-	for (li=DSnames.begin() ; li!=DSnames.end() ; li++)
-	    cout << "     [" << *li << "]" << endl;
-	cout << endl;
+	// list<string>::iterator li;
+	// for (li=DSnames.begin() ; li!=DSnames.end() ; li++)
+	//     cout << "     [" << *li << "]" << endl;
+	// cout << endl;
 
-	for (li=DSkinds.begin() ; li!=DSkinds.end() ; li++)
-	    cout << "     [" << *li << "]" << endl;
-	cout << endl;
+	// for (li=DSkinds.begin() ; li!=DSkinds.end() ; li++)
+	//     cout << "     [" << *li << "]" << endl;
+	// cout << endl;
 
 
 	if (DSkinds.size() != DSnames.size()) {
@@ -636,7 +595,6 @@ if (debug_tore) cerr << "Tore::" << filename << " unmapheader success" << endl;
 	    list<CollectFreqDuration>::iterator lj;
 	    int banknum = 0;
 	    for (lj=lfreq.begin(),banknum=0 ; lj!=lfreq.end() ; lj++, banknum++) {
-cerr << "bigdataoffset = 0x" << setbase(16) << bigdataoffset << setbase(10) << endl;
 		size_t bankoffset = offset_defbank0 + banknum * BK_DEF_SIZE;
 		// write defsize, interval, duration
 		*(int32_t *)(mheader + bankoffset + BK_DEFSIZE_OFF) = BK_DEF_SIZE;
@@ -657,20 +615,16 @@ cerr << "bigdataoffset = 0x" << setbase(16) << bigdataoffset << setbase(10) << e
 		*(int64_t *)(mheader + bankoffset + BK_LASTUPDATE) = TORE_TIME_UNKNOWN;
 		bigdataoffset += padsize;
 	    }
-cerr << "bigdataoffset = 0x" << setbase(16) << bigdataoffset << setbase(10) << " (at exit)" << endl;
 	}
 
-	cout << "sizes to allocate : " << endl;
-	list<CollectFreqDuration>::iterator lj;
-	int n;
-	for (lj=lfreq.begin(),n=0 ; lj!=lfreq.end() ; lj++, n++) {
-	    cout << "   bank " << n << " (" << lj->interval << "x" << lj->duration << "): " << 8*DSnames.size() * (lj->duration/lj->interval) << endl;
+	//  cout << "sizes to allocate : " << endl;
+	//  list<CollectFreqDuration>::iterator lj;
+	//  int n;
+	//  for (lj=lfreq.begin(),n=0 ; lj!=lfreq.end() ; lj++, n++) {
+	//      cout << "   bank " << n << " (" << lj->interval << "x" << lj->duration << "): " << 8*DSnames.size() * (lj->duration/lj->interval) << endl;
+	//  }
 
-	    // write name in header
-	    
-	}
-
-	{   cout << "padding the " << filename << " tore-repository :" << endl;
+	{   // cout << "padding the " << filename << " tore-repository :" << endl;
 	    size_t towrite = bigdataoffset - headersize;
 	    while (towrite > 0) {
 		size_t size = (towrite > 128*1024) ? 128*1024 : towrite;
@@ -682,11 +636,11 @@ cerr << "bigdataoffset = 0x" << setbase(16) << bigdataoffset << setbase(10) << "
 		    cerr <<  "Tore::" << filename << " Tore::specify error in padding : " << strerror (e) << endl;
 		    return -4;
 		}
-		cout << "  " << 100 - ((100*towrite) / (bigdataoffset-headersize)) << "%\r" << flush;
+		// cout << "  " << 100 - ((100*towrite) / (bigdataoffset-headersize)) << "%\r" << flush;
 	    }
-	    cout << "  100%" << endl;
+	    // cout << "  100%" << endl;
 	}
-	{   cout << "stamping the banks for " << filename << " tore-repository :" << endl;
+	{   // cout << "stamping the banks for " << filename << " tore-repository :" << endl;
 	    
 	    list<size_t>::iterator li;
 	    for (li=offsets_to_bankstamp.begin() ; li!=offsets_to_bankstamp.end() ; li++) {

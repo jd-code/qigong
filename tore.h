@@ -23,7 +23,7 @@ namespace qiconn {
     using namespace std;
 
 #ifdef TORE_H_GLOBINST
-    bool debug_tore = true;
+    bool debug_tore = false;
 #else
     TORE_H_SCOPE bool debug_tore;
 #endif
