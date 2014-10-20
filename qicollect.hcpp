@@ -814,6 +814,7 @@ if (debug_ccstates) cerr << "                                                   
 	    void safeclose (void);
 	public:
 	    ReadConf (KeyRing &keyring) : keyring(keyring) {}
+	    ReadConf (KeyRing &keyring, string const &serverkey) :  serverkey(serverkey), keyring(keyring) {}
 	    int readconf (istream& cin, CollectionsConf &conf);
     };
 
@@ -1185,7 +1186,11 @@ if (debug_ccstates) cerr << "                                                   
 			    cerr << "line: " << line << " : seeking for identifiername could not find any suitable ident" << endl;
 			    safeclose() ; return -1;
 			}
-			serverkey = ident;
+			if (serverkey.empty()) {
+			    serverkey = ident;
+			} else {
+			    cerr << "line: " << line << " : serverkey already set to \"" << serverkey << "\", directive ignored from conf file" << endl;
+			}
 			state = seekdeclare;
 			break;
 
@@ -1394,6 +1399,7 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
             }
             hostmapper["hashttpp.zz"] = mapper;
             hostmapper["127.0.0.1:10080"] = mapper;
+            hostmapper["127.0.0.1:10090"] = mapper;
             return 0;
 
           case ShutDown:
@@ -1457,7 +1463,8 @@ int main (int nb, char ** cmde) {
     string logfile ("/var/log/qicollect.log"),
 	   pidfile ("/var/run/qicollect.pid"),
 	   conffile ("/etc/qicollect/qicollect.conf"),
-	   walletdir ("/etc/qicollect/keys");
+	   walletdir ("/etc/qicollect/keys"),
+	   serverkeyoveride;
     
     {	int i;
 	for (i=1 ; i<nb ; i++) {
@@ -1483,6 +1490,7 @@ int main (int nb, char ** cmde) {
 	    param_match (cmde[i], "-conffile",		conffile);
 	    param_match (cmde[i], "-rrdpath",		rrd_path);
 	    param_match (cmde[i], "-torepath",		tore_path);
+	    param_match (cmde[i], "-serverkey",		serverkeyoveride);
 
 	    if (strncmp (cmde[i], "-nofork", 7) == 0) {
 		dofork = false;
@@ -1546,7 +1554,7 @@ int main (int nb, char ** cmde) {
 	return -1;
     }
     int nberr;
-    ReadConf rc(keyring);
+    ReadConf rc(keyring, serverkeyoveride);
     if ((nberr = rc.readconf (fconf, runconfig)) != 0) {
 	cerr << "there were errors reading conf file \"" << conffile << "\"" << endl;
 	return -1;
