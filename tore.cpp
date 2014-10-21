@@ -14,7 +14,6 @@
 
 namespace qiconn {
 
-
     size_t Tore::pagesize = getpagesize();
 
     // fills the current file descriptor with "s" zeros, returns the number of byte written or negative
@@ -100,6 +99,11 @@ namespace qiconn {
 	map (NULL),
 	nbMPs (nbMPs)
 	{}
+
+    double toreBank::V (time_t t, int no) {
+	size_t index = ((t - creationdate) / freq.interval) % nbmeasures;
+	return *( ((double *)(map + 8)) + index * nbMPs + no);
+    }
 
     int toreBank::insertvalue (time_t t, list<double> const & lv) {
 	if (t <= lastupdate) {
@@ -227,6 +231,19 @@ if (debugthere != 0) cerr << "                                                  
 	mapallbanks (true);
     }
 
+    double Tore::V (time_t t, int no) {
+	time_t age = lastupdate() - t;
+	if (no >= nbMPs) {
+	    cerr << "Tore::" << filename << " asking for value index bigger than stored" << endl;
+	    return NAN;
+	}
+	list<toreBank*>::iterator li;
+	for (li=lbanks.begin() ; li!=lbanks.end() ; li++) {
+	    if (age < (*li)->freq.duration)
+		return (*li)->V(t, no);
+	}
+	return (NAN);
+    }
 
     int Tore::insertvalue (time_t t, list<double> const & lv) {
 	if (!usable) {
@@ -239,7 +256,10 @@ cerr << "Tore::insertvalue: error, attempt to use an un-usable instance !" << en
 	    return -1;
 	}
 
-	return (*lbanks.begin())->insertvalue (t, lv);
+	int r =(*lbanks.begin())->insertvalue (t, lv) >= 0;
+	if (r>=0)
+	    *plastupdate = t;
+	return r;	
     }
 
 // file offsets

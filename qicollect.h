@@ -174,6 +174,8 @@ public: // temporary convenience ! JDJDJDJD JDJDJDJD
 	    ostream & dump (ostream &cout) const;
 
 	    void buildmissing_rrd (void);   // JDJDJDJD might move to CollectionsConfEngine
+
+	    MpCS const & get_mpcs (void) { return mpcs; }
     };
    
     /*

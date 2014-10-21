@@ -1323,14 +1323,15 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
 
 
 	    
-		req.statuscode = 200;
-                req.outmime["Content-Type"] = "text/html;charset=UTF-8";
-		req.outmime["Keep-Alive"] = "timeout=15, max=100";
 
 
             string uridecode;
             percentdecode (req.document_uri, uridecode);
 
+	    if (uridecode == "/") {
+		req.statuscode = 200;
+                req.outmime["Content-Type"] = "text/html;charset=UTF-8";
+		req.outmime["Keep-Alive"] = "timeout=15, max=100";
                 stringstream s;
                 s <<
 {{<!DOCTYPE html 
@@ -1349,19 +1350,29 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
 }};
 
     {	map<FQDNPort, CollectingConn *>::const_iterator mi;
-	s << "<ul>" << endl;
+	s << {{<ul>}} << endl;
 	for (mi=runconfig.mpcc.begin() ; mi!=runconfig.mpcc.end() ; mi++) {
-	    s << "<li>" << endl
-	      << "<p>" << mi->first.fqdn << "</p>" << endl
-	      << "<p><pre>";
+	    s <<  {{<li>}} << endl
+	      <<  {{<p>}} << mi->first.fqdn << {{</p>}} << endl
+	      <<  {{<p><pre>}};
 	    mi->second->dumpall (s);
-	    s << "</pre></p>" << endl
-	      << "</li>" << endl;
+	    s << {{</pre></p>}} << endl
+	      << {{</li>}} << endl;
 	}
-	s << "</ul" << endl;
+	s << {{</ul>}} << endl;
     }
-		s <<
-{{
+	s << {{
+<h2>runconfig&nbsp;mpcs&nbsp;:</h2>
+}} ;
+    {	MpCS const &mpcs = runconfig.get_mpcs();
+	MpCS::const_iterator mi;
+	s << {{<ul>}} << endl;
+	for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++) {
+	    s << {{<li>}} << mi->first << {{</li>}} << endl;
+	}
+	s << {{</ul>}} << endl;
+    }
+	s << {{
 </body>
 </html>
 }};
@@ -1369,10 +1380,69 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
                 req.set_relative_expires (20);      // JDJDJDJD this should be tunable ?
                 req.publish_header();
 		cout << s.str();
+		return TRCompleted;
 
-                    return TRCompleted;
+	    } else if (uridecode.substr(0,4) == "/ds/") {
 
+		string dsname;
+		size_t q = uridecode.find ('/', 4);
+		if (q == string::npos)
+		    dsname = uridecode.substr (4);
+		else
+		    dsname = uridecode.substr (4, q-4);
 
+		CollectionSet * pcs = NULL;
+		MpCS const &mpcs = runconfig.get_mpcs ();
+		{   MpCS::const_iterator mi = mpcs.find(dsname);
+		    if (mi == mpcs.end()) return error (cout, req, 504);
+		    pcs = mi->second;
+		    if (pcs == NULL) return error (cout, req, 505);
+		    if (pcs->ptore == NULL) return error (cout, req, 506);
+		}
+
+		req.statuscode = 200;
+                req.outmime["Content-Type"] = "text/html;charset=UTF-8";
+		req.outmime["Keep-Alive"] = "timeout=15, max=100";
+                stringstream s;
+                s <<
+{{<!DOCTYPE html 
+     PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns='http://www.w3.org/1999/xhtml'>
+<head>
+ <title>}} << xmlencode (dsname) << {{</title>
+ <link rel="stylesheet" type="text/css" href="/stylesheet.css">
+</head>
+<body>
+<h1>}} << req.document_uri << {{</h1>
+<h2>key&nbsp::&nbsp;}} << pcs->getkey() << {{</h2>
+    <pre>}} ;
+
+    time_t now = time(NULL);
+    time_t t;
+
+    for (t=now ; t>=now-3600 ; t--) {
+	double v = pcs->ptore->V(t, 0);
+	if (isnan(v)) 
+	    s << "nan"  << endl;
+	else
+	    s << setprecision(3) << fixed << setw(30) << v << endl;
+    }
+
+s << {{
+    </pre>
+</body>
+</html>
+}};
+                req.set_contentlength (s.str().size());
+                req.set_relative_expires (20);      // JDJDJDJD this should be tunable ?
+                req.publish_header();
+		cout << s.str();
+		return TRCompleted;
+	    } else {
+                req.set_relative_expires (60);
+                return error (cout, req, 404);
+	    }
 	}
 
     }; // class htqc_TreatRequest

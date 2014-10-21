@@ -79,6 +79,7 @@ namespace qiconn {
 	    int unmap_it (void);
 
 	    int insertvalue (time_t t, list<double> const & lv);
+	    double V (time_t t, int no);
     };
 
 
@@ -132,13 +133,13 @@ namespace qiconn {
 		return (time_t) *plastupdate;
 	    }
 	    int insertvalue (time_t t, list<double> const & lv);
+	    double V (time_t t, int no);
 
 	private:
 	    int readheader (void);
 	    int unmapheader (void);
 	    int mapallbanks (bool check=true);
 	    int unmapallbanks (void);
-
     };
 
 }  // namespace qiconn
