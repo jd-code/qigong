@@ -1368,7 +1368,7 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
 	MpCS::const_iterator mi;
 	s << {{<ul>}} << endl;
 	for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++) {
-	    s << {{<li>}} << mi->first << {{</li>}} << endl;
+	    s << {{<li><a href="/ds/}} << mi->first << {{">}} << mi->first << {{</a></li>}} << endl;
 	}
 	s << {{</ul>}} << endl;
     }
