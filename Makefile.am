@@ -5,7 +5,9 @@ ACLOCAL_AMFLAGS = -I m4
 vimtest: all localhost.key.priv
 	## ./testtore
 	## exit 1
-	./qicollect --bind=127.0.0.1:10090 --user=$$USER --access_log=access_log --earlylog -nofork -keydir=/home/jd/srcg/conftestqicollect/keys -logfile=testqicoll.log -conffile=/home/jd/srcg/conftestqicollect/qicollect.conf -torepath=/tmp/budqi -rrdpath=/tmp/budqi -debugout -port 1366 -serverkey=basilic3  2>&1 | unbuffer -p tr ':' '='
+	./testgr > bala.png
+	exit 1
+	./qicollect --bind=127.0.0.1:10090 --user=$$USER --access_log=access_log --earlylog -nofork -keydir=/home/jd/srcg/conftestqicollect/keys -logfile=testqicoll.log -conffile=/home/jd/srcg/conftestqicollect/qicollect.conf -torepath=/tmp/budqi -rrdpath=/tmp/budqi -port 1366 -serverkey=basilic3  2>&1 | unbuffer -p tr ':' '='
 	##	    ## # ./crtelnet 127.0.0.1:1364 localhost.key.priv
 	##	    ## # exit 1
 	##	    ## ### ddd --args ./qigong    -pidfile=/tmp/qigongbuild.pid -logfile=testqigong.log -debugout -port 1364 -nofork &
@@ -61,39 +63,46 @@ tar: tarfiles.txt qicollect.hcpp qigong.cpp qiconn/include/qiconn/qiconn.h qicon
 
 
 
-bin_PROGRAMS = qigong qicollect qigenkey crtelnet hex2base64 qigong_nomc testtore
+bin_PROGRAMS = qigong qicollect qigenkey crtelnet hex2base64 qigong_nomc testtore testgr
 
 %.cc: %.hcpp
 	${HCPP2CPP} $< -o $@
 
+testgr_SOURCES = testgr.cpp grbitmap.cpp jeuchar.c pngmembuf.cpp
+testgr_CXXFLAGS = @libpng_CFLAGS@
+testgr_LDFLAGS = @libpng_LIBS@
+
 testtore_SOURCES = tore.cpp testtore.cpp
 
-qicollect_SOURCES = qicollect.cc qicrypt.cpp qimeasure.cpp tore.cpp
-qicollect_CXXFLAGS = @MYSQL_CLIENT_CFLAGS@ @LCF_LIBMEMCACHED@
+qicollect_SOURCES = qicollect.cc qicrypt.cpp qimeasure.cpp tore.cpp pngmembuf.cpp grbitmap.cpp jeuchar.c
+qicollect_CXXFLAGS = @MYSQL_CLIENT_CFLAGS@ @LCF_LIBMEMCACHED@ @LIBMHASH_CFLAGS@ @libpng_CFLAGS@
 qicollect_LDADD = @QICONNLDLIB@ @BULKRAYSLDLIB@
-qicollect_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @MHASH_LIBS@ @BULKRAYSLDFLAGS@ @RRDLIB@ @MYSQL_CLIENT_LIBS@ @LDF_LIBMEMCACHED@
+qicollect_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @LIBMHASH_LDFLAGS@ @BULKRAYSLDFLAGS@ @RRDLIB@ @MYSQL_CLIENT_LIBS@ @LDF_LIBMEMCACHED@ @libpng_LIBS@
 
 qigong_SOURCES = qigong.cpp qimeasure.cpp qicrypt.cpp
-qigong_CXXFLAGS = @MYSQL_CLIENT_CFLAGS@ @LCF_LIBMEMCACHED@
+qigong_CXXFLAGS = @MYSQL_CLIENT_CFLAGS@ @LCF_LIBMEMCACHED@ @LIBMHASH_CFLAGS@
 qigong_LDADD = @QICONNLDLIB@
-qigong_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @MHASH_LIBS@ @MYSQL_CLIENT_LIBS@ @MYSQL_CLIENT_LIBS@ @LDF_LIBMEMCACHED@
+qigong_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @LIBMHASH_LDFLAGS@ @MYSQL_CLIENT_LIBS@ @MYSQL_CLIENT_LIBS@ @LDF_LIBMEMCACHED@
 
 qigong_nomc_SOURCES = qigong.cpp qimeasure.cpp qicrypt.cpp
-qigong_nomc_CXXFLAGS = @MYSQL_CLIENT_CFLAGS@
+qigong_nomc_CXXFLAGS = @MYSQL_CLIENT_CFLAGS@ @LIBMHASH_CFLAGS@
 qigong_nomc_LDADD = @QICONNLDLIB@
-qigong_nomc_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @MHASH_LIBS@ @MYSQL_CLIENT_LIBS@ @MYSQL_CLIENT_LIBS@
+qigong_nomc_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @LIBMHASH_LDFLAGS@ @MYSQL_CLIENT_LIBS@ @MYSQL_CLIENT_LIBS@
 
 
 qigenkey_SOURCES = qigenkey.cpp qicrypt.cpp
+qigenkey_CXXFLAGS = @LIBMHASH_CFLAGS@
 qigenkey_LDADD = @QICONNLDLIB@ 
-qigenkey_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @MHASH_LIBS@
+qigenkey_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @LIBMHASH_LDFLAGS@
 
 crtelnet_SOURCES = crtelnet.cpp qicrypt.cpp
+crtelnet_CXXFLAGS = @LIBMHASH_CFLAGS@
 crtelnet_LDADD = @QICONNLDLIB@
-crtelnet_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @MHASH_LIBS@
+crtelnet_LDFLAGS = @QICONNLDFLAGS@ @LIBMCRYPT_LIBS@ @LIBMHASH_LDFLAGS@
 
 hex2base64_SOURCES = hex2base64.cpp qicrypt.cpp
-hex2base64_LDADD = @QICONNLDLIB@  @LIBMCRYPT_LIBS@ @MHASH_LIBS@
+hex2base64_CXXFLAGS = @LIBMHASH_CFLAGS@
+hex2base64_LDADD = @QICONNLDLIB@  @LIBMCRYPT_LIBS@ @LIBMHASH_LDFLAGS@
 hex2base64_LDFLAGS = @QICONNLDFLAGS@
 
 

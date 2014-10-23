@@ -231,6 +231,11 @@ fi
 ## AC_SUBST(MHASH_LIBS)
 
 
+dnl check for libpng
+PKG_CHECK_MODULES([libpng], [libpng])
+AC_SUBST(libpng_CFLAGS)
+AC_SUBST(libpng_LIBS)
+
 dnl offer a bypass for bulkrays lib and binaries
 AC_ARG_ENABLE(libbulkrays-path,
 [  --enable-libbulkrays-path define the path for libbulkrays and includes],

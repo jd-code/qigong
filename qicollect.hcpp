@@ -19,6 +19,8 @@
 #define QICONN_H_GLOBINST
 #include "qicollect.h"
 
+#include "grbitmap.h"
+
 /*
  *  ------------------- the collecting polling system ----------------------------------------------------
  */
@@ -1434,6 +1436,65 @@ s << {{
 </body>
 </html>
 }};
+                req.set_contentlength (s.str().size());
+                req.set_relative_expires (20);      // JDJDJDJD this should be tunable ?
+                req.publish_header();
+		cout << s.str();
+		return TRCompleted;
+	    } else if (uridecode.substr(0,15) == "/testrandompng/") {
+
+		char b[4*640*400];
+		int i;
+		for (i=0; i<640*400*4 ; i+=4) {
+		    b[i+0] = (int) (255.0 * ((i/4)%640) / 640.0);
+		    b[i+1] = (int) (255.0 * (i/(4*640) / 400.0));
+		    b[i+2] = ((i/4)%640) & 255;
+		    // b[i+0] = random () & 255;
+		    // b[i+1] = random () & 255;
+		    // b[i+2] = random () & 255;
+		    b[i+3] = 255;
+		}
+
+		req.statuscode = 200;
+                req.outmime["Content-Type"] = "image/png";
+		req.outmime["Keep-Alive"] = "timeout=15, max=100";
+
+                stringstream s;
+
+		pngwrite (640, 400, b, s);
+
+                req.set_contentlength (s.str().size());
+                req.set_relative_expires (20);      // JDJDJDJD this should be tunable ?
+                req.publish_header();
+		cout << s.str();
+		return TRCompleted;
+	    } else if (uridecode.substr(0,15) == "/testgrbitmap/") {
+
+		GRBitmap bitm (1024,768);
+
+		if (bitm.rawscreen == NULL) {
+		    return error (cout, req, 500);
+		}
+
+		int i;
+
+		bitm.clear();
+		for (i=0 ; i<1024 ; i++) {
+		    bitm.setcolor (Random(255), Random(255), Random(255));
+		    bitm.line (Random(1024),Random(768),Random(1024),Random(768));
+		}
+
+
+		req.statuscode = 200;
+                req.outmime["Content-Type"] = "image/png";
+		req.outmime["Keep-Alive"] = "timeout=15, max=100";
+
+                stringstream s;
+
+		if (bitm.dumppng (s) != 0) {
+		    return error (cout, req, 500);
+		}
+
                 req.set_contentlength (s.str().size());
                 req.set_relative_expires (20);      // JDJDJDJD this should be tunable ?
                 req.publish_header();
