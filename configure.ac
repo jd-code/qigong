@@ -101,7 +101,7 @@ AC_LANG(C++)
 ## have_qiconn=yes
 ## ])
 if test x$have_qiconn = xno; then
-    for P_INC in "${prefix}" /usr/local /usr
+    for P_INC in "${prefix}" /opt/local /usr/local /usr
     do
 	if test x$have_qiconn = xno; then
 	    echo -n "  ($P_INC :"
@@ -146,7 +146,72 @@ AC_SUBST(QICONNLDLIB)
 dnl end of check for qiconn lib --------------------------------------------------
 
 
+dnl check for mhash include and lib
+AC_MSG_CHECKING(for mhash lib)
+have_mhash=no
+SAVECXXFLAGS="$CXXFLAGS"
+CXXFLAGS="$SAVECXXFLAGS $INCPATH"
+AC_LANG(C++)
+## AC_TRY_COMPILE([
+## #include <mhash.h>
+## void testmhash (void) {
+## 
+##     keygenid algorithm = KEYGEN_S2K_SALTED;
+##     mhash_keygen_uses_salt(algorithm);
+## }
+## ],[
+## ],[
+## have_mhash=yes
+## ])
+if test x$have_mhash = xno; then
+    for P_INC in "${prefix}" /opt/local /usr/local /usr
+    do
+	if test x$have_mhash = xno; then
+	    echo -n "  ($P_INC :"
+	    CXXFLAGS="$SAVECXXFLAGS $INCPATH -I$P_INC/include"
+	    AC_TRY_COMPILE([
+#include <mhash.h>
+void testmhash (void) {
+
+    keygenid algorithm = KEYGEN_S2K_SALTED;
+    mhash_keygen_uses_salt(algorithm);
+}
+	    ],[
+	    ],[
+	    have_mhash=yes
+	    ])
+	    if test x$have_mhash = xyes; then
+		LIBMHASH_CFLAGS="-I$P_INC/include"
+		LIBMHASH_LDFLAGS="-L$P_INC/lib -lmhash"
+		echo -n " yes.)"
+	    else
+		echo -n " no.)"
+	    fi
+	fi
+    done
+    echo -n " : "
+fi
+CXXFLAGS="$SAVECXXFLAGS"
+AC_MSG_RESULT($have_mhash)
+if test x$have_mhash = xyes; then
+    :
+else
+    AC_MSG_ERROR(Unable to find mhash headers)
+fi
+AC_SUBST(LIBMHASH_CFLAGS)
+AC_SUBST(LIBMHASH_LDFLAGS)
+dnl end of check for mhash lib --------------------------------------------------
+
+
+
+
+
+
+
+
+
 dnl Check for mcrypt library
+AC_LANG(C)
 MCRYPTLIBFOUND=yes
 AM_PATH_LIBMCRYPT(2.4.11,,MCRYPTLIBFOUND=no)
 AC_SUBST(LIBMCRYPT_CFLAGS)
@@ -157,13 +222,13 @@ if test $MCRYPTLIBFOUND = yes; then
 fi
 
 
-dnl check for mhash library
-AC_CHECK_LIB(mhash, mhash_init, 
-	     [MHASH_LIBS=-lmhash], 
-	     [AC_MSG_ERROR(libmhash not found)])
-CFLAGS="${CFLAGS} ${MHASH_INCLUDES}"
-CXXFLAGS="${CXXFLAGS} ${MHASH_INCLUDES}"
-AC_SUBST(MHASH_LIBS)
+## dnl check for mhash library
+## AC_CHECK_LIB(mhash, mhash_init, 
+## 	     [MHASH_LIBS=-lmhash], 
+## 	     [AC_MSG_ERROR(libmhash not found)])
+## CFLAGS="${CFLAGS} ${MHASH_INCLUDES}"
+## CXXFLAGS="${CXXFLAGS} ${MHASH_INCLUDES}"
+## AC_SUBST(MHASH_LIBS)
 
 
 dnl offer a bypass for bulkrays lib and binaries
@@ -190,6 +255,7 @@ else
 fi
 
 dnl check for bulkrays include and lib
+AC_LANG(C++)
 AC_MSG_CHECKING(for bulkrays lib)
 have_bulkrays=no
 SAVECXXFLAGS="$CXXFLAGS"
@@ -204,7 +270,7 @@ AC_LANG(C++)
 ## have_bulkrays=yes
 ## ])
 if test x$have_bulkrays = xno; then
-    for P_INC in "${prefix}" /usr/local /usr
+    for P_INC in "${prefix}" /opt/local /usr/local /usr
     do
 	if test x$have_bulkrays = xno; then
 	    echo -n "  ($P_INC :"
@@ -250,7 +316,7 @@ dnl check for bulkrays' hcpp2cpp -----------------------------------------------
 AC_MSG_CHECKING(for bulkrays hcpp2cpp util)
 found_hcpp2cpp="no"
 HCPP2CPP="notfoundyet__"
-for P_INC in "${prefix}" /usr/local /usr
+for P_INC in "${prefix}" /opt/local /usr/local /usr
 do
     if test -x "${P_INC}/bin/hcpp2cpp"
     then
