@@ -28,7 +28,7 @@ namespace qiconn {
 
 	while (s > 0) {
 	    size_t n = (s > 1024) ? 1024 : s;
-	    size_t r = write (fd, buf, n);
+	    ssize_t r = write (fd, buf, n);
 	    if (r<0) {
 		int e = errno;
 		if ((errno == EINTR) || (errno == EAGAIN) || (errno == EWOULDBLOCK)) {
