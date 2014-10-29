@@ -161,7 +161,7 @@ namespace qiconn {
 		}
 	    } else if (dtime < -10.0) {
 		double lastltncy = lastlatency [fqdn];
-		if ((lastltncy >= -10) || (abs(lastltncy - dtime)) > 30) {
+		if ((lastltncy >= -10) || (fabs(lastltncy - dtime)) > 30) {
 		    lastlatency [fqdn] = dtime;
 		    cerr << "received timestamps from the past from "
 			 << fqdn
@@ -336,7 +336,7 @@ if (debug_ccstates) cerr << "[" << getname() << "] -----------------------------
 	    if (nbwakeattempt < 4) {
 		nbwakeattempt ++;
 cerr << getname() << " was silent for more than 120s, trying to wake it up !" << endl;
-		(*out) << "qiging" << eos;
+		(*out) << "qiging" << eos();
 		flush();
 	    } else {
 		reconnect_hook ();

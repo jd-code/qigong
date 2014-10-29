@@ -352,22 +352,28 @@ AC_SUBST(RRDLIB)
 AC_CHECK_HEADERS(rrd.h)
 
 dnl check for mysql
-MYSQL_CLIENT([],[])
+WITH_MYSQL()
 dnl this is qigong internal trigger for mysql use
 MYSQL_CLIENT_CFLAGS="${MYSQL_CLIENT_CFLAGS} -DUSEMYSQL"
 AC_SUBST(MYSQL_CLIENT_CFLAGS)
 AC_SUBST(MYSQL_CLIENT_LIBS)
 
 
-dnl check for libmemcached
-AC_DEFINE([LDF_LIBMEMCACHED], [], [libmemcached library flags])
-AC_CHECK_LIB(memcached, memcached_create,
-[LDF_LIBMEMCACHED="-lmemcached"
-AC_DEFINE_UNQUOTED(LDF_LIBMEMCACHED, $LDF_LIBMEMCACHED)],
-[AC_MSG_ERROR(libmemcached not found)])
-LCF_LIBMEMCACHED="-DUSEMEMCACHED"
+PKG_CHECK_MODULES([libmemcached], [libmemcached])
+LDF_LIBMEMCACHED=${libmemcached_LIBS}
+LCF_LIBMEMCACHED=${libmemcached_CFLAGS}
 AC_SUBST(LDF_LIBMEMCACHED)
 AC_SUBST(LCF_LIBMEMCACHED)
+
+## dnl check for libmemcached
+## AC_DEFINE([LDF_LIBMEMCACHED], [], [libmemcached library flags])
+## AC_CHECK_LIB(memcached, memcached_create,
+## [LDF_LIBMEMCACHED="-lmemcached"
+## AC_DEFINE_UNQUOTED(LDF_LIBMEMCACHED, $LDF_LIBMEMCACHED)],
+## [AC_MSG_ERROR(libmemcached not found)])
+## LCF_LIBMEMCACHED="-DUSEMEMCACHED"
+## AC_SUBST(LDF_LIBMEMCACHED)
+## AC_SUBST(LCF_LIBMEMCACHED)
 
  dnl	dnl check for qiconn sources
  dnl	AC_MSG_CHECKING(for qiconn sources)
@@ -388,6 +394,17 @@ case "$target" in
 	;;
     *)
 	AC_DEFINE(OSXFILESCHEME, 0, a regular unix file scheme flavour is used)
+	;;
+esac
+
+dnl check for mac-osX gcc stl variant
+case "$target" in
+    *-apple-darwin*)
+	CXXFLAGS="$CXXFLAGS -stdlib=libstdc++"
+	AC_MSG_RESULT([stdlib variant : -stdlib=libstdc++])
+	;;
+    *)
+	:
 	;;
 esac
 

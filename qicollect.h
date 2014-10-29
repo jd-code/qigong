@@ -246,7 +246,7 @@ public: // temporary convenience ! JDJDJDJD JDJDJDJD
 // JDJDJDJD
 // rough test
 map <string,time_t> rrdlastupdate;
-map <string,time_t> lastlatency;
+map <string,time_t> lastlatency;	// JDJDJDJD should be a signed type !!!!
 
 	public:
 	    virtual ~CollectingConn (void);

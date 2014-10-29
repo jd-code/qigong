@@ -1,4 +1,8 @@
 
+
+all:
+    all used of time difference should be checked for their sign !
+
 packaging:
     System start/stop links for /etc/init.d/qigong already exist. (at re-install /upgrade)
 
