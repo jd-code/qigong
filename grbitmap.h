@@ -57,7 +57,7 @@ namespace bulkrays {
 	void rectangle (int x0, int y0, int x1, int y1);
 	void line (int x0, int y0, int x1, int y1);
 	void circle (int xc, int yc, double r);
-	void putstr (int x, int y, uint32_t pixel, std::string const &texte);
+	void putstr (int x, int y, std::string const &texte);
     };
 
     int Random (int max);

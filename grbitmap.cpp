@@ -257,7 +257,7 @@ namespace bulkrays {
     }
 
 
-    void GRBitmap::putstr (int x, int y, uint32_t pixel, string const &texte) {
+    void GRBitmap::putstr (int x, int y, string const &texte) {
 
 	int minx, miny, maxx, maxy;
 
