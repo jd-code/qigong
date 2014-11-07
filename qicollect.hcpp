@@ -1301,6 +1301,7 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
      *	------------------------------------------------------------------------------------------------------
      */
 
+
     using namespace bulkrays;
 
 
@@ -1313,12 +1314,22 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
 
 int sg (GRBitmap &g, list<double> const&l) {
     if (l.empty()) return 0;
-    double min=*(l.begin()), max=min;
+    double min=NAN, max=NAN;
     list<double>::const_iterator li;
 
     for (li=l.begin() ; li!=l.end() ; li++) {
-	if (*li > max) max = *li;
-	if (*li < min) min = *li;
+	double v = *li;
+	if (isnan(v)) continue;
+	if (isnan(max)) {
+	    max = v;
+	} else if (v > max) {
+	    max = v;
+	}
+	if (isnan(min)) {
+	    min = v;
+	} else if (v < min) {
+	    min = v;
+	}
     }
 
     stringstream l1, l2;
@@ -1374,14 +1385,21 @@ int sg (GRBitmap &g, list<double> const&l) {
 		    ny = y1 + (y2-y1)*((moy/b.size())-min)/(max-min);
 		    if (px != -1) {
 			g.line(px, py, nx, ny);
+		    } else {
+			g.putpixel (nx, ny);
 		    }
 		    px = nx, py = ny;
 		    lastx = x;
+		} else {
+		    px = -1, py = -1;
+		    lastx = x;
 		}
 		b.clear();
-		b.push_back (*li);
+		double v = *li;
+		if (!isnan (v)) b.push_back (v);
 	    } else {
-		b.push_back (*li);
+		double v = *li;
+		if (!isnan (v)) b.push_back (v);
 	    }
 	}
     }
@@ -1511,7 +1529,7 @@ cerr << "     " << setw(5) << grad << " - " << endl;
 <h1>}} << req.document_uri << {{</h1> }} ;
 		{   double r;
 		    for (r = 0.0000001; r<100000 ; r*=7.111) { 
-			s << {{<img src="/testgrbitmap/plot_r= }} << r << {{">}} << endl;
+			s << {{<img src="/testgrbitmap/plot&r=}} << r << {{">}} << endl;
 		    }
 		}
 		s <<
@@ -1524,8 +1542,14 @@ cerr << "     " << setw(5) << grad << " - " << endl;
                 req.publish_header();
 		cout << s.str();
 		return TRCompleted;
-	    } else if (uridecode.substr(0,22) == "/testgrbitmap/plot_r= ") {
-		double r = atof (uridecode.substr (22).c_str());
+	    } else if (uridecode.substr(0,18) == "/testgrbitmap/plot") {
+		// double r = (uridecode.size() > 21) ? atof (uridecode.substr (21).c_str()) : 0;
+		// double r = atof(req.req_fields["r"].c_str());
+		double r = req.req_fields.getd("r");
+
+cerr << req << endl;
+cerr << "r (string) =" << req.req_fields["r"] << endl;
+cerr << "         r =" << r << endl;
 
 		GRBitmap g(1024,400);
 
@@ -1682,20 +1706,124 @@ cerr << "     " << setw(5) << grad << " - " << endl;
 		else
 		    dsname = uridecode.substr (4, q-4);
 
-		CollectionSet * pcs = NULL;
-		MpCS const &mpcs = runconfig.get_mpcs ();
-		{   MpCS::const_iterator mi = mpcs.find(dsname);
-		    if (mi == mpcs.end()) return error (cout, req, 504);
-		    pcs = mi->second;
-		    if (pcs == NULL) return error (cout, req, 505);
-		    if (pcs->ptore == NULL) return error (cout, req, 506);
+		Tore * ptore = NULL;
+		bool mustclose = false;	// uggly jd hack for dummy Tores
+
+		if (dsname == "dummy") {
+		    // tore creation
+		    {
+			string fullname = tore_path + "/dummy.tore";
+			ptore = new Tore (fullname);
+			mustclose = true;
+			if (ptore == NULL) {
+			    cerr << "error : could not create tore repository \"" << fullname << "\". some datas might get lost !" << endl;
+			    return error (cout, req, 500, "could not create tore repository dummy.tore");
+			}
+
+			if (*ptore) {
+cerr << "debug_tore: buildmissing_tore " << fullname << " is already ok" << endl;
+			} else {
+cerr << "debug_tore: buildmissing_tore " << fullname << " about to specify" << endl;
+//			{   list<TaggedMeasuredPoint*>::iterator li;
+//			    for (li=lptagmp.begin() ; li!=lptagmp.end() ; li++)
+//				sdef << (*li)->get_DSdef(base_interval*2) << " ";
+//			}
+			
+			    time_t base_interval = 10;
+			    list<CollectFreqDuration> lfreq;
+			    string sdef = "DS:load:GAUGE:20:0:U ";
+			    lfreq.push_back (CollectFreqDuration (10, 432000));
+			    lfreq.push_back (CollectFreqDuration (60, 604800));
+			    lfreq.push_back (CollectFreqDuration (300, 5529600));
+			    lfreq.push_back (CollectFreqDuration (3600, 63244800));
+// JDJDJDJDJDJDJDJDJD
+cerr << "lfreq = ";
+{   list<CollectFreqDuration>::iterator li;
+    for (li=lfreq.begin() ; li!=lfreq.end() ; li++) {
+        cerr << *li << endl;
+    }
+}
+
+			    ptore->specify (base_interval, lfreq, sdef);
+
+			    // fill in the tore
+			    time_t now = time(NULL), t = now - 30 * 24 * 3600;
+
+			    list<double> lv;
+			    lv.push_back (0.0);
+			    list<double>::iterator li = lv.begin();
+			    for (t=now - 30 * 24 * 3600  ; t<now ; t+=10) {
+				*li = cos(t/(3600.0+200.0)) * sin (t/(3600.0+230.0)) * 100.0 + 100.0;
+				ptore->insertvalue (t, lv);
+			    }
+			}
+	
+		    }
+		} else {    // regular seek for curent 
+
+
+		    CollectionSet * pcs = NULL;
+		    MpCS const &mpcs = runconfig.get_mpcs ();
+		    {   MpCS::const_iterator mi = mpcs.find(dsname);
+			if (mi == mpcs.end()) return error (cout, req, 404, "no such ds");
+			pcs = mi->second;
+			if (pcs == NULL) return error (cout, req, 500, "something went wrong with this ds");
+			if (pcs->ptore == NULL) return error (cout, req, 500, "no tore associated with the ds (?!)");
+		    }
+		    ptore = pcs->ptore;
 		}
 
-		req.statuscode = 200;
-                req.outmime["Content-Type"] = "text/html;charset=UTF-8";
-		req.outmime["Keep-Alive"] = "timeout=15, max=100";
-                stringstream s;
-                s <<
+		if (req.req_fields["type"] == "png") {
+		    bool haveduration;
+		    double nbdays = req.req_fields.getd("days", haveduration);
+		    if (!haveduration)
+			nbdays=7;
+
+
+		    GRBitmap g(1024,400);
+
+		    if (!g) {
+			cerr << "the bitmap is unusable !" << endl;
+			if (mustclose) delete ptore; 
+			return error (cout, req, 500, "could not create bitmap");
+		    }
+
+		    list<double> l;
+		    time_t now = time(NULL);
+		    time_t t;
+		    for (t=now ; t>=now-3600*24*nbdays ; t--) {
+			double v = ptore->V(t, 0);
+			l.push_back(v);
+		    }
+		    sg (g, l);
+
+		    g.putstr (640,8, dsname);
+
+		    req.statuscode = 200;
+		    req.outmime["Content-Type"] = "image/png";
+		    req.outmime["Keep-Alive"] = "timeout=15, max=100";
+
+		    stringstream s;
+		    g.dumppng (s);
+
+		    if (g.dumppng (s) != 0) {
+			if (mustclose) delete ptore; 
+			return error (cout, req, 500);
+		    }
+
+		    req.set_contentlength (s.str().size());
+		    req.set_relative_expires (20);      // JDJDJDJD this should be tunable ?
+		    req.publish_header();
+		    cout << s.str();
+		    if (mustclose) delete ptore; 
+		    return TRCompleted;
+
+		} else {
+		    req.statuscode = 200;
+		    req.outmime["Content-Type"] = "text/html;charset=UTF-8";
+		    req.outmime["Keep-Alive"] = "timeout=15, max=100";
+		    stringstream s;
+		    s <<
 {{<!DOCTYPE html 
      PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
@@ -1706,14 +1834,14 @@ cerr << "     " << setw(5) << grad << " - " << endl;
 </head>
 <body>
 <h1>}} << req.document_uri << {{</h1>
-<h2>key&nbsp::&nbsp;}} << pcs->getkey() << {{</h2>
+<h2>key&nbsp::&nbsp;}} << dsname << {{</h2>
     <pre>}} ;
 
     time_t now = time(NULL);
     time_t t;
 
     for (t=now ; t>=now-3600 ; t--) {
-	double v = pcs->ptore->V(t, 0);
+	double v = ptore->V(t, 0);
 	if (isnan(v)) 
 	    s << "nan"  << endl;
 	else
@@ -1725,11 +1853,12 @@ s << {{
 </body>
 </html>
 }};
-                req.set_contentlength (s.str().size());
-                req.set_relative_expires (20);      // JDJDJDJD this should be tunable ?
-                req.publish_header();
-		cout << s.str();
-		return TRCompleted;
+		    req.set_contentlength (s.str().size());
+		    req.set_relative_expires (20);      // JDJDJDJD this should be tunable ?
+		    req.publish_header();
+		    cout << s.str();
+		    return TRCompleted;
+		}
 	    } else if (uridecode.substr(0,15) == "/testrandompng/") {
 
 		char b[4*640*400];
