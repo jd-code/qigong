@@ -1,4 +1,7 @@
 
+tore:
+    badly specified tore files should be marked as such (header checksum at very end ?)
+    check for outrageous offsets at re-reading tores !!!!
 
 all:
     all used of time difference should be checked for their sign !

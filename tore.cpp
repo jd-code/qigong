@@ -110,8 +110,9 @@ namespace qiconn {
 	    cerr << "toreBank::insertvalue failed : insertion time is anterior to last update" << endl;
 	    return -2;
 	}
-	time_t tt =          (t - creationdate) / freq.interval,
-	       lu = (lastupdate - creationdate) / freq.interval;
+	time_t tt =          (t - creationdate) / freq.interval,    // the one to be updated
+	       lu = (lastupdate - creationdate) / freq.interval,    // last updated
+	       fe = lu + 1;					    // first to erase (right after last updated)
 	if (tt <= lu) {
 	    cerr << "toreBank::insertvalue failed : insertion time when divided by freq is anterior or equal to last update" << endl;
 	    return -2;
@@ -121,26 +122,28 @@ namespace qiconn {
 		 << lv.size() << " values where " << nbMPs << " are schedulled" << endl;
 	    return -1;
 	}
-	uint64_t lastupdatecycle_n = lu / nbmeasures;
+	uint64_t firsterasecycle_n = fe / nbmeasures;
 	uint64_t        curcycle_n = tt / nbmeasures;
 
 	size_t indexupdate = tt % nbmeasures;
-cerr << "                                                                                       indexupdate = " << indexupdate << endl;
-	if (lastupdatecycle_n == curcycle_n) {	// previous and current points are in the
-						// same cycle-number
-	    size_t index = (lu + 1) % nbmeasures;
-	    double *p = ((double *)(map + 8)) + index * nbMPs;
 int debugit = 0;
+if (debugit >= 3) cerr << "                                                                                       indexupdate = " << indexupdate << endl;
+	if (firsterasecycle_n == curcycle_n) {	// first to erase and current points are in the
+						// same cycle-number
+
+	    size_t index = fe % nbmeasures;
+	    double *p = ((double *)(map + 8)) + index * nbMPs;
 	    for ( ; index < indexupdate ; index ++) {
 		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN, debugit++;
 	    }
 if (debugit != 0) cerr << "                                                                               wrote " << debugit << " NANs before (case 1)" << endl;
 	    list<double>::const_iterator li;
 	    for (li=lv.begin() ; li!=lv.end() ; li++) *p++ = *li;
-	} else {    // previous and current points are not in the same cycle-number
+
+	} else {    // first to erase and current points are not in the same cycle-number
+
 	    size_t index = 0;
 	    double *p = ((double *)(map + 8)) + index * nbMPs;
-int debugit = 0;
 	    for ( ; index < indexupdate ; index ++) {
 		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN, debugit++;
 	    }
@@ -149,8 +152,8 @@ if (debugit != 0) cerr << "                                                     
 	    for (li=lv.begin() ; li!=lv.end() ; li++) *p++ = *li;
 
 	    size_t startblankindex = indexupdate+1; // we should wipe the end of previous cycle
-	    if (lastupdatecycle_n+1 == curcycle_n) { // the previous point was right before the current cycle
-		size_t previndex = (lu + 1) % nbmeasures;
+	    if (firsterasecycle_n+1 == curcycle_n) { // the previous point was right before the current cycle
+		size_t previndex = fe % nbmeasures;
 		if (previndex >= indexupdate+1)	    // and it was after the current modulo-index, we blank from there
 		    startblankindex = previndex;
 	    }
@@ -160,6 +163,7 @@ int debugthere = 0;
 		for (int i=0 ; i<nbMPs ; i++) *p++ = NAN, debugthere++;
 	    }
 if (debugthere != 0) cerr << "                                                                               wrote " << debugthere << " NANs at the end?" << endl;
+
 	}
 
 	lastupdate = t;
@@ -232,7 +236,9 @@ if (debugthere != 0) cerr << "                                                  
     }
 
     double Tore::V (time_t t, int no) {
-	time_t age = lastupdate() - t;
+	time_t last = lastupdate();
+	if (t > last) return NAN;
+	time_t age = last - t;
 	if (no >= nbMPs) {
 	    cerr << "Tore::" << filename << " asking for value index bigger than stored" << endl;
 	    return NAN;
@@ -242,7 +248,7 @@ if (debugthere != 0) cerr << "                                                  
 	    if (age < (*li)->freq.duration)
 		return (*li)->V(t, no);
 	}
-	return (NAN);
+	return NAN;
     }
 
     int Tore::insertvalue (time_t t, list<double> const & lv) {
@@ -327,7 +333,7 @@ if (debug_tore) cerr << "entering readheader" << endl;
 	nbbanks = *(int32_t *)(mheader + NBBANK_OFF);
 if (debug_tore) cerr << "base pulse = "	<< basetime << "s" << endl
 		     << nbbanks << " banks of " << nbMPs << " measure-points rows" << endl;
-	startDSdef = mheader + *(int32_t *)(mheader + OFFDSDEF0);
+	startDSdef = mheader + *(int32_t *)(mheader + OFFDSDEF0);		// JDJDJDJD all offsets must be checked for reasonable values ...
 	startbankdef = mheader + *(int32_t *)(mheader + OFFBANK0);
 	creationdate = (time_t) *(int64_t *)(mheader + CREATIONDATE);
 	plastupdate = (int64_t *)(mheader + LASTUPDATE);
@@ -336,7 +342,7 @@ if (debug_tore) cerr << "base pulse = "	<< basetime << "s" << endl
 	{   int i;
 	    size_t offset = 0;
 	    for (i=0 ; i<nbMPs ; i++) {
-		string name (startDSdef + offset + DS_NAME_OFF);
+		string name (startDSdef + offset + DS_NAME_OFF, DS_NAME_MAXLEN);
 		DSkind kind = (DSkind) *(int32_t *)(startDSdef + offset + DS_KIND_OFF);
 		DSdefs.push_back (toreDSdef(name, kind));
 		offset += *(int32_t *)(startDSdef + offset + DS_DEFSIZE_OFF);
