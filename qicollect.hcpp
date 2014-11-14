@@ -1312,7 +1312,45 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
 
 	    ~htqc_TreatRequest() {}
 
-int sg (GRBitmap &g, list<double> const&l) {
+    time_t modularfloor (time_t value, time_t freq, long shift=0) {
+	if (value >= -shift) // equivalent to mathematical (value+shift >= 0) but that one could have overflown
+	    return freq*((value + shift)/freq)-shift;
+	else
+	    return freq*((value + shift)/freq - 1)-shift;
+    }
+
+    time_t modularceil (time_t value, time_t freq, long shift=0) {
+	if (value >= -shift) // equivalent to mathematical (value+shift >= 0) but that one could have overflown
+	    return freq*((value + shift)/freq + 1)-shift;
+	else
+	    return freq*((value + shift)/freq)-shift;
+    }
+
+    void tmark (time_t t, time_t gradt, ostream &cout) {
+
+static const char* dname[] = {   "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+static const char* mname[] = {   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+	struct tm st;
+
+	localtime_r(&t, &st);
+
+	if (gradt < 60) {	// seconds: XXmYYs
+	    //cout << setfill('0') << setw(2) << ((t/60)%60) << "m" << setw(2) << setfill('0') << (t%60)    << "s";
+	    cout   << setfill('0') << setw(2) << st.tm_min   << "m" << setw(2) << setfill('0') << st.tm_sec << "s";
+	} else if (gradt < 3600*24) {	// minutes or hours:  HH:MM
+		//cout << ((t/3600)%24) << ":" << setw(2) << setfill('0') << ((t/60)%60);
+	    if (st.tm_hour == 0)
+		cout   << dname[st.tm_wday]    << " " << st.tm_mday;
+	    else
+		cout   << st.tm_hour    << ":" << setw(2) << setfill('0') << st.tm_min;
+	} else if (gradt < 7*24*3600) { // more than one day less than a week
+	    cout   << mname[st.tm_mon]    << " " << st.tm_mday;
+	} else {
+	    cout   << mname[st.tm_mon]    << " " << st.tm_mday;
+	}
+    }
+
+int sg (GRBitmap &g, list<double> const&l, time_t tbeg=0, time_t tend=0) {
     if (l.empty()) return 0;
     double min=NAN, max=NAN;
     list<double>::const_iterator li;
@@ -1350,10 +1388,185 @@ int sg (GRBitmap &g, list<double> const&l) {
 
     int x1 = GRMARGIN + len * 8 + 8;
     int x2 = g.texturew - GRMARGIN;
-    int y1 = g.textureh-8-GRMARGIN;
+    int y1 = g.textureh-8-GRMARGIN-20;
     int y2 = 8+GRMARGIN;
 
+    
 
+
+    // timed graduations calculation
+    long tdt = fabs(difftime (tend, tbeg));
+    if (tdt != 0) {
+
+	// calculating the shift between localtime and utc at "tend" time ...
+	struct tm tgmtspread;
+	gmtime_r (&tend, &tgmtspread);
+	time_t tgmt = mktime (&tgmtspread);
+	cerr << "tgmt - t = " << difftime (tgmt, tend) << endl;
+	long shift = difftime (tend, tgmt);
+
+	
+static const long initmark[] = {
+	    1,			    // 1 second
+	    10,
+	    30,
+	    60,			    // 1 min
+	    5*60,		    // 5 min
+	    10*60,		    // 10 min
+	    15*60,		    // 15 min
+	    30*60,		    // 30 min
+	    60*60,		    // 1h
+	    2*3600,		    // 2h
+	    4*3600,		    // 4h
+	    12*3600,		    // 12h
+	    24*3600,		    // 1d
+	    7*24*3600,		    // 1w
+	};	
+
+static const list<long> tgradmarks (initmark, initmark + sizeof(initmark) / sizeof(initmark[0]) );
+
+static const long initttag[] = {
+	    1,			    // 1 second
+	    10,
+	    60,			    // 1 min
+	    5*60,		    // 5 min
+	    10*60,		    // 10 min
+	    15*60,		    // 15 min
+	    60*60,		    // 1h
+	    2*3600,		    // 2h
+	    4*3600,		    // 4h
+	    12*3600,		    // 12h
+	    24*3600,		    // 1d
+	    7*24*3600,		    // 1w
+	};	
+
+static const list<long> tgradtags (initttag, initttag + sizeof(initttag) / sizeof(initttag[0]) );
+
+	list<long>::const_iterator li = tgradmarks.begin();
+
+	long gradt;
+	while ( (li!=tgradmarks.end()) && ( ((x2-x1)*(*li))/tdt < 7 )) li++;
+	if (li == tgradmarks.end())
+	    gradt = *tgradmarks.rbegin();
+	else
+	    gradt = *li;
+
+cerr << "gradt = " << gradt << "  --> " << ((x2-x1)*(*li))/tdt << "px  (tdt=" << tdt << ")" << endl;
+
+	{
+#ifdef VERSIONJDJD_0
+	    time_t rdtbeg = ceil((double)tbeg/gradt) * gradt,
+		   rdtend = floor((double)tend/gradt) * gradt;
+#else
+	    time_t rdtbeg = modularceil (tbeg, gradt, shift),
+		   rdtend = modularfloor (tend, gradt, shift);
+#endif
+	    int i, nbgrad = 1 + fabs(difftime(rdtend, rdtbeg)) / gradt;
+	    time_t grad = rdtbeg;
+cerr << "t = [" << tbeg << " , " << tend << "]" << endl;
+cerr << "t = [" << rdtbeg << " , " << rdtend << "]" << endl;
+cerr << "nbtgrad = " << nbgrad << endl;
+	    if (tbeg > tend) gradt = -gradt;
+	    for (i=0 ; i<nbgrad ; i++, grad+=gradt) {
+		int x = x1 + (x2-x1)*(grad-tbeg)/(tend-tbeg);
+		g.setcolor (0,0,0);
+		g.line (x,y1, x,y1+8);
+		g.setcolor (224,224,224);
+		g.line (x,y1-1, x,y2);
+	    }
+	    g.line (x1,y1, x2,y1);
+	}
+
+	// another pass for stamped time graduations
+	li = tgradtags.begin();	
+	while ( (li!=tgradtags.end()) && ( ((x2-x1)*(*li))/tdt < 7*8 )) li++;
+	if (li == tgradtags.end())
+	    gradt = *tgradtags.rbegin();
+	else
+	    gradt = *li;
+
+cerr << "gradt = " << gradt << "  --> " << ((x2-x1)*(*li))/tdt << "px  (tdt=" << tdt << ")" << endl;
+
+	{
+#ifdef VERSIONJDJD_0
+	    time_t rdtbeg = ceil((double)tbeg/gradt) * gradt,
+		   rdtend = floor((double)tend/gradt) * gradt;
+#else
+	    time_t rdtbeg = modularceil (tbeg, gradt, shift),
+		   rdtend = modularfloor (tend, gradt, shift);
+#endif
+	    int i, nbgrad = 1 + fabs(difftime(rdtend, rdtbeg)) / gradt;
+	    time_t grad = rdtbeg;
+cerr << "t = [" << tbeg << " , " << tend << "]" << endl;
+cerr << "t = [" << rdtbeg << " , " << rdtend << "]" << endl;
+cerr << "nbtgrad = " << nbgrad << endl;
+	    g.setcolor (0,0,0);
+	    if (tbeg > tend) gradt = -gradt;
+	    for (i=0 ; i<nbgrad ; i++, grad+=gradt) {
+		int x = x1 + (x2-x1)*(grad-tbeg)/(tend-tbeg);
+		g.setcolor (128,128,128);
+		g.line (x,y1-1, x,y2);
+		g.setcolor (0,0,0);
+		g.line (x,y1, x,y1+16);
+		stringstream ttag;
+		tmark (grad, fabs(gradt), ttag);
+		const string &s = ttag.str();
+		g.putstr (x-8*s.size()/2, y1+16, s);
+	    }
+	}
+
+
+    } else {
+cerr << "gradt undefined !!" << endl;
+    }
+
+    // left scale calculations
+    {	double arrmean = pow(10, floor( log(max-min)/log(10) ));
+cerr << "range = [" << min << " , " << max << "]" << endl;
+cerr << "width = " << max-min << endl;
+	double maxarr = arrmean * floor(max / arrmean);
+	double minarr = arrmean * ceil(min / arrmean);
+
+	int nbgrad = 1 + (maxarr-minarr)/arrmean;
+cerr << "arrd  = [" << minarr << " , " << maxarr << "]" << endl;
+cerr << "arrmean = " << arrmean << endl;
+cerr << "nbgrad = " << nbgrad << endl;
+if (nbgrad <= 2)
+	    arrmean /= 5;
+	else if (nbgrad <= 4)
+	    arrmean /= 2;
+
+	maxarr = arrmean * floor(max / arrmean);
+	minarr = arrmean * ceil(min / arrmean);
+	nbgrad = 1 + (maxarr-minarr)/arrmean;
+
+cerr << "arrd  = [" << minarr << " , " << maxarr << "]" << endl;
+cerr << "arrmean = " << arrmean << endl;
+cerr << "nbgrad = " << nbgrad << endl;
+	{   int i=0;
+	    double grad = minarr + i * arrmean;
+	    //for (i=0 ; i<nbgrad ; i++)
+	    while (grad < max) {
+cerr << "     " << setw(5) << grad << " - " << endl;
+		stringstream label;
+		label << setw(5) << grad;
+		int y = y1 + (y2-y1)*(grad-min)/(max-min);
+		g.setcolor (0,0,0);
+		g.putstr (x1-5*8-8, y-8, label.str());
+		g.line   (x1-5, y, x1-1, y);
+		g.setcolor (128,128,128);
+		g.line   (x1, y, x2, y);
+		i++;
+		grad = minarr + i * arrmean;
+	    }
+	}
+	g.line (x1-1,y1, x1-1, y2);
+	{   int y = y1 + (y2-y1)*(-min)/(max-min);
+	    if ((y<=y1) && (y>=y2)) {
+		g.line (x1,y,x2,y);	// zero axis
+	    }
+	}
+    }
 
     if (true)
     {	// spread points
@@ -1366,7 +1579,9 @@ int sg (GRBitmap &g, list<double> const&l) {
 	    int x = x1 + (i*(x2-x1))/nbp;
 
 	    if (x != lastx) {
-		if (!b.empty()) {
+		if (b.empty()) {
+		    px = -1, py = -1;
+		} else {
 		    list<double>::iterator lj;
 		    double lmin = *(b.begin()), lmax = lmin;
 		    double moy =0.0;
@@ -1389,11 +1604,8 @@ int sg (GRBitmap &g, list<double> const&l) {
 			g.putpixel (nx, ny);
 		    }
 		    px = nx, py = ny;
-		    lastx = x;
-		} else {
-		    px = -1, py = -1;
-		    lastx = x;
 		}
+		lastx = x;
 		b.clear();
 		double v = *li;
 		if (!isnan (v)) b.push_back (v);
@@ -1456,51 +1668,6 @@ int sg (GRBitmap &g, list<double> const&l) {
 	}
     }
 
-    {	double arrmean = pow(10, floor( log(max-min)/log(10) ));
-cerr << "range = [" << min << " , " << max << "]" << endl;
-cerr << "width = " << max-min << endl;
-	double maxarr = arrmean * floor(max / arrmean);
-	double minarr = arrmean * ceil(min / arrmean);
-
-	int nbgrad = 1 + (maxarr-minarr)/arrmean;
-cerr << "arrd  = [" << minarr << " , " << maxarr << "]" << endl;
-cerr << "arrmean = " << arrmean << endl;
-cerr << "nbgrad = " << nbgrad << endl;
-if (nbgrad <= 2)
-	    arrmean /= 5;
-	else if (nbgrad <= 4)
-	    arrmean /= 2;
-
-	maxarr = arrmean * floor(max / arrmean);
-	minarr = arrmean * ceil(min / arrmean);
-	nbgrad = 1 + (maxarr-minarr)/arrmean;
-
-cerr << "arrd  = [" << minarr << " , " << maxarr << "]" << endl;
-cerr << "arrmean = " << arrmean << endl;
-cerr << "nbgrad = " << nbgrad << endl;
-	{   int i=0;
-	    g.setcolor (0,0,0);
-	    double grad = minarr + i * arrmean;
-	    //for (i=0 ; i<nbgrad ; i++)
-	    while (grad < max) {
-cerr << "     " << setw(5) << grad << " - " << endl;
-		stringstream label;
-		label << setw(5) << grad;
-		int y = y1 + (y2-y1)*(grad-min)/(max-min);
-		g.putstr (x1-5*8-8, y-8, label.str());
-		g.line   (x1-5, y, x1-1, y);
-		i++;
-		grad = minarr + i * arrmean;
-	    }
-	}
-	g.line (x1-1,y1, x1-1, y2);
-	{   int y = y1 + (y2-y1)*(-min)/(max-min);
-	    if ((y<=y1) && (y>=y2)) {
-		g.line (x1,y,x2,y);	// zero axis
-	    }
-	}
-    }
-    
 
 
     return 0;
@@ -1546,12 +1713,14 @@ cerr << "     " << setw(5) << grad << " - " << endl;
 		// double r = (uridecode.size() > 21) ? atof (uridecode.substr (21).c_str()) : 0;
 		// double r = atof(req.req_fields["r"].c_str());
 		double r = req.req_fields.getd("r");
+		int w = req.req_fields.getl("w");   if (w>4096) w=4096;
+		int h = req.req_fields.getl("h");   if (h>4096) h=4096;
 
 cerr << req << endl;
 cerr << "r (string) =" << req.req_fields["r"] << endl;
 cerr << "         r =" << r << endl;
 
-		GRBitmap g(1024,400);
+		GRBitmap g(w,h);
 
 		if (!g) {
 		    cerr << "the bitmap is unusable !" << endl;
@@ -1683,7 +1852,12 @@ cerr << "         r =" << r << endl;
 	MpCS::const_iterator mi;
 	s << {{<ul>}} << endl;
 	for (mi=mpcs.begin() ; mi!=mpcs.end() ; mi++) {
-	    s << {{<li><a href="/ds/}} << mi->first << {{">}} << mi->first << {{</a></li>}} << endl;
+	    s << {{<li><a href="/ds/}} << mi->first << {{">}} << mi->first << {{</a>}} << endl;
+	    int f;
+	    for (f=0 ; f<mi->second->ptore->getnbfield() ; f++) {
+		s << {{<p><img src="/ds/}} << mi->first << {{?type=png&w=1024&h=192&f=}} << f << {{"></p>}} << endl;
+	    }
+	    s << {{</li>}};
 	}
 	s << {{</ul>}} << endl;
     }
@@ -1774,13 +1948,19 @@ cerr << "lfreq = ";
 		}
 
 		if (req.req_fields["type"] == "png") {
+		    time_t now = time(NULL);
 		    bool haveduration;
 		    double nbdays = req.req_fields.getd("days", haveduration);
 		    if (!haveduration)
 			nbdays=7;
+		    int w = req.req_fields.getl("w", 1024);   if (w>4096) w=4096;
+		    int h = req.req_fields.getl("h", 384);   if (h>4096) h=4096;
+		    int field = req.req_fields.getl("f", 0);
+		    time_t tbeg = req.req_fields.getl("b", now-24*3600);
+		    time_t tend = req.req_fields.getl("e", now);
 
 
-		    GRBitmap g(1024,400);
+		    GRBitmap g(w,h);
 
 		    if (!g) {
 			cerr << "the bitmap is unusable !" << endl;
@@ -1789,13 +1969,13 @@ cerr << "lfreq = ";
 		    }
 
 		    list<double> l;
-		    time_t now = time(NULL);
 		    time_t t;
-		    for (t=now ; t>=now-3600*24*nbdays ; t--) {
-			double v = ptore->V(t, 0);
+		    // for (t=now ; t>=now-3600*24*nbdays ; t--) 
+		    for (t=tbeg ; t<=tend ; t++) {
+			double v = ptore->V(t, field);
 			l.push_back(v);
 		    }
-		    sg (g, l);
+		    sg (g, l, tbeg, tend);
 
 		    g.putstr (640,8, dsname);
 

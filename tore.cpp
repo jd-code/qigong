@@ -235,6 +235,10 @@ if (debugthere != 0) cerr << "                                                  
 	mapallbanks (true);
     }
 
+    int Tore::getnbfield (void) {
+	return nbMPs;
+    }
+
     double Tore::V (time_t t, int no) {
 	time_t last = lastupdate();
 	if (t > last) return NAN;

@@ -84,7 +84,7 @@ namespace qiconn {
 	private:
 	    string name,	// collection name
 		   metaname;	// host or service meta-name (not connection)
-	    int port;		// port for connection
+//	    int port;		// port for connection  JDJDJDJD isn't used ???
 	    FQDNPort fp;	// fqdn name and port for connection
 	    string key, fullkey;
 	    QiCrKey const* qicrkey;

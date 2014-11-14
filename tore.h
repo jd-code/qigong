@@ -134,6 +134,7 @@ namespace qiconn {
 	    }
 	    int insertvalue (time_t t, list<double> const & lv);
 	    double V (time_t t, int no);
+	    int getnbfield (void);
 
 	private:
 	    int readheader (void);
