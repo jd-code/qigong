@@ -1326,6 +1326,33 @@ string theKEY ("JziMb16WKtDCovwKS6ekMBz9uBGsWaKUso/pcHJYRTk= MyDRitse08cmusrP3ND
 	    return freq*((value + shift)/freq)-shift;
     }
 
+
+    //!> generates a tag mark for a value
+    void dmark (double value, ostream &cout) {
+
+static const char mprefix[] = {   'y', 'z', 'a', 'f', 'p', 'n', '\265', 'm', ' ', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y' };
+static const double log1000 = log(1000.0);
+	int orderk = floor (log(fabs(value))/log1000);
+
+	if (orderk < -8) orderk = -8;
+	if (orderk > 7) orderk = 7;
+
+	double mantis = value/pow(1000.0, (double)orderk);
+	if (value == 0.0) {
+	    mantis = 0.0, orderk = 0;
+	}
+
+	int prec;
+	if (mantis < 10) prec = 3;
+	else if (mantis < 100) prec = 2;
+	else prec = 1;
+cerr << "prec = " << prec << endl;
+cerr << "mantis = " << mantis << endl
+     << "orderk = " << orderk << endl;
+	cout << setw(5) << setprecision (prec) << std::fixed << mantis << ' ' << mprefix[orderk+8];
+    }
+
+    //!> generates a tag mark for a time value matching the stepping (gradt)
     void tmark (time_t t, time_t gradt, ostream &cout) {
 
 static const char* dname[] = {   "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
@@ -1370,23 +1397,24 @@ int sg (GRBitmap &g, list<double> const&l, time_t tbeg=0, time_t tend=0) {
 	}
     }
 
+bool debugminmax = false;
     stringstream l1, l2;
+if (debugminmax) {
     l1 << min;
     l2 << max; 
-
+}
     g.clear();
     g.setcolor (255,255,255);
     g.rectangle (0,0, g.texturew, g.textureh);
     g.setcolor (200,0,0);
 
 #define GRMARGIN 4
+if (debugminmax) {
     g.putstr (GRMARGIN, GRMARGIN, l2.str());
     g.putstr (GRMARGIN, g.textureh-16-GRMARGIN, l1.str());
+}
 
-    size_t len = l1.str().length();
-    if (l2.str().length() > len) len = l2.str().length();
-
-    int x1 = GRMARGIN + len * 8 + 8;
+    int x1 = GRMARGIN + 8 * 8 + 8;
     int x2 = g.texturew - GRMARGIN;
     int y1 = g.textureh-8-GRMARGIN-20;
     int y2 = 8+GRMARGIN;
@@ -1549,10 +1577,11 @@ cerr << "nbgrad = " << nbgrad << endl;
 	    while (grad < max) {
 cerr << "     " << setw(5) << grad << " - " << endl;
 		stringstream label;
-		label << setw(5) << grad;
+		// label << setw(5) << grad;
+		dmark (grad, label);
 		int y = y1 + (y2-y1)*(grad-min)/(max-min);
 		g.setcolor (0,0,0);
-		g.putstr (x1-5*8-8, y-8, label.str());
+		g.putstr (x1-7*8-8, y-8, label.str());
 		g.line   (x1-5, y, x1-1, y);
 		g.setcolor (128,128,128);
 		g.line   (x1, y, x2, y);
