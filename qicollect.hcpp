@@ -199,23 +199,23 @@ namespace qiconn {
 
 	    if (pcs != NULL) {
 		    list<double> lv;
-		    size_t q = p;
-		    size_t qq = p;
-		    while (q != string::npos) {
-			string s;
-			qq = bufin.find(':',q+1);
-			if (qq == string::npos)
-			    s = bufin.substr (q+1);
-			else
-			    s = bufin.substr (q+1, qq-q-1);
-			if (s.empty() || (s == "U"))
-			    lv.push_back (NAN);
-			else
-			    lv.push_back(atof(s.c_str()));
-			q = qq;
-		    }
+//		    size_t q = p;
+//		    size_t qq = p;
+//		    while (q != string::npos) {
+//			string s;
+//			qq = bufin.find(':',q+1);
+//			if (qq == string::npos)
+//			    s = bufin.substr (q+1);
+//			else
+//			    s = bufin.substr (q+1, qq-q-1);
+//			if (s.empty() || (s == "U"))
+//			    lv.push_back (NAN);
+//			else
+//			    lv.push_back(atof(s.c_str()));
+//			q = qq;
+//		    }
 		if (pcs->ptore != NULL) {
-		    pcs->ptore->insertvalue (trecord, lv);
+		    pcs->ptore->insertvalue (trecord, bufin, p);
 		} // already warned about data loss when the tore could not be created.
 
 	    } else {
@@ -1598,7 +1598,7 @@ cerr << "     " << setw(5) << grad << " - " << endl;
     }
 
     if (true)
-    {	// spread points
+    {	// min to max + average
 	size_t nbp = l.size();
 	int i = 0;
 	int lastx = -1;
@@ -1619,10 +1619,14 @@ cerr << "     " << setw(5) << grad << " - " << endl;
 			if (*lj < lmin) lmin = *lj;
 			moy += *lj;
 		    }
-		    g.setcolor (200,200,200);
+		    g.setcolor (0,0,0);
+		    g.settransparency (64);
+		    g.setdrawmode (TRANSPARENT);
 		    g.line (	lastx,  y1 + (y2-y1)*(lmin-min)/(max-min),
 				lastx,  y1 + (y2-y1)*(lmax-min)/(max-min)
 			    );
+		    g.setdrawmode (OPAQUE);
+		    g.settransparency (256);
 		    g.setcolor (0,0,0);
 
 		    nx = lastx;
@@ -1915,6 +1919,8 @@ cerr << "         r =" << r << endl;
 		if (dsname == "dummy") {
 		    // tore creation
 		    {
+			double r = req.req_fields.getd("r", 1.0),
+			       noise = req.req_fields.getd("noise", 0.2);
 			string fullname = tore_path + "/dummy.tore";
 			ptore = new Tore (fullname);
 			mustclose = true;
@@ -1956,8 +1962,8 @@ cerr << "lfreq = ";
 			    lv.push_back (0.0);
 			    list<double>::iterator li = lv.begin();
 			    for (t=now - 30 * 24 * 3600  ; t<now ; t+=10) {
-				*li = cos(t/(3600.0+200.0)) * sin (t/(3600.0+230.0)) * 100.0 + 100.0;
-				ptore->insertvalue (t, lv);
+				*li = cos(t/(3600.0+200.0)) * sin (t/(3600.0+230.0)) * r + 1 + noise * (5000.0 - Random(10000))/10000.0;
+				ptore->insertRawvalue (t, lv);
 			    }
 			}
 	

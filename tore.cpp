@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <string.h>	    // strerror
 #include <sys/mman.h>
+#include <stdlib.h>	    // atof
 #include <cmath>	    // NAN / isnan ?
 
 #include <iostream>
@@ -255,13 +256,114 @@ if (debugthere != 0) cerr << "                                                  
 	return NAN;
     }
 
-    int Tore::insertvalue (time_t t, list<double> const & lv) {
+    int Tore::insertvalue (time_t t, const string &in, size_t q /*=0*/) {
 	if (!usable) {
-cerr << "Tore::insertvalue: error, attempt to use an un-usable instance !" << endl;
+cerr << "Tore::[" << filename << "]::insertvalue: error, attempt to use an un-usable instance !" << endl;
 	    return -2;
 	}
 	if (t < lastupdate()) {
 	    cerr << "Tore::" << filename << " recordvalue failed : attempt to register "
+		 << difftime (t, lastupdate()) << "s late" << endl;
+	    return -1;
+	}
+
+	list<double> lv;	
+	size_t i = 0;
+	size_t qq = q;
+	double v;
+	int64_t iv;
+	while (q != string::npos) {
+	    string s;
+	    qq = in.find (':', q+1);
+	    if (qq == string::npos)
+		s = in.substr (q+1);
+	    else
+		s = in.substr (q+1, qq-q-1);
+
+	    q = qq;
+
+	    if (s.empty() || (s == "U")) {
+		lv.push_back (NAN);	    
+		*is_lastv_nan[i] = 1;
+		i++;
+		continue;
+	    }
+
+	    switch (DSdefs[i].kind) {
+		case DSK_UNKNOWN:
+		case DSK_GAUGE:
+		    *is_lastv_nan[i] = 1;   // NAN because unused (and unset) ...
+		    lv.push_back (atof(s.c_str()));
+		    break;
+
+		case DSK_COUNTER:
+		    iv = atoll (s.c_str());
+		    if ((difftime(t, lastupdate()) < basetime) && (*is_lastv_nan[i] == 0)) {
+			if (iv > *lastv[i])
+			    v = iv - *lastv[i];
+			else
+			    v = iv;
+			lv.push_back (v);
+		    } else {
+			lv.push_back (NAN);
+		    }
+		    *lastv[i] = iv;
+		    *is_lastv_nan[i] = 0;   // we have a value for next roll
+		    break;
+
+		case DSK_DERIVE:
+		    iv = atoll (s.c_str());
+//cerr << "iv = " << endl;
+//cerr << "difftime = " << difftime(t, lastupdate()) << endl;
+//cerr << "2*basetime = " << 2*basetime << endl;
+		    if ((difftime(t, lastupdate()) < 2*basetime) && (*is_lastv_nan[i] == 0)) {
+			v = iv - *lastv[i];
+			*lastv[i] = iv;
+//cerr << "v = " << v << endl;
+			lv.push_back (v);
+		    } else {
+//cerr << "v = NAN" << endl;
+			lv.push_back (NAN);
+		    }
+//cerr << endl;
+		    *lastv[i] = iv;
+		    *is_lastv_nan[i] = 0;   // we have a value for next roll
+		    break;
+
+		case DSK_ABSOLUTE:
+		    iv = atoll (s.c_str());
+		    if ((difftime(t, lastupdate()) < basetime) && (*is_lastv_nan[i] == 0)) {
+		        // we have a value only if two reads in a row
+			lv.push_back (iv);
+		    } else {
+			lv.push_back (NAN);
+		    }
+		    *lastv[i] = iv;
+		    *is_lastv_nan[i] = 0;   // we have a value for next roll
+		    break;
+
+		default:
+		    *is_lastv_nan[i] = 1;
+		    lv.push_back (NAN);
+		    break;
+	    }
+	    i++;
+	}
+
+	int r =(*lbanks.begin())->insertvalue (t, lv) >= 0;
+	if (r>=0)
+	    *plastupdate = t;
+	return r;	
+    }
+
+
+    int Tore::insertRawvalue (time_t t, list<double> const & lv) {
+	if (!usable) {
+cerr << "Tore::[" << filename << "]::insertRawvalue: error, attempt to use an un-usable instance !" << endl;
+	    return -2;
+	}
+	if (t < lastupdate()) {
+	    cerr << "Tore::[" << filename << "]::insertRawvalue: recordvalue failed : attempt to register "
 		 << difftime (t, lastupdate()) << "s late" << endl;
 	    return -1;
 	}
@@ -283,14 +385,16 @@ cerr << "Tore::insertvalue: error, attempt to use an un-usable instance !" << en
 
 // offset valid only at creation time (may change any at time)
 #define PROPOFFDSDEF0	64	// offset for the first DS definition
-#define DS_DEF_SIZE	64	// total size of a DS definition
+#define DS_DEF_SIZE	80	// total size of a DS definition
 #define BK_DEF_SIZE	64	// total size of a bank definition
 
 // offsets inside DS definitions
 #define DS_DEFSIZE_OFF	0	// size of DS definitions (incl this size)
 #define DS_NAME_OFF	4	// name of the DS
 #define DS_NAME_MAXLEN	47	// maximum length for a DSname
-#define DS_KIND_OFF	52	// kind of the DS
+#define DS_KIND_OFF	52	// kind of the DS   (32bits)
+#define DS_LASTVALISNAN	56	// 32bits was the last value a NAN (0=no 1=yes)
+#define DS_LASTV	60	// last recorded integer value (64bits)
 
 // offsets inside bank definitions
 #define BK_DEFSIZE_OFF	0	// size of bank definitions (incl this size)
@@ -349,8 +453,11 @@ if (debug_tore) cerr << "base pulse = "	<< basetime << "s" << endl
 		string name (startDSdef + offset + DS_NAME_OFF, DS_NAME_MAXLEN);
 		DSkind kind = (DSkind) *(int32_t *)(startDSdef + offset + DS_KIND_OFF);
 		DSdefs.push_back (toreDSdef(name, kind));
+		is_lastv_nan.push_back ((int32_t *)(startDSdef + offset + DS_LASTVALISNAN));
+		lastv.push_back ((int64_t *)(startDSdef + offset + DS_LASTV));
 		offset += *(int32_t *)(startDSdef + offset + DS_DEFSIZE_OFF);
 if (debug_tore) cerr << "   DS:" << name << ":[" << kind << "]" << endl;
+		
 	    }
 	}
 
@@ -603,7 +710,7 @@ if (debug_tore) cerr << "Tore::" << filename << " unmapheader success" << endl;
 
 
 
-	// writing DS kinds
+	// writing DS kinds and blanking initial lastvalues
 	{   int dsnum;
 	    list<string>::iterator li;
 	    for (dsnum=0,li=DSkinds.begin() ; li!=DSkinds.end() ; li++,dsnum++) {
@@ -614,6 +721,9 @@ if (debug_tore) cerr << "Tore::" << filename << " unmapheader success" << endl;
 		if (kind == DSK_UNKNOWN) {	// JDJDJDJD a previous check should prevent this
 		    cerr << "Tore::" << filename << " Tore::specify warning : unkown kind \"" << *li << "\"" << endl;
 		}
+		// the lastv is NAN
+		*(int32_t *)(mheader + PROPOFFDSDEF0 + dsnum*DS_DEF_SIZE + DS_LASTVALISNAN) = 1;
+		*(int64_t *)(mheader + PROPOFFDSDEF0 + dsnum*DS_DEF_SIZE + DS_LASTV) = 0;
 	    }
 	}
 

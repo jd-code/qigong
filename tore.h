@@ -11,6 +11,7 @@
 
 #include <string>
 #include <list>
+#include <vector>
 
 #include <stdint.h>
 
@@ -98,9 +99,11 @@ namespace qiconn {
 	    int nbMPs;		//!< the number of measures in a row - JDJDJDJD not sure MP stands correct here
 	time_t creationdate;    //!< creation date of the archive
 	int64_t *plastupdate;   //!< pointer to the mapped last update time of the archive
+ vector<int64_t *> lastv;	//!< a vector of pointers to the last values recorded (for diffing and derivations)
+ vector<int32_t *> is_lastv_nan;//!< a vector of pointers to integer stating if the last value was NAN (1=yes=NAN)
 
 	    //! which measures are in each rows
-	    list <toreDSdef> DSdefs;
+	    vector<toreDSdef> DSdefs;
 	    //! current list of banks
 	    list<toreBank*> lbanks;
 
@@ -132,7 +135,8 @@ namespace qiconn {
 	    inline time_t lastupdate (void) {
 		return (time_t) *plastupdate;
 	    }
-	    int insertvalue (time_t t, list<double> const & lv);
+	    int insertvalue (time_t t, const string &in, size_t q=0);
+	    int insertRawvalue (time_t t, list<double> const & lv);
 	    double V (time_t t, int no);
 	    int getnbfield (void);
 
