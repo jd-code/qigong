@@ -99,7 +99,13 @@ namespace qiconn {
 	lastupdate (*plastupdate),
 	map (NULL),
 	nbMPs (nbMPs)
-	{}
+	{
+	    if (lastupdate == TORE_TIME_UNKNOWN)
+		lastupdate = creationdate;
+	    nextdueupdate = (lastupdate == TORE_TIME_UNKNOWN)	?
+				creationdate			:
+				((uint64_t)((lastupdate - creationdate) / freq.interval)+1) * freq.interval + creationdate  ;
+	}
 
     double toreBank::V (time_t t, int no) {
 	size_t index = ((t - creationdate) / freq.interval) % nbmeasures;
@@ -168,6 +174,7 @@ if (debugthere != 0) cerr << "                                                  
 	}
 
 	lastupdate = t;
+	nextdueupdate = (tt+1) * freq.interval + creationdate;
 
 	return 0;
     }
@@ -349,10 +356,62 @@ cerr << "Tore::[" << filename << "]::insertvalue: error, attempt to use an un-us
 	    }
 	    i++;
 	}
+	return pushvalue (t, lv);
+    }
 
-	int r =(*lbanks.begin())->insertvalue (t, lv) >= 0;
+    int Tore::pushvalue (time_t t, list<double> const & lv) {
+
+	list<toreBank*>::iterator li = lbanks.begin();
+	int r = (*li)->insertvalue (t, lv) >= 0;
 	if (r>=0)
 	    *plastupdate = t;
+
+	
+	for (li++  /*(begin+1)*/ ; li != lbanks.end() ; li++) {
+	    if (t >= (*li)->nextdueupdate) {
+		uint64_t ti;
+		long interval = (*li)->freq.interval;
+int nbsuccess = 0;
+int nbfail = 0;
+int nbattempt = 0;
+uint64_t startti = (*li)->lastupdate+1;
+		for (ti=(*li)->lastupdate+1 ; ti<=t ; ti+=interval) {
+		    list<double> lv;
+		    for (int no=0 ; no<nbMPs ; no++) {	// for each MP
+			uint64_t tti;
+			double s = 0;
+			int n = 0;
+			for (tti=ti ; tti<ti+interval ; tti++) {
+			    double v = V(tti, no);
+			    if (!isnan(v)) {
+				s += v, n++;
+			    }
+			}
+			lv.push_back ((n==0)?NAN:s/n);
+		    }
+		    int rr = (*li)->insertvalue (ti+interval-1, lv);	    // JDJDJDJD the return codes are ignored here ?
+		    nbattempt ++;
+if (rr == 0)
+    nbsuccess ++;
+else
+    nbfail ++;
+		}
+
+if (nbattempt == 0) {
+    cerr << " attempts = 0" << endl
+	 << "      tlu = " << (*li)->lastupdate << endl
+	 << "       ti = " << startti << endl
+	 << "      tdu = " << (*li)->nextdueupdate << endl
+	 << "        t = " << t << endl
+	 << "      int = " << interval << endl;
+}
+
+cerr << "  post insert : " << nbsuccess << " ok     (" << interval << ")";
+if (nbfail != 0) cerr << "  " << nbfail << " failed ...";
+cerr << endl;
+	    }
+	}
+
 	return r;	
     }
 
@@ -368,10 +427,7 @@ cerr << "Tore::[" << filename << "]::insertRawvalue: error, attempt to use an un
 	    return -1;
 	}
 
-	int r =(*lbanks.begin())->insertvalue (t, lv) >= 0;
-	if (r>=0)
-	    *plastupdate = t;
-	return r;	
+	return pushvalue (t, lv);
     }
 
 // file offsets
@@ -566,7 +622,7 @@ if (debug_tore) cerr << "Tore::" << filename << " unmapheader success" << endl;
 	if (fd > 0) close (fd);
     }
 
-    int Tore::specify (int basetime, list<CollectFreqDuration> &lfreq, string const &DSdefinition) {
+    int Tore::specify (int basetime, list<CollectFreqDuration> &lfreq, string const &DSdefinition, time_t startingdate /* = TORE_TIME_UNKNOWN */) {
 
 	Tore::basetime = basetime;
 
@@ -665,7 +721,7 @@ if (debug_tore) cerr << "Tore::" << filename << " unmapheader success" << endl;
 	    return -3;
 	}
 
-	creationdate = time(NULL);
+	creationdate = (startingdate == TORE_TIME_UNKNOWN) ? time(NULL): startingdate;
 
 	// writing the number of measure-points
 	*(int32_t *)(mheader + NBMP_OFF) = DSnames.size();

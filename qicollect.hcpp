@@ -1953,7 +1953,7 @@ cerr << "lfreq = ";
     }
 }
 
-			    ptore->specify (base_interval, lfreq, sdef);
+			    ptore->specify (base_interval, lfreq, sdef, time(NULL) - 3600*24*365);
 
 			    // fill in the tore
 			    time_t now = time(NULL), t = now - 30 * 24 * 3600;
@@ -1994,6 +1994,10 @@ cerr << "lfreq = ";
 		    time_t tbeg = req.req_fields.getl("b", now-24*3600);
 		    time_t tend = req.req_fields.getl("e", now);
 
+		    double sd = req.req_fields.getd("sd", NAN);
+		    if (!isnan(sd)) tbeg = time(NULL) - 24*3600 * sd;
+		    double ed = req.req_fields.getd("ed", NAN);
+		    if (!isnan(ed)) tend = time(NULL) - 24*3600 * ed;
 
 		    GRBitmap g(w,h);
 

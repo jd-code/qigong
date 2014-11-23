@@ -2,6 +2,7 @@
 tore:
     badly specified tore files should be marked as such (header checksum at very end ?)
     check for outrageous offsets at re-reading tores !!!!
+    DERIVE doesn't check for min or max value, maybe should ?
 
 all:
     all used of time difference should be checked for their sign !

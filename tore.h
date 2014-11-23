@@ -63,6 +63,7 @@ namespace qiconn {
 	    time_t creationdate;	//!< when the bank (and repository) was created
 					//    is used as a time-offset for indexes calculations
 	    int64_t & lastupdate;	//!< the last update
+	    int64_t nextdueupdate;	//!< the next needed update time (for consolidations)
 	    char *map;			//!< where the bank is mapped
 	    int64_t cycleduration;	//!< how long is a whole bank cycle (s)
 	    int nbMPs;			//!< how many measures in each indexed row
@@ -130,7 +131,9 @@ namespace qiconn {
 
 	    int specify (             int basetime,
 		list<CollectFreqDuration> &lfreq,
-			     string const &DSdefinition  );
+			     string const &DSdefinition,
+			    time_t startingdate = TORE_TIME_UNKNOWN
+			);
 
 	    inline time_t lastupdate (void) {
 		return (time_t) *plastupdate;
@@ -141,6 +144,7 @@ namespace qiconn {
 	    int getnbfield (void);
 
 	private:
+	    int pushvalue (time_t t, list<double> const & lv);
 	    int readheader (void);
 	    int unmapheader (void);
 	    int mapallbanks (bool check=true);
