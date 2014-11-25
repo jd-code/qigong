@@ -392,9 +392,8 @@ uint64_t startti = (*li)->lastupdate+1;
 		    int rr = (*li)->insertvalue (ti+interval-1, lv);	    // JDJDJDJD the return codes are ignored here ?
 		    nbattempt ++;
 if (rr == 0)
-    nbsuccess ++;
-else
-    nbfail ++;
+    cerr << "      it = " << ti+interval-1 << endl;
+if (rr == 0) nbsuccess ++; else nbfail ++;
 		}
 
 if (nbattempt == 0) {

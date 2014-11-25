@@ -19,6 +19,9 @@ vimtest: all localhost.key.priv
 	##	    ./qicollect -debugcrypt -keydir=. -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 
 	##	    ## # ./qicollect -pidfile=/tmp/qicollbuild.pid -logfile=testqicoll.log -conffile=test.conf -rrdpath=`pwd` -nofork -debugconnect -debugccstates -port 1365 && ( telnet localhost 1364 ; tail testqigong.log ) 
 
+pretest: all localhost.key.priv
+	rm -f /tmp/badqi/dummy.tore
+	./qicollect --bind=127.0.0.1:10080 --user=$$USER --access_log=access_log --earlylog -nofork -keydir=/home/jd/srcg/conftestqicollect/keys -logfile=testqicoll.log -conffile=$$HOME/srcg/conftestqicollect/qicollect.conf -torepath=/tmp/badqi -rrdpath=/tmp/badqi -port 1365 -serverkey=basilic2  2>&1  | unbuffer -p tr ':' '='
 
 localhost.key.priv: qigenkey.cpp qicrypt.cpp
 	make qigenkey
