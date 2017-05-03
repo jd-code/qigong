@@ -14,3 +14,5 @@ roadmap:
 	    freetype2	libfreetype6-devb   xfreetype2-devel
 	minimum build is more or less :
 	    ./configure --disable-rrdcgi --disable-perl --disable-tcl --disable-python --prefix=/usr/local
+
+    should put some README.md at some point ?
