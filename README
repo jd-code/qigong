@@ -15,4 +15,4 @@ roadmap:
 	minimum build is more or less :
 	    ./configure --disable-rrdcgi --disable-perl --disable-tcl --disable-python --prefix=/usr/local
 
-    should put some README.md at some point ? do we ? or shall we ??
+    should put some README.md at some point ? do we ? or shall we ?? just do it.
